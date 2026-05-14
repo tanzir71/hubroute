@@ -1,0 +1,6 @@
+.env
+data/
+*.log
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal

@@ -1,9 +1,83 @@
 <?php
 declare(strict_types=1);
 
+function loadEnvFile(string $path): void
+{
+    if (!is_file($path) || !is_readable($path)) {
+        return;
+    }
+
+    foreach (file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [] as $line) {
+        $line = trim($line);
+        if ($line === '' || str_starts_with($line, '#') || !str_contains($line, '=')) {
+            continue;
+        }
+        [$key, $value] = explode('=', $line, 2);
+        $key = trim($key);
+        $value = trim($value);
+        if ($key === '') {
+            continue;
+        }
+        if ((str_starts_with($value, '"') && str_ends_with($value, '"')) || (str_starts_with($value, "'") && str_ends_with($value, "'"))) {
+            $value = substr($value, 1, -1);
+        }
+        if (getenv($key) === false) {
+            putenv($key . '=' . $value);
+            $_ENV[$key] = $value;
+        }
+    }
+}
+
+function envString(string $key, string $default): string
+{
+    $value = getenv($key);
+    return $value === false || $value === '' ? $default : (string)$value;
+}
+
+function envInt(string $key, int $default): int
+{
+    $value = getenv($key);
+    return $value === false || !preg_match('/^\d+$/', (string)$value) ? $default : (int)$value;
+}
+
+function envBool(string $key, bool $default): bool
+{
+    $value = getenv($key);
+    if ($value === false || $value === '') {
+        return $default;
+    }
+    return in_array(strtolower((string)$value), ['1', 'true', 'yes', 'on'], true);
+}
+
+function appPath(string $path): string
+{
+    if (preg_match('/^(?:[A-Za-z]:[\\\\\/]|[\\\\\/])/', $path)) {
+        return $path;
+    }
+    return __DIR__ . DIRECTORY_SEPARATOR . $path;
+}
+
+loadEnvFile(__DIR__ . DIRECTORY_SEPARATOR . '.env');
+
+define('APP_NAME', envString('APP_NAME', 'HubRoute'));
+define('DATA_DIR', appPath(envString('DATA_DIR', 'data')));
+define('DB_PATH', appPath(envString('DB_PATH', DATA_DIR . DIRECTORY_SEPARATOR . 'hubroute.sqlite')));
+define('APP_TIMEZONE', envString('APP_TIMEZONE', 'UTC'));
+define('SESSION_IDLE_TIMEOUT_SECONDS', envInt('SESSION_IDLE_TIMEOUT_SECONDS', 1800));
+define('SESSION_ABSOLUTE_TIMEOUT_SECONDS', envInt('SESSION_ABSOLUTE_TIMEOUT_SECONDS', 28800));
+define('RATE_LIMIT_LOGIN_ATTEMPTS', envInt('RATE_LIMIT_LOGIN_ATTEMPTS', 5));
+define('RATE_LIMIT_LOGIN_WINDOW_SECONDS', envInt('RATE_LIMIT_LOGIN_WINDOW_SECONDS', 900));
+define('RATE_LIMIT_ACTION_ATTEMPTS', envInt('RATE_LIMIT_ACTION_ATTEMPTS', 60));
+define('RATE_LIMIT_ACTION_WINDOW_SECONDS', envInt('RATE_LIMIT_ACTION_WINDOW_SECONDS', 300));
+define('ENABLE_EXTRA_LOGGING', envBool('ENABLE_EXTRA_LOGGING', false));
+
+if (!is_dir(DATA_DIR)) {
+    @mkdir(DATA_DIR, 0775, true);
+}
+
 ini_set('display_errors', '0');
 ini_set('log_errors', '1');
-ini_set('error_log', __DIR__ . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'php-error.log');
+ini_set('error_log', DATA_DIR . DIRECTORY_SEPARATOR . 'php-error.log');
 error_reporting(E_ALL);
 
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') === '443');
@@ -18,16 +92,74 @@ session_set_cookie_params([
 ]);
 session_start();
 
-const APP_NAME = 'HubRoute';
-const DATA_DIR = __DIR__ . DIRECTORY_SEPARATOR . 'data';
-const DB_PATH = DATA_DIR . DIRECTORY_SEPARATOR . 'hubroute.sqlite';
-const APP_TIMEZONE = 'UTC';
-
 date_default_timezone_set(APP_TIMEZONE);
+
+class UserSafeException extends RuntimeException
+{
+}
+
+function sendSecurityHeaders(): void
+{
+    if (headers_sent()) {
+        return;
+    }
+
+    // Customize CSP here if you add external assets, scripts, or API endpoints.
+    header("Content-Security-Policy: default-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'");
+    header('X-Frame-Options: DENY');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+}
+
+function destroySessionOnly(): void
+{
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+    }
+    session_destroy();
+}
+
+function enforceSessionTimeout(): void
+{
+    $now = time();
+    $_SESSION['created_at'] = (int)($_SESSION['created_at'] ?? $now);
+    $_SESSION['last_activity'] = (int)($_SESSION['last_activity'] ?? $now);
+
+    if (!empty($_SESSION['uid'])) {
+        $idleExpired = ($now - (int)$_SESSION['last_activity']) > SESSION_IDLE_TIMEOUT_SECONDS;
+        $absoluteExpired = ($now - (int)$_SESSION['created_at']) > SESSION_ABSOLUTE_TIMEOUT_SECONDS;
+        if ($idleExpired || $absoluteExpired) {
+            destroySessionOnly();
+            header('Location: ?r=login&timeout=1');
+            exit;
+        }
+    }
+
+    $_SESSION['last_activity'] = $now;
+}
+
+sendSecurityHeaders();
+enforceSessionTimeout();
+
+function htmlEscape(?string $s): string
+{
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
 function e(string $s): string
 {
-    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    return htmlEscape($s);
+}
+
+function logAppError(Throwable $e, array $context = []): void
+{
+    error_log((string)$e);
+    if (ENABLE_EXTRA_LOGGING && $context) {
+        error_log('context=' . json_encode($context, JSON_UNESCAPED_SLASHES));
+    }
 }
 
 function hrLower(string $s): string
@@ -51,6 +183,113 @@ function hrSub(string $s, int $start, ?int $length = null): string
         return mb_substr($s, $start, $length, 'UTF-8');
     }
     return $length === null ? substr($s, $start) : substr($s, $start, $length);
+}
+
+function boundedText(string $value, int $maxLength): string
+{
+    $value = trim(preg_replace('/[[:cntrl:]]+/u', ' ', $value) ?? $value);
+    if (hrLen($value) > $maxLength) {
+        $value = hrSub($value, 0, $maxLength);
+    }
+    return $value;
+}
+
+function postText(string $key, int $maxLength = 255): string
+{
+    return boundedText((string)($_POST[$key] ?? ''), $maxLength);
+}
+
+function getText(string $key, int $maxLength = 255): string
+{
+    return boundedText((string)($_GET[$key] ?? ''), $maxLength);
+}
+
+function nullablePositiveInt(string $value): ?int
+{
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+    if (!ctype_digit($value) || (int)$value <= 0) {
+        throw new UserSafeException('Invalid numeric identifier');
+    }
+    return (int)$value;
+}
+
+function postPositiveInt(string $key): int
+{
+    $value = nullablePositiveInt((string)($_POST[$key] ?? ''));
+    if ($value === null) {
+        throw new UserSafeException('Missing numeric identifier');
+    }
+    return $value;
+}
+
+function parseOptionalFloat(string $value, float $min, float $max): ?float
+{
+    $value = trim($value);
+    if ($value === '') {
+        return null;
+    }
+    if (!is_numeric($value)) {
+        throw new UserSafeException('Invalid numeric value');
+    }
+    $float = (float)$value;
+    if ($float < $min || $float > $max) {
+        throw new UserSafeException('Numeric value is outside the allowed range');
+    }
+    return $float;
+}
+
+function parseMoneyCents(string $value): int
+{
+    $value = trim($value);
+    if ($value === '') {
+        return 0;
+    }
+    if (!preg_match('/^\d{1,8}(\.\d{1,2})?$/', $value)) {
+        throw new UserSafeException('Amount must be a positive currency value');
+    }
+    return (int)round(((float)$value) * 100);
+}
+
+function validEmail(string $email): string
+{
+    $email = boundedText($email, 254);
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        throw new UserSafeException('Invalid email address');
+    }
+    return $email;
+}
+
+function parseCsvKeywords(string $raw, int $maxItems = 30, int $maxItemLength = 80): array
+{
+    $keywords = [];
+    foreach (explode(',', $raw) as $item) {
+        $item = boundedText($item, $maxItemLength);
+        if ($item !== '') {
+            $keywords[] = $item;
+        }
+        if (count($keywords) >= $maxItems) {
+            break;
+        }
+    }
+    return array_values(array_unique($keywords));
+}
+
+function allowedStatuses(): array
+{
+    return ['requested','assigned','en_route','picked_up','in_warehouse','out_for_delivery','delivered','failed','returned'];
+}
+
+function cleanStatusFilter(string $status): string
+{
+    return in_array($status, allowedStatuses(), true) ? $status : '';
+}
+
+function allowedEventTypes(): array
+{
+    return ['hub_arrived','hub_departed','in_warehouse','out_for_delivery','returned','failed','note_only','payment_collected','delivered','picked_up','en_route'];
 }
 
 function nowIso(): string
@@ -104,6 +343,23 @@ function redirect(string $r, array $params = []): void
     exit;
 }
 
+function installDataDirectoryDenyFiles(): void
+{
+    if (!is_dir(DATA_DIR)) {
+        @mkdir(DATA_DIR, 0775, true);
+    }
+
+    $deny = DATA_DIR . DIRECTORY_SEPARATOR . '.htaccess';
+    if (!is_file($deny)) {
+        @file_put_contents($deny, "Require all denied\nDeny from all\n");
+    }
+
+    $index = DATA_DIR . DIRECTORY_SEPARATOR . 'index.html';
+    if (!is_file($index)) {
+        @file_put_contents($index, '');
+    }
+}
+
 function db(): PDO
 {
     static $pdo = null;
@@ -114,6 +370,7 @@ function db(): PDO
     if (!is_dir(DATA_DIR)) {
         @mkdir(DATA_DIR, 0775, true);
     }
+    installDataDirectoryDenyFiles();
 
     if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
         throw new RuntimeException('SQLite driver not available. Enable PDO SQLite (pdo_sqlite) and SQLite3 extensions.');
@@ -139,7 +396,7 @@ function renderFatal(string $title, string $message): void
     $safeMsg = nl2br(e($message));
     echo '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         . '<title>' . $safeTitle . '</title>'
-        . '<style>body{font-family:system-ui,Segoe UI,Arial,sans-serif;background:#f7f8fa;color:#111827;margin:0;padding:24px} .card{max-width:820px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:18px} .h1{font-size:20px;font-weight:700;margin:0 0 10px} .muted{color:#6b7280}</style>'
+        . '<style>body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Arial,sans-serif;background:#fff;color:#080808;margin:0;padding:24px}.card{max-width:820px;margin:0 auto;background:#fff;border:1px solid #d8d8d8;border-radius:8px;padding:18px}.h1{font-size:20px;font-weight:700;margin:0 0 10px}.muted{color:#666}</style>'
         . '</head><body><div class="card"><div class="h1">' . $safeTitle . '</div><div>' . $safeMsg . '</div>'
         . '<div class="muted" style="margin-top:12px">Check server error log: <code>data/php-error.log</code></div>'
         . '</div></body></html>';
@@ -256,12 +513,21 @@ function migrateAndSeed(PDO $pdo): void
         FOREIGN KEY (parcel_id) REFERENCES parcels(id)
     )");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS rate_limits (
+        key TEXT PRIMARY KEY,
+        bucket TEXT NOT NULL,
+        attempts INTEGER NOT NULL,
+        window_start INTEGER NOT NULL,
+        last_attempt INTEGER NOT NULL
+    )");
+
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_parcels_status ON parcels(status)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_parcels_assigned_agent ON parcels(assigned_agent_id)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_parcels_hub_pickup ON parcels(hub_pickup_id)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_parcels_tracking ON parcels(tracking_code)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_events_parcel_ts ON events(parcel_id, ts)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_routes_hub_active ON routes(hub_id, active)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_rate_limits_bucket ON rate_limits(bucket, window_start)");
 
     $hubCount = (int)$pdo->query("SELECT COUNT(*) AS c FROM hubs")->fetch()['c'];
     if ($hubCount > 0) {
@@ -568,6 +834,94 @@ function addEvent(PDO $pdo, int $parcelId, string $userType, ?int $userId, ?int 
         ->execute([$parcelId, $userType, $userId, $agentId, $hubId, $routeId, $eventType, $note, $lat, $lng, nowIso()]);
 }
 
+function clientIp(): string
+{
+    $ip = (string)($_SERVER['REMOTE_ADDR'] ?? 'cli');
+    return preg_match('/^[A-Fa-f0-9:.]{2,45}$/', $ip) ? $ip : 'unknown';
+}
+
+function rateLimitKey(string $bucket, string $subject): string
+{
+    return hash('sha256', $bucket . '|' . clientIp() . '|' . $subject);
+}
+
+function checkRateLimit(PDO $pdo, string $bucket, string $subject, int $maxAttempts, int $windowSeconds): void
+{
+    $now = time();
+    $key = rateLimitKey($bucket, $subject);
+    $st = $pdo->prepare("SELECT attempts, window_start FROM rate_limits WHERE key=?");
+    $st->execute([$key]);
+    $row = $st->fetch();
+
+    if (!$row || ($now - (int)$row['window_start']) >= $windowSeconds) {
+        $pdo->prepare("INSERT INTO rate_limits (key,bucket,attempts,window_start,last_attempt)
+            VALUES (?,?,?,?,?)
+            ON CONFLICT(key) DO UPDATE SET attempts=excluded.attempts, window_start=excluded.window_start, last_attempt=excluded.last_attempt")
+            ->execute([$key, $bucket, 1, $now, $now]);
+        return;
+    }
+
+    if ((int)$row['attempts'] >= $maxAttempts) {
+        http_response_code(429);
+        echo 'Too many attempts. Try again later.';
+        exit;
+    }
+
+    $pdo->prepare("UPDATE rate_limits SET attempts=attempts+1, last_attempt=? WHERE key=?")
+        ->execute([$now, $key]);
+}
+
+function clearRateLimit(PDO $pdo, string $bucket, string $subject): void
+{
+    $pdo->prepare("DELETE FROM rate_limits WHERE key=?")
+        ->execute([rateLimitKey($bucket, $subject)]);
+}
+
+function parcelTouchesHub(array $parcel, int $hubId): bool
+{
+    return ((int)$parcel['hub_pickup_id'] === $hubId)
+        || ((int)$parcel['hub_warehouse_id'] === $hubId)
+        || ((int)$parcel['hub_delivery_id'] === $hubId)
+        || ((int)$parcel['current_hub_id'] === $hubId);
+}
+
+function canAccessParcel(array $u, array $parcel): bool
+{
+    $role = (string)$u['role'];
+    if ($role === 'admin') {
+        return true;
+    }
+    if ($role === 'customer') {
+        return (int)$u['customer_id'] === (int)$parcel['customer_id'];
+    }
+    if ($role === 'hub') {
+        return parcelTouchesHub($parcel, (int)$u['hub_id']);
+    }
+    if ($role === 'agent') {
+        return (int)$u['agent_id'] === (int)$parcel['assigned_agent_id'];
+    }
+    return false;
+}
+
+function assertHubOwnsAgentAndRoute(PDO $pdo, int $hubId, ?int $agentId, ?int $routeId): void
+{
+    if ($agentId !== null) {
+        $st = $pdo->prepare("SELECT COUNT(*) FROM agents WHERE id=? AND hub_id=? AND active=1");
+        $st->execute([$agentId, $hubId]);
+        if ((int)$st->fetchColumn() !== 1) {
+            throw new UserSafeException('Selected agent is not available to this hub');
+        }
+    }
+
+    if ($routeId !== null) {
+        $st = $pdo->prepare("SELECT COUNT(*) FROM routes WHERE id=? AND hub_id=? AND active=1");
+        $st->execute([$routeId, $hubId]);
+        if ((int)$st->fetchColumn() !== 1) {
+            throw new UserSafeException('Selected route is not available to this hub');
+        }
+    }
+}
+
 function currentUser(PDO $pdo): ?array
 {
     $id = $_SESSION['uid'] ?? null;
@@ -639,6 +993,12 @@ function mapsUrl(string $address): string
     return 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($address);
 }
 
+function csvCell(string $value): string
+{
+    $value = str_replace(["\r", "\n"], ' ', $value);
+    return preg_match('/^[=+\-@\t]/', $value) ? "'" . $value : $value;
+}
+
 function renderLayout(string $title, ?array $user, string $content, array $meta = []): void
 {
     $refresh = $meta['refresh'] ?? null;
@@ -667,13 +1027,13 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
             $links[] = ['Admin', 'admin'];
         }
         $links[] = ['Public Tracking', 'track'];
-        $links[] = ['Logout', 'logout'];
 
         $navLinks = '';
         foreach ($links as $l) {
             $navLinks .= '<a class="navlink" href="?r=' . e($l[1]) . '">' . e($l[0]) . '</a>';
         }
-        $nav = '<div class="topbar"><div class="brand">' . e(APP_NAME) . '</div><div class="nav">' . $navLinks . '</div><div class="who">' . e((string)$user['email']) . ' · ' . e(roleLabel((string)$user['role'])) . '</div></div>';
+        $logout = '<form method="post" class="navform"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="logout"><button class="navlink navbutton" type="submit">Logout</button></form>';
+        $nav = '<div class="topbar"><div class="brand">' . e(APP_NAME) . '</div><div class="nav">' . $navLinks . $logout . '</div><div class="who">' . e((string)$user['email']) . ' / ' . e(roleLabel((string)$user['role'])) . '</div></div>';
     } else {
         $nav = '<div class="topbar"><div class="brand">' . e(APP_NAME) . '</div><div class="nav"><a class="navlink" href="?r=track">Public Tracking</a><a class="navlink" href="?r=login">Login</a></div></div>';
     }
@@ -685,53 +1045,54 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
         $flashHtml .= '<div class="flash ' . e((string)$t) . '">' . e((string)$msg) . '</div>';
     }
 
-    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' . $refreshTag . '<title>' . e($title) . ' · ' . e(APP_NAME) . '</title>';
+    $footer = '<footer class="footer"><span>' . e(APP_NAME) . '</span><a href="SECURITY.md">Security</a><a href="SETUP.md">Docs</a><a href="README.md">README</a></footer>';
+
+    echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' . $refreshTag . '<title>' . e($title) . ' / ' . e(APP_NAME) . '</title>';
     echo '<style>
-    :root{--bg:#f7f8fa;--card:#fff;--text:#111827;--muted:#6b7280;--border:#e5e7eb;--pri:#2563eb;--danger:#dc2626;}
-    *{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg)}
-    a{color:var(--pri);text-decoration:none}a:hover{text-decoration:underline}
-    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20}
-    .brand{font-weight:700}
-    .nav{display:flex;gap:10px;flex-wrap:wrap}
-    .navlink{padding:6px 8px;border-radius:8px;color:var(--text)}
-    .navlink:hover{background:#f1f5f9;text-decoration:none}
+    :root{--bg:#fff;--card:#fff;--text:#080808;--muted:#666;--border:#d8d8d8;--soft:#f4f4f4;--pri:#080808;--danger:#8a1111;}
+    *{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg)}
+    a{color:var(--text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}a:hover{color:#555}
+    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,255,255,.94);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
+    .brand{font-weight:750;letter-spacing:0}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .navform{margin:0}
+    .navlink{display:inline-flex;align-items:center;padding:6px 8px;border-radius:6px;color:var(--text);text-decoration:none}
+    .navlink:hover{background:var(--soft);text-decoration:none}
+    .navbutton{border:0;background:transparent;font:inherit;cursor:pointer}
     .who{color:var(--muted);font-size:12px}
-    .wrap{max-width:1200px;margin:0 auto;padding:16px}
+    .wrap{max-width:1200px;margin:0 auto;padding:18px}
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:980px){.grid.cols2{grid-template-columns:2fr 1fr}}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
-    .h1{font-size:18px;font-weight:700;margin:0 0 8px}
+    @media(min-width:980px){.grid.cols2{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+    .h1{font-size:18px;font-weight:750;margin:0 0 8px;letter-spacing:0}
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text);cursor:pointer}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:6px;border:1px solid var(--text);background:#fff;color:var(--text);cursor:pointer;text-decoration:none;font:inherit}
     .btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
     .btn:disabled{opacity:.45;cursor:not-allowed}
-    input,select,textarea{width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--border);background:#fff}
+    input,select,textarea{width:100%;padding:9px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text);font:inherit}
+    input:focus,select:focus,textarea:focus,.btn:focus-visible,.navlink:focus-visible{outline:2px solid #111;outline-offset:2px}
     textarea{min-height:90px;resize:vertical}
     label{display:block;font-size:12px;color:var(--muted);margin:6px 0}
     .form{display:grid;gap:10px}
     .table{width:100%;border-collapse:collapse}
     .table th{position:sticky;top:52px;background:var(--card);text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);padding:10px}
     .table td{border-bottom:1px solid var(--border);padding:10px;vertical-align:top}
-    .pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--border);background:#f8fafc}
-    .pill.bg-blue{background:#dbeafe;border-color:#bfdbfe}
-    .pill.bg-indigo{background:#e0e7ff;border-color:#c7d2fe}
-    .pill.bg-amber{background:#fef3c7;border-color:#fde68a}
-    .pill.bg-purple{background:#ede9fe;border-color:#ddd6fe}
-    .pill.bg-teal{background:#ccfbf1;border-color:#99f6e4}
-    .pill.bg-green{background:#dcfce7;border-color:#bbf7d0}
-    .pill.bg-red{background:#fee2e2;border-color:#fecaca}
-    .pill.bg-orange{background:#ffedd5;border-color:#fed7aa}
-    .flash{padding:10px 12px;border-radius:10px;margin:0 0 10px;border:1px solid var(--border);background:#fff}
-    .flash.ok{border-color:#bbf7d0;background:#f0fdf4}
-    .flash.err{border-color:#fecaca;background:#fef2f2}
+    .pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--border);background:#fff}
+    .pill.bg-blue,.pill.bg-indigo,.pill.bg-amber,.pill.bg-purple,.pill.bg-teal,.pill.bg-green,.pill.bg-red,.pill.bg-orange{background:var(--soft);border-color:var(--border)}
+    .flash{padding:10px 12px;border-radius:8px;margin:0 0 10px;border:1px solid var(--border);background:#fff}
+    .flash.ok{border-color:#111;background:#f8f8f8}
+    .flash.err{border-color:var(--danger);background:#fff}
     .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
     @media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
-    .kpi{padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:#fff}
+    .kpi{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff}
     .kpi .n{font-size:18px;font-weight:800}
     .kpi .l{font-size:12px;color:var(--muted)}
+    .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .footer a{color:var(--muted)}
+    @media(max-width:720px){.topbar{align-items:flex-start;flex-direction:column}.who{order:2}.wrap{padding:12px}.card{padding:12px}.table th{position:static}}
     </style>';
-    echo '</head><body>' . $nav . '<div class="wrap">' . $flashHtml . $content . '</div></body></html>';
+    echo '</head><body>' . $nav . '<div class="wrap">' . $flashHtml . $content . '</div>' . $footer . '</body></html>';
 }
 
 function pageLogin(PDO $pdo): void
@@ -748,8 +1109,18 @@ function pageLogin(PDO $pdo): void
 function actionLogin(PDO $pdo): void
 {
     csrfCheck();
-    $email = trim((string)($_POST['email'] ?? ''));
+    $emailRaw = postText('email', 254);
     $password = (string)($_POST['password'] ?? '');
+    $rateSubject = hash('sha256', hrLower($emailRaw));
+    checkRateLimit($pdo, 'login', $rateSubject, RATE_LIMIT_LOGIN_ATTEMPTS, RATE_LIMIT_LOGIN_WINDOW_SECONDS);
+
+    try {
+        $email = validEmail($emailRaw);
+    } catch (UserSafeException $e) {
+        flash('err', 'Invalid credentials');
+        redirect('login');
+    }
+
     $stmt = $pdo->prepare("SELECT * FROM users WHERE email=? AND active=1");
     $stmt->execute([$email]);
     $u = $stmt->fetch();
@@ -757,26 +1128,25 @@ function actionLogin(PDO $pdo): void
         flash('err', 'Invalid credentials');
         redirect('login');
     }
+    clearRateLimit($pdo, 'login', $rateSubject);
     session_regenerate_id(true);
     $_SESSION['uid'] = (int)$u['id'];
+    $_SESSION['created_at'] = time();
+    $_SESSION['last_activity'] = time();
     flash('ok', 'Welcome back');
     redirect('dashboard');
 }
 
 function actionLogout(): void
 {
-    $_SESSION = [];
-    if (ini_get('session.use_cookies')) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
-    }
-    session_destroy();
+    csrfCheck();
+    destroySessionOnly();
     redirect('login');
 }
 
 function pagePublicTrack(PDO $pdo): void
 {
-    $code = trim((string)($_GET['code'] ?? ''));
+    $code = preg_replace('/[^A-Za-z0-9_-]/', '', getText('code', 64)) ?? '';
     $hasCode = $code !== '';
     $content = '<div class="grid cols2">';
     $content .= '<div class="card"><div class="h1">Track a Parcel</div><div class="muted">Enter a tracking code to see current status and hub-to-hub movement.</div>';
@@ -896,7 +1266,7 @@ function pageCustomerParcels(PDO $pdo, array $u): void
 {
     requireRole($u, ['customer']);
     $cid = (int)$u['customer_id'];
-    $status = trim((string)($_GET['status'] ?? ''));
+    $status = cleanStatusFilter(getText('status', 40));
     $sql = "SELECT p.*, a.name AS agent_name FROM parcels p LEFT JOIN agents a ON a.id=p.assigned_agent_id WHERE p.customer_id=?";
     $params = [$cid];
     if ($status !== '') {
@@ -954,23 +1324,20 @@ function actionCustomerCreate(PDO $pdo, array $u): void
 {
     requireRole($u, ['customer']);
     csrfCheck();
-    $pickup = trim((string)($_POST['pickup_address'] ?? ''));
-    $dropoff = trim((string)($_POST['dropoff_address'] ?? ''));
-    $amount = trim((string)($_POST['amount'] ?? '0'));
-    $pickupWindow = trim((string)($_POST['pickup_window'] ?? ''));
-    $note = trim((string)($_POST['note'] ?? ''));
+    try {
+        $pickup = postText('pickup_address', 500);
+        $dropoff = postText('dropoff_address', 500);
+        $amountCents = parseMoneyCents((string)($_POST['amount'] ?? '0'));
+        $pickupWindow = postText('pickup_window', 80);
+        $note = postText('note', 500);
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('customer_parcels');
+    }
 
     if ($pickup === '' || $dropoff === '') {
         flash('err', 'Pickup and dropoff are required');
         redirect('customer_parcels');
-    }
-
-    $amountCents = 0;
-    if ($amount !== '') {
-        $amountCents = (int)round(((float)$amount) * 100);
-        if ($amountCents < 0) {
-            $amountCents = 0;
-        }
     }
 
     $warehouseHubId = (int)($pdo->query("SELECT id FROM hubs WHERE type='warehouse' ORDER BY id ASC LIMIT 1")->fetchColumn() ?: 0);
@@ -1027,7 +1394,9 @@ function actionCustomerCreate(PDO $pdo, array $u): void
         $pdo->commit();
     } catch (Throwable $e) {
         $pdo->rollBack();
-        throw $e;
+        logAppError($e, ['action' => 'customer_create']);
+        flash('err', 'Request could not be created.');
+        redirect('customer_parcels');
     }
 
     flash('ok', 'Request created. Tracking: ' . $tracking);
@@ -1038,8 +1407,8 @@ function pageHubParcels(PDO $pdo, array $u): void
 {
     requireRole($u, ['hub']);
     $hubId = (int)$u['hub_id'];
-    $status = trim((string)($_GET['status'] ?? ''));
-    $q = trim((string)($_GET['q'] ?? ''));
+    $status = cleanStatusFilter(getText('status', 40));
+    $q = getText('q', 80);
 
     $sql = "SELECT p.*, c.name AS customer_name, a.name AS agent_name, r.name AS route_name
         FROM parcels p
@@ -1129,7 +1498,12 @@ function actionCustomerConfirm(PDO $pdo, array $u): void
 {
     requireRole($u, ['customer']);
     csrfCheck();
-    $parcelId = (int)($_POST['parcel_id'] ?? 0);
+    try {
+        $parcelId = postPositiveInt('parcel_id');
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('customer_parcels');
+    }
 
     $pdo->beginTransaction();
     try {
@@ -1137,16 +1511,16 @@ function actionCustomerConfirm(PDO $pdo, array $u): void
         $st->execute([$parcelId, (int)$u['customer_id']]);
         $p = $st->fetch();
         if (!$p) {
-            throw new RuntimeException('Parcel not found');
+            throw new UserSafeException('Parcel not found');
         }
         if ((string)$p['status'] !== 'delivered') {
-            throw new RuntimeException('Parcel is not delivered');
+            throw new UserSafeException('Parcel is not delivered');
         }
 
         $meta = json_decode((string)$p['metadata'], true);
         $meta = is_array($meta) ? $meta : [];
         if (!empty($meta['customer_confirmed_at'])) {
-            throw new RuntimeException('Already confirmed');
+            throw new UserSafeException('Already confirmed');
         }
         $meta['customer_confirmed_at'] = nowIso();
 
@@ -1155,9 +1529,13 @@ function actionCustomerConfirm(PDO $pdo, array $u): void
         addEvent($pdo, $parcelId, 'customer', (int)$u['id'], null, $p['current_hub_id'] !== null ? (int)$p['current_hub_id'] : null, $p['route_id'] !== null ? (int)$p['route_id'] : null, 'customer_confirmed', 'Customer confirmed receipt', null, null);
         $pdo->commit();
         flash('ok', 'Receipt confirmed');
-    } catch (Throwable $e) {
+    } catch (UserSafeException $e) {
         $pdo->rollBack();
         flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'customer_confirm']);
+        flash('err', 'Request could not be completed.');
     }
     redirect('parcel', ['id' => (string)$parcelId]);
 }
@@ -1167,11 +1545,15 @@ function actionHubAssign(PDO $pdo, array $u): void
     requireRole($u, ['hub']);
     csrfCheck();
     $hubId = (int)$u['hub_id'];
-    $parcelId = (int)($_POST['parcel_id'] ?? 0);
-    $agentIdRaw = trim((string)($_POST['agent_id'] ?? ''));
-    $routeIdRaw = trim((string)($_POST['route_id'] ?? ''));
-    $agentId = $agentIdRaw !== '' ? (int)$agentIdRaw : null;
-    $routeId = $routeIdRaw !== '' ? (int)$routeIdRaw : null;
+    try {
+        $parcelId = postPositiveInt('parcel_id');
+        $agentId = nullablePositiveInt((string)($_POST['agent_id'] ?? ''));
+        $routeId = nullablePositiveInt((string)($_POST['route_id'] ?? ''));
+        assertHubOwnsAgentAndRoute($pdo, $hubId, $agentId, $routeId);
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('hub_parcels');
+    }
 
     $pdo->beginTransaction();
     try {
@@ -1179,11 +1561,10 @@ function actionHubAssign(PDO $pdo, array $u): void
         $st->execute([$parcelId]);
         $p = $st->fetch();
         if (!$p) {
-            throw new RuntimeException('Parcel not found');
+            throw new UserSafeException('Parcel not found');
         }
-        $touchesHub = ((int)$p['hub_pickup_id'] === $hubId) || ((int)$p['hub_warehouse_id'] === $hubId) || ((int)$p['hub_delivery_id'] === $hubId) || ((int)$p['current_hub_id'] === $hubId);
-        if (!$touchesHub) {
-            throw new RuntimeException('Parcel is not visible to this hub');
+        if (!parcelTouchesHub($p, $hubId)) {
+            throw new UserSafeException('Parcel is not visible to this hub');
         }
 
         $now = nowIso();
@@ -1199,7 +1580,7 @@ function actionHubAssign(PDO $pdo, array $u): void
                 WHERE id=? AND status='requested'");
             $upd->execute([$agentId, $routeId, $newStatus, $now, $parcelId]);
             if ($upd->rowCount() !== 1) {
-                throw new RuntimeException('Parcel was updated by another user; retry');
+                throw new UserSafeException('Parcel was updated by another user; retry');
             }
         } else {
             $upd = $pdo->prepare("UPDATE parcels
@@ -1216,9 +1597,13 @@ function actionHubAssign(PDO $pdo, array $u): void
 
         $pdo->commit();
         flash('ok', 'Assignment updated');
-    } catch (Throwable $e) {
+    } catch (UserSafeException $e) {
         $pdo->rollBack();
         flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'hub_assign']);
+        flash('err', 'Assignment could not be updated.');
     }
 
     redirect('hub_parcels');
@@ -1276,30 +1661,30 @@ function actionHubCreateRoute(PDO $pdo, array $u): void
     requireRole($u, ['hub']);
     csrfCheck();
     $hubId = (int)$u['hub_id'];
-    $name = trim((string)($_POST['name'] ?? ''));
-    $keywordsRaw = trim((string)($_POST['keywords'] ?? ''));
-    $assignedAgentRaw = trim((string)($_POST['assigned_agent_id'] ?? ''));
-    $centerLatRaw = trim((string)($_POST['center_lat'] ?? ''));
-    $centerLngRaw = trim((string)($_POST['center_lng'] ?? ''));
-    $radiusRaw = trim((string)($_POST['radius_km'] ?? ''));
+    try {
+        $name = postText('name', 80);
+        $keywordsRaw = postText('keywords', 500);
+        $assignedAgent = nullablePositiveInt((string)($_POST['assigned_agent_id'] ?? ''));
+        $centerLat = parseOptionalFloat((string)($_POST['center_lat'] ?? ''), -90, 90);
+        $centerLng = parseOptionalFloat((string)($_POST['center_lng'] ?? ''), -180, 180);
+        $radiusKm = parseOptionalFloat((string)($_POST['radius_km'] ?? ''), 0, 1000);
+        assertHubOwnsAgentAndRoute($pdo, $hubId, $assignedAgent, null);
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('hub_routes');
+    }
 
     if ($name === '' || $keywordsRaw === '') {
         flash('err', 'Name and keywords required');
         redirect('hub_routes');
     }
 
-    $keywords = [];
-    foreach (explode(',', $keywordsRaw) as $k) {
-        $k = trim($k);
-        if ($k !== '') {
-            $keywords[] = $k;
-        }
+    $keywords = parseCsvKeywords($keywordsRaw);
+    if (count($keywords) === 0) {
+        flash('err', 'At least one keyword is required');
+        redirect('hub_routes');
     }
 
-    $assignedAgent = $assignedAgentRaw !== '' ? (int)$assignedAgentRaw : null;
-    $centerLat = $centerLatRaw !== '' ? (float)$centerLatRaw : null;
-    $centerLng = $centerLngRaw !== '' ? (float)$centerLngRaw : null;
-    $radiusKm = $radiusRaw !== '' ? (float)$radiusRaw : null;
     $pdo->prepare("INSERT INTO routes (hub_id,name,match_keywords,assigned_agent_id,active,center_lat,center_lng,radius_km,created_at) VALUES (?,?,?,?,?,?,?,?,?)")
         ->execute([$hubId, $name, json_encode($keywords, JSON_UNESCAPED_UNICODE), $assignedAgent, 1, $centerLat, $centerLng, $radiusKm, nowIso()]);
     flash('ok', 'Route created');
@@ -1309,12 +1694,16 @@ function actionHubCreateRoute(PDO $pdo, array $u): void
 function pageScan(PDO $pdo, array $u): void
 {
     requireRole($u, ['hub', 'agent', 'admin']);
-    $tracking = trim((string)($_GET['code'] ?? ''));
+    $tracking = preg_replace('/[^A-Za-z0-9_-]/', '', getText('code', 64)) ?? '';
     $parcel = null;
     if ($tracking !== '') {
         $st = $pdo->prepare("SELECT p.*, a.name AS agent_name, h.name AS hub_name FROM parcels p LEFT JOIN agents a ON a.id=p.assigned_agent_id LEFT JOIN hubs h ON h.id=p.current_hub_id WHERE p.tracking_code=?");
         $st->execute([$tracking]);
         $parcel = $st->fetch();
+        if ($parcel && !canAccessParcel($u, $parcel)) {
+            $parcel = null;
+            flash('err', 'Parcel is not visible to your account');
+        }
     }
 
     $content = '<div class="grid cols2">';
@@ -1360,19 +1749,29 @@ function actionRecordEvent(PDO $pdo, array $u): void
 {
     requireRole($u, ['hub', 'agent', 'admin']);
     csrfCheck();
-    $parcelId = (int)($_POST['parcel_id'] ?? 0);
-    $eventType = trim((string)($_POST['event_type'] ?? ''));
-    $note = trim((string)($_POST['note'] ?? ''));
-    $latRaw = trim((string)($_POST['lat'] ?? ''));
-    $lngRaw = trim((string)($_POST['lng'] ?? ''));
-    $lat = $latRaw !== '' ? (float)$latRaw : null;
-    $lng = $lngRaw !== '' ? (float)$lngRaw : null;
+    try {
+        $parcelId = postPositiveInt('parcel_id');
+        $eventType = postText('event_type', 40);
+        $note = postText('note', 500);
+        $lat = parseOptionalFloat((string)($_POST['lat'] ?? ''), -90, 90);
+        $lng = parseOptionalFloat((string)($_POST['lng'] ?? ''), -180, 180);
+        if (!in_array($eventType, allowedEventTypes(), true)) {
+            throw new UserSafeException('Invalid event type');
+        }
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('scan');
+    }
 
     $st = $pdo->prepare("SELECT p.* FROM parcels p WHERE p.id=?");
     $st->execute([$parcelId]);
     $p = $st->fetch();
     if (!$p) {
         flash('err', 'Parcel not found');
+        redirect('scan');
+    }
+    if (!canAccessParcel($u, $p)) {
+        flash('err', 'Parcel is not visible to your account');
         redirect('scan');
     }
 
@@ -1405,6 +1804,9 @@ function actionRecordEvent(PDO $pdo, array $u): void
         if (in_array($eventType, ['en_route','picked_up','in_warehouse','out_for_delivery','delivered','failed','returned'], true)) {
             $statusUpdate = $eventType;
         }
+        if ($u['role'] === 'agent' && $statusUpdate !== null && !in_array($eventType, allowedNextStatuses((string)$p['status']), true)) {
+            throw new UserSafeException('Invalid transition');
+        }
 
         if ($eventType === 'payment_collected') {
             addEvent($pdo, $parcelId, $userType, (int)$u['id'], $agentId, $hubId, $routeId, 'payment_collected', $note !== '' ? $note : 'Payment collected', $lat, $lng);
@@ -1429,9 +1831,13 @@ function actionRecordEvent(PDO $pdo, array $u): void
         }
         $pdo->commit();
         flash('ok', 'Event recorded');
-    } catch (Throwable $e) {
+    } catch (UserSafeException $e) {
         $pdo->rollBack();
         flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'record_event']);
+        flash('err', 'Event could not be recorded.');
     }
 
     redirect('scan', ['code' => (string)$p['tracking_code']]);
@@ -1508,21 +1914,7 @@ function pageParcelDetail(PDO $pdo, array $u): void
     }
 
     $role = (string)$u['role'];
-    if ($role === 'customer' && (int)$u['customer_id'] !== (int)$p['customer_id']) {
-        http_response_code(403);
-        echo 'Forbidden';
-        return;
-    }
-    if ($role === 'hub') {
-        $hid = (int)$u['hub_id'];
-        $touchesHub = ((int)$p['hub_pickup_id'] === $hid) || ((int)$p['hub_warehouse_id'] === $hid) || ((int)$p['hub_delivery_id'] === $hid) || ((int)$p['current_hub_id'] === $hid);
-        if (!$touchesHub) {
-            http_response_code(403);
-            echo 'Forbidden';
-            return;
-        }
-    }
-    if ($role === 'agent' && (int)$u['agent_id'] !== (int)$p['assigned_agent_id']) {
+    if (!canAccessParcel($u, $p)) {
         http_response_code(403);
         echo 'Forbidden';
         return;
@@ -1651,14 +2043,17 @@ function actionAgentStep(PDO $pdo, array $u): void
 {
     requireRole($u, ['agent']);
     csrfCheck();
-    $parcelId = (int)($_POST['parcel_id'] ?? 0);
-    $toStatus = trim((string)($_POST['to_status'] ?? ''));
-    $note = trim((string)($_POST['note'] ?? ''));
-    $alsoPayment = (string)($_POST['also_payment'] ?? '') === '1';
-    $latRaw = trim((string)($_POST['lat'] ?? ''));
-    $lngRaw = trim((string)($_POST['lng'] ?? ''));
-    $lat = $latRaw !== '' ? (float)$latRaw : null;
-    $lng = $lngRaw !== '' ? (float)$lngRaw : null;
+    try {
+        $parcelId = postPositiveInt('parcel_id');
+        $toStatus = postText('to_status', 40);
+        $note = postText('note', 500);
+        $alsoPayment = (string)($_POST['also_payment'] ?? '') === '1';
+        $lat = parseOptionalFloat((string)($_POST['lat'] ?? ''), -90, 90);
+        $lng = parseOptionalFloat((string)($_POST['lng'] ?? ''), -180, 180);
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('agent_run');
+    }
 
     $agentId = (int)$u['agent_id'];
 
@@ -1668,22 +2063,22 @@ function actionAgentStep(PDO $pdo, array $u): void
         $st->execute([$parcelId]);
         $p = $st->fetch();
         if (!$p) {
-            throw new RuntimeException('Parcel not found');
+            throw new UserSafeException('Parcel not found');
         }
         if ((int)$p['assigned_agent_id'] !== $agentId) {
-            throw new RuntimeException('Not assigned to you');
+            throw new UserSafeException('Not assigned to you');
         }
         $current = (string)$p['status'];
         $allowed = allowedNextStatuses($current);
         if (!in_array($toStatus, $allowed, true)) {
-            throw new RuntimeException('Invalid transition');
+            throw new UserSafeException('Invalid transition');
         }
 
         $now = nowIso();
         $upd = $pdo->prepare("UPDATE parcels SET status=?, updated_at=? WHERE id=? AND status=? AND assigned_agent_id=?");
         $upd->execute([$toStatus, $now, $parcelId, $current, $agentId]);
         if ($upd->rowCount() !== 1) {
-            throw new RuntimeException('Parcel changed; retry');
+            throw new UserSafeException('Parcel changed; retry');
         }
 
         $routeId = $p['route_id'] !== null ? (int)$p['route_id'] : null;
@@ -1696,9 +2091,13 @@ function actionAgentStep(PDO $pdo, array $u): void
 
         $pdo->commit();
         flash('ok', 'Updated');
-    } catch (Throwable $e) {
+    } catch (UserSafeException $e) {
         $pdo->rollBack();
         flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'agent_step']);
+        flash('err', 'Status could not be updated.');
     }
     redirect('parcel', ['id' => (string)$parcelId]);
 }
@@ -1743,30 +2142,38 @@ function actionSettle(PDO $pdo, array $u): void
     requireRole($u, ['hub']);
     csrfCheck();
     $hubId = (int)$u['hub_id'];
-    $pid = (int)($_POST['parcel_id'] ?? 0);
+    try {
+        $pid = postPositiveInt('parcel_id');
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('settlements');
+    }
     $pdo->beginTransaction();
     try {
         $st = $pdo->prepare("SELECT * FROM parcels WHERE id=?");
         $st->execute([$pid]);
         $p = $st->fetch();
         if (!$p) {
-            throw new RuntimeException('Parcel not found');
+            throw new UserSafeException('Parcel not found');
         }
-        $touchesHub = ((int)$p['hub_pickup_id'] === $hubId) || ((int)$p['hub_warehouse_id'] === $hubId) || ((int)$p['hub_delivery_id'] === $hubId) || ((int)$p['current_hub_id'] === $hubId);
-        if (!$touchesHub) {
-            throw new RuntimeException('Not visible to this hub');
+        if (!parcelTouchesHub($p, $hubId)) {
+            throw new UserSafeException('Not visible to this hub');
         }
         $upd = $pdo->prepare("UPDATE parcels SET cod_settled=1, updated_at=? WHERE id=? AND cod_settled=0");
         $upd->execute([nowIso(), $pid]);
         if ($upd->rowCount() !== 1) {
-            throw new RuntimeException('Already settled');
+            throw new UserSafeException('Already settled');
         }
         addEvent($pdo, $pid, 'hub', (int)$u['id'], null, $hubId, $p['route_id'] !== null ? (int)$p['route_id'] : null, 'settlement_marked', 'COD marked settled', null, null);
         $pdo->commit();
         flash('ok', 'Marked settled');
-    } catch (Throwable $e) {
+    } catch (UserSafeException $e) {
         $pdo->rollBack();
         flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'settle']);
+        flash('err', 'Settlement could not be updated.');
     }
     redirect('settlements');
 }
@@ -1774,7 +2181,10 @@ function actionSettle(PDO $pdo, array $u): void
 function pageAdmin(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
-    $tab = (string)($_GET['tab'] ?? 'overview');
+    $tab = getText('tab', 20);
+    if (!in_array($tab, ['overview','hubs','agents','customers'], true)) {
+        $tab = 'overview';
+    }
 
     $content = '<div class="card"><div class="h1">Admin</div><div class="row" style="margin-top:8px">'
         . '<a class="btn" href="?r=admin&tab=overview">Overview</a>'
@@ -1865,24 +2275,31 @@ function actionAdminCreateHub(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
     csrfCheck();
-    $name = trim((string)($_POST['name'] ?? ''));
-    $type = trim((string)($_POST['type'] ?? ''));
-    $address = trim((string)($_POST['address'] ?? ''));
-    $city = trim((string)($_POST['city'] ?? ''));
-    $coverageRaw = trim((string)($_POST['coverage'] ?? ''));
-    $autoAssign = (int)($_POST['auto_assign'] ?? 1);
-
-    $coverage = [];
-    foreach (explode(',', $coverageRaw) as $k) {
-        $k = trim($k);
-        if ($k !== '') {
-            $coverage[] = $k;
+    try {
+        $name = postText('name', 80);
+        $type = postText('type', 20);
+        $address = postText('address', 255);
+        $city = postText('city', 80);
+        $coverageRaw = postText('coverage', 500);
+        $autoAssign = (string)($_POST['auto_assign'] ?? '1') === '1' ? 1 : 0;
+        if ($name === '' || !in_array($type, ['pickup','warehouse','lastmile'], true)) {
+            throw new UserSafeException('Invalid hub details');
         }
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('admin', ['tab' => 'hubs']);
     }
 
-    $pdo->prepare("INSERT INTO hubs (name,type,address,city,coverage_keywords,auto_assign,created_at) VALUES (?,?,?,?,?,?,?)")
-        ->execute([$name, $type, $address !== '' ? $address : null, $city !== '' ? $city : null, json_encode($coverage, JSON_UNESCAPED_UNICODE), $autoAssign ? 1 : 0, nowIso()]);
-    flash('ok', 'Hub created');
+    $coverage = parseCsvKeywords($coverageRaw);
+
+    try {
+        $pdo->prepare("INSERT INTO hubs (name,type,address,city,coverage_keywords,auto_assign,created_at) VALUES (?,?,?,?,?,?,?)")
+            ->execute([$name, $type, $address !== '' ? $address : null, $city !== '' ? $city : null, json_encode($coverage, JSON_UNESCAPED_UNICODE), $autoAssign, nowIso()]);
+        flash('ok', 'Hub created');
+    } catch (Throwable $e) {
+        logAppError($e, ['action' => 'admin_create_hub']);
+        flash('err', 'Hub could not be created.');
+    }
     redirect('admin', ['tab' => 'hubs']);
 }
 
@@ -1890,14 +2307,23 @@ function actionAdminCreateAgent(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
     csrfCheck();
-    $name = trim((string)($_POST['name'] ?? ''));
-    $phone = trim((string)($_POST['phone'] ?? ''));
-    $role = trim((string)($_POST['role'] ?? 'both'));
-    $hubId = (int)($_POST['hub_id'] ?? 0);
-    $email = trim((string)($_POST['email'] ?? ''));
-    $password = (string)($_POST['password'] ?? '');
-    if ($name === '' || $hubId === 0 || $email === '' || $password === '') {
-        flash('err', 'Missing fields');
+    try {
+        $name = postText('name', 80);
+        $phone = postText('phone', 40);
+        $role = postText('role', 20);
+        $hubId = postPositiveInt('hub_id');
+        $email = validEmail((string)($_POST['email'] ?? ''));
+        $password = (string)($_POST['password'] ?? '');
+        if ($name === '' || $password === '' || hrLen($password) < 8 || !in_array($role, ['pickup','delivery','both'], true)) {
+            throw new UserSafeException('Invalid agent details');
+        }
+        $hubCheck = $pdo->prepare("SELECT COUNT(*) FROM hubs WHERE id=?");
+        $hubCheck->execute([$hubId]);
+        if ((int)$hubCheck->fetchColumn() !== 1) {
+            throw new UserSafeException('Selected hub does not exist');
+        }
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
         redirect('admin', ['tab' => 'agents']);
     }
     $pdo->beginTransaction();
@@ -1911,7 +2337,8 @@ function actionAdminCreateAgent(PDO $pdo, array $u): void
         flash('ok', 'Agent created');
     } catch (Throwable $e) {
         $pdo->rollBack();
-        flash('err', $e->getMessage());
+        logAppError($e, ['action' => 'admin_create_agent']);
+        flash('err', 'Agent could not be created.');
     }
     redirect('admin', ['tab' => 'agents']);
 }
@@ -1920,11 +2347,15 @@ function actionAdminCreateCustomer(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
     csrfCheck();
-    $name = trim((string)($_POST['name'] ?? ''));
-    $email = trim((string)($_POST['email'] ?? ''));
-    $password = (string)($_POST['password'] ?? '');
-    if ($name === '' || $email === '' || $password === '') {
-        flash('err', 'Missing fields');
+    try {
+        $name = postText('name', 80);
+        $email = validEmail((string)($_POST['email'] ?? ''));
+        $password = (string)($_POST['password'] ?? '');
+        if ($name === '' || $password === '' || hrLen($password) < 8) {
+            throw new UserSafeException('Invalid customer details');
+        }
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
         redirect('admin', ['tab' => 'customers']);
     }
     $pdo->beginTransaction();
@@ -1938,7 +2369,8 @@ function actionAdminCreateCustomer(PDO $pdo, array $u): void
         flash('ok', 'Customer created');
     } catch (Throwable $e) {
         $pdo->rollBack();
-        flash('err', $e->getMessage());
+        logAppError($e, ['action' => 'admin_create_customer']);
+        flash('err', 'Customer could not be created.');
     }
     redirect('admin', ['tab' => 'customers']);
 }
@@ -1976,15 +2408,15 @@ function routeExport(PDO $pdo, array $u): void
     foreach ($rows as $p) {
         fputcsv($out, [
             (int)$routeId,
-            (string)$route['name'],
-            (string)$route['hub_name'],
-            (string)$p['tracking_code'],
-            (string)$p['pickup_address'],
-            (string)$p['dropoff_address'],
+            csvCell((string)$route['name']),
+            csvCell((string)$route['hub_name']),
+            csvCell((string)$p['tracking_code']),
+            csvCell((string)$p['pickup_address']),
+            csvCell((string)$p['dropoff_address']),
             (int)$p['amount_cents'],
-            (string)$p['status'],
-            (string)($p['agent_name'] ?? ''),
-            (string)$p['customer_name'],
+            csvCell((string)$p['status']),
+            csvCell((string)($p['agent_name'] ?? '')),
+            csvCell((string)$p['customer_name']),
         ]);
     }
     fclose($out);
@@ -1995,8 +2427,8 @@ $pdo = null;
 try {
     $pdo = db();
 } catch (Throwable $e) {
-    error_log((string)$e);
-    renderFatal('HubRoute startup error', $e->getMessage() . "\n\nThis environment does not have SQLite enabled. On shared hosting, enable extensions: pdo_sqlite and sqlite3.");
+    logAppError($e, ['phase' => 'startup']);
+    renderFatal('HubRoute startup error', 'The application could not start. Check that PDO SQLite and SQLite3 are enabled, then review data/php-error.log on the server.');
     exit;
 }
 
@@ -2009,67 +2441,51 @@ if ($pathInfo !== '' && preg_match('#^/track/([A-Za-z0-9_-]+)$#', $pathInfo, $m)
 $action = (string)($_POST['action'] ?? '');
 if ($action !== '') {
     $u = currentUser($pdo);
+    $knownActions = ['login','logout','customer_create','customer_confirm','hub_assign','hub_create_route','record_event','agent_step','settle','admin_create_hub','admin_create_agent','admin_create_customer'];
+    if (!in_array($action, $knownActions, true)) {
+        csrfCheck();
+        http_response_code(400);
+        echo 'Unknown action';
+        exit;
+    }
     if ($action === 'login') {
         actionLogin($pdo);
     }
+    if ($action === 'logout') {
+        actionLogout();
+    }
+    if (!$u) {
+        redirect('login');
+    }
+    checkRateLimit($pdo, 'action', (string)$u['id'] . ':' . $action, RATE_LIMIT_ACTION_ATTEMPTS, RATE_LIMIT_ACTION_WINDOW_SECONDS);
     if ($action === 'customer_create') {
-        if (!$u) {
-            redirect('login');
-        }
         actionCustomerCreate($pdo, $u);
     }
     if ($action === 'customer_confirm') {
-        if (!$u) {
-            redirect('login');
-        }
         actionCustomerConfirm($pdo, $u);
     }
     if ($action === 'hub_assign') {
-        if (!$u) {
-            redirect('login');
-        }
         actionHubAssign($pdo, $u);
     }
     if ($action === 'hub_create_route') {
-        if (!$u) {
-            redirect('login');
-        }
         actionHubCreateRoute($pdo, $u);
     }
     if ($action === 'record_event') {
-        if (!$u) {
-            redirect('login');
-        }
         actionRecordEvent($pdo, $u);
     }
     if ($action === 'agent_step') {
-        if (!$u) {
-            redirect('login');
-        }
         actionAgentStep($pdo, $u);
     }
     if ($action === 'settle') {
-        if (!$u) {
-            redirect('login');
-        }
         actionSettle($pdo, $u);
     }
     if ($action === 'admin_create_hub') {
-        if (!$u) {
-            redirect('login');
-        }
         actionAdminCreateHub($pdo, $u);
     }
     if ($action === 'admin_create_agent') {
-        if (!$u) {
-            redirect('login');
-        }
         actionAdminCreateAgent($pdo, $u);
     }
     if ($action === 'admin_create_customer') {
-        if (!$u) {
-            redirect('login');
-        }
         actionAdminCreateCustomer($pdo, $u);
     }
 
@@ -2088,7 +2504,9 @@ if ($route === 'login') {
     exit;
 }
 if ($route === 'logout') {
-    actionLogout();
+    http_response_code(405);
+    echo 'Use the logout button to submit a CSRF-protected POST.';
+    exit;
 }
 if ($route === 'track') {
     pagePublicTrack($pdo);

@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HubRoute / Secure routing for parcel hubs</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  <style>
+    :root{--bg:#fff;--text:#080808;--muted:#666;--line:#d8d8d8;--soft:#f5f5f5}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    .shell{max-width:1180px;margin:0 auto;padding:0 22px}
+    .nav{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+    .brand{font-weight:760}
+    .links{display:flex;gap:22px;align-items:center;font-size:14px;color:var(--muted)}
+    .links a:hover{color:var(--text)}
+    .hero{padding:76px 0 42px;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,520px);gap:54px;align-items:center}
+    .kicker{font-size:14px;color:var(--muted);margin-bottom:18px}
+    h1{font-size:clamp(44px,7vw,92px);line-height:.94;letter-spacing:0;margin:0 0 24px;max-width:780px}
+    .lead{font-size:20px;line-height:1.55;color:#333;max-width:720px;margin:0 0 28px}
+    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--text);border-radius:6px;padding:12px 16px;font-weight:650}
+    .btn.primary{background:var(--text);color:#fff}
+    .bullets{display:flex;gap:16px;flex-wrap:wrap;color:#333;font-size:14px}
+    .bullets span{border-left:1px solid var(--line);padding-left:14px}
+    .surface-label{font-size:13px;color:var(--muted);margin-bottom:10px}
+    .mockup{border:1px solid var(--text);border-radius:8px;background:#fff;padding:14px;box-shadow:10px 10px 0 #111}
+    .mockbar{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px;font-size:12px;color:var(--muted)}
+    .map{height:190px;border:1px solid var(--line);border-radius:6px;background:linear-gradient(90deg,#fff,#f7f7f7);position:relative;overflow:hidden}
+    .route{position:absolute;left:12%;top:48%;width:74%;height:2px;background:#111}
+    .pin{position:absolute;width:14px;height:14px;border-radius:50%;background:#111;top:calc(48% - 6px)}
+    .pin.a{left:10%}.pin.b{left:48%}.pin.c{right:10%}
+    .rows{display:grid;gap:8px;margin-top:12px}
+    .row{display:grid;grid-template-columns:72px 1fr 74px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:9px;font-size:13px}
+    .pill{border:1px solid var(--line);border-radius:999px;padding:3px 7px;text-align:center;font-size:12px;color:#333}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:28px 0 54px}
+    .metric{border-top:1px solid var(--line);padding-top:16px}
+    .metric strong{display:block;font-size:16px;margin-bottom:4px}
+    section{padding:64px 0;border-top:1px solid var(--line)}
+    .section-head{display:grid;grid-template-columns:240px 1fr;gap:36px;margin-bottom:34px}
+    .eyebrow{color:var(--muted);font-size:14px}
+    h2{font-size:clamp(30px,4vw,56px);line-height:1.02;letter-spacing:0;margin:0}
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{border-top:1px solid var(--text);padding-top:18px}
+    .num{font-size:14px;color:var(--muted);margin-bottom:22px}
+    h3{font-size:21px;line-height:1.15;margin:0 0 12px}
+    p{color:#444;margin:0}
+    .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+    .step{border:1px solid var(--line);border-radius:8px;padding:18px;min-height:210px}
+    .quick{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+    pre{margin:0;background:#0b0b0b;color:#fff;border-radius:8px;padding:18px;overflow:auto;font-size:13px}
+    footer{padding:42px 0 60px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font-size:14px}
+    footer a{text-decoration:underline;text-underline-offset:3px}
+    @media(max-width:860px){.nav{height:auto;padding:18px 0;align-items:flex-start}.links{gap:12px;flex-wrap:wrap}.hero,.section-head,.quick{grid-template-columns:1fr}.hero{padding-top:46px}.metrics,.cards,.flow{grid-template-columns:1fr}.mockup{box-shadow:6px 6px 0 #111}footer{flex-direction:column}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav" aria-label="Main navigation">
+      <a class="brand" href="hubroute.php">HubRoute</a>
+      <div class="links">
+        <a href="#overview">Overview</a>
+        <a href="#outcomes">Outcomes</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#setup">Setup</a>
+        <a href="README.md">README</a>
+        <a href="SECURITY.md">Security</a>
+        <a href="https://github.com/tanzir71/hubroute">github.com</a>
+      </div>
+    </nav>
+
+    <main>
+      <section class="hero" id="overview">
+        <div>
+          <div class="kicker">Secure parcel routing for shared hosting</div>
+          <h1>Find the parcel path worth trusting.</h1>
+          <p class="lead">HubRoute is a PHP 8 and SQLite operations console for pickup hubs, warehouse handoffs, last-mile agents, customer tracking, route assignment, and COD settlement.</p>
+          <div class="actions">
+            <a class="btn primary" href="hubroute.php">Open HubRoute</a>
+            <a class="btn" href="SETUP.md">See Quick Start</a>
+          </div>
+          <div class="bullets">
+            <span>PHP 8 + SQLite</span>
+            <span>Role-based access</span>
+            <span>CSRF-protected operations</span>
+          </div>
+        </div>
+        <div>
+          <div class="surface-label">Operations Surface</div>
+          <div class="mockup" aria-label="HubRoute operations interface preview">
+            <div class="mockbar"><span>Hub Operations</span><span>Live parcel chain</span></div>
+            <div class="map"><div class="route"></div><div class="pin a"></div><div class="pin b"></div><div class="pin c"></div></div>
+            <div class="rows">
+              <div class="row"><strong>HR260514</strong><span>North Pickup to Central Warehouse</span><span class="pill">assigned</span></div>
+              <div class="row"><strong>HR260515</strong><span>Warehouse to East Last-Mile</span><span class="pill">in hub</span></div>
+              <div class="row"><strong>HR260516</strong><span>Out for delivery with COD</span><span class="pill">out</span></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="metrics" aria-label="Security and operations highlights">
+        <div class="metric"><strong>Prepared SQL</strong><span>No user input is concatenated into queries.</span></div>
+        <div class="metric"><strong>Session controls</strong><span>Regeneration, idle timeout, and secure cookies.</span></div>
+        <div class="metric"><strong>Audit-ready</strong><span>Server-side logging, CSP, and repeatable checks.</span></div>
+      </div>
+
+      <section id="outcomes">
+        <div class="section-head">
+          <div class="eyebrow">Built for the real bottleneck</div>
+          <h2>The job is to keep hub movement explainable, not hide it.</h2>
+        </div>
+        <div class="cards">
+          <article class="card"><div class="num">01</div><h3>Route parcels with context</h3><p>Keyword and postcode matching helps pickup hubs assign parcels while preserving the route, agent, and match reasons.</p></article>
+          <article class="card"><div class="num">02</div><h3>Keep custody visible</h3><p>Hub arrival, departure, warehouse, delivery, and payment events form a readable timeline for operators.</p></article>
+          <article class="card"><div class="num">03</div><h3>Give customers a safe view</h3><p>Public tracking uses opaque tracking codes and redacted addresses while authenticated views enforce ownership.</p></article>
+        </div>
+      </section>
+
+      <section id="workflow">
+        <div class="section-head">
+          <div class="eyebrow">How it flows</div>
+          <h2>One path from pickup request to settled delivery.</h2>
+        </div>
+        <div class="flow">
+          <div class="step"><div class="num">1</div><h3>Customer request</h3><p>A customer submits pickup, dropoff, COD amount, and notes through a CSRF-protected form.</p></div>
+          <div class="step"><div class="num">2</div><h3>Hub assignment</h3><p>Hub staff filter visible parcels and assign only routes and agents owned by their hub.</p></div>
+          <div class="step"><div class="num">3</div><h3>Agent run</h3><p>Agents can update only parcels assigned to them, following allowed status transitions.</p></div>
+          <div class="step"><div class="num">4</div><h3>Settlement</h3><p>COD parcels stay visible to authorized hubs until marked settled and logged as an event.</p></div>
+        </div>
+      </section>
+
+      <section id="setup">
+        <div class="quick">
+          <div>
+            <div class="eyebrow">Quick start</div>
+            <h2>Upload, create data storage, open the app.</h2>
+            <p>Namecheap/cPanel deployment steps, file permissions, SQLite setup, and hardening notes live in SETUP.md and SECURITY.md.</p>
+            <div class="actions" style="margin-top:24px">
+              <a class="btn primary" href="SETUP.md">Open Setup</a>
+              <a class="btn" href="SECURITY.md">Review Security</a>
+            </div>
+          </div>
+          <pre><code>cp .env.example .env
+mkdir data
+chmod 750 data
+php -S localhost:8080 hubroute.php</code></pre>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>HubRoute / hardened PHP 8 + SQLite operations console</span>
+      <span><a href="https://github.com/tanzir71/hubroute">GitHub</a> / <a href="README.md">README</a> / <a href="SECURITY.md">Security</a></span>
+    </footer>
+  </div>
+</body>
+</html>
