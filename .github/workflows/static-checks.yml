@@ -23,6 +23,9 @@ jobs:
       - name: Verify demo build and mirror
         run: npm test
 
+      - name: Verify GitHub Pages config
+        run: ruby -e "require 'yaml'; cfg = YAML.load_file('_config.yml'); abort('missing Pages exclude list') unless cfg['exclude'].is_a?(Array)"
+
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:

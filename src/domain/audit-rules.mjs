@@ -48,6 +48,13 @@ export const AUDIT_ACTIONS = {
     requiresAfter: true,
     requiresReason: true
   },
+  user_access_changed: {
+    entityTypes: ["user"],
+    capability: "manage_users_roles",
+    requiresBefore: true,
+    requiresAfter: true,
+    requiresReason: true
+  },
   network_config_changed: {
     entityTypes: ["hub", "zone", "coverage_area", "rate_card", "sla_policy"],
     capability: "manage_hubs_zones_rates_sla",

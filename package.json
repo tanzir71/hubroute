@@ -11,8 +11,8 @@
     "smoke:demo": "node scripts/smoke-demo.mjs",
     "package:php": "node scripts/package-php.mjs",
     "deploy:shared": "npm run package:php",
-    "deploy:vercel": "npm run sync:demo && npm test && npx --yes vercel deploy --prod",
-    "deploy:vercel:preview": "npm run sync:demo && npm test && npx --yes vercel deploy",
+    "maintainer:deploy:demo": "npm run sync:demo && npm test && npx --yes vercel deploy --prod",
+    "maintainer:deploy:demo:preview": "npm run sync:demo && npm test && npx --yes vercel deploy",
     "test:domain": "node --test tests/*.test.mjs",
     "test": "npm run test:domain && npm run check:demo && npm run smoke:demo"
   },

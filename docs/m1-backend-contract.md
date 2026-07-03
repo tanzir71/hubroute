@@ -102,6 +102,8 @@ Required idempotent operations:
 | `admin_create_hub` | PHP form action | 24h | Prevents duplicate hub creation. |
 | `admin_create_agent` | PHP form action | 24h | Prevents duplicate agent/user creation. |
 | `admin_create_customer` | PHP form action | 24h | Prevents duplicate customer/user creation. |
+| `admin_create_user` | PHP form action | 24h | Prevents duplicate production admin creation. |
+| `admin_update_user` | PHP form action | 24h | Prevents duplicate password reset or active/disabled user access changes. |
 | `create_parcel` | `POST /api/parcels` | 24h | Prevents duplicate bookings on retry. |
 | `update_parcel_metadata` | `PATCH /api/parcels/{id}` | 24h | Prevents duplicate metadata corrections on retry. |
 | `bulk_import_parcels` | `POST /api/parcels/bulk-import` | 72h | Prevents duplicate batch import jobs. |
@@ -125,6 +127,7 @@ Audit records are append-only. They must include actor, action, entity type, ent
 | `remittance_created` | `remittance` | `create_remittance` | after |
 | `remittance_mark_paid` | `remittance` | `create_remittance` | before, after |
 | `user_role_changed` | `user` | `manage_users_roles` | before, after, reason |
+| `user_access_changed` | `user` | `manage_users_roles` | before, after, reason |
 | `network_config_changed` | `hub`, `zone`, `coverage_area`, `rate_card`, `sla_policy` | `manage_hubs_zones_rates_sla` | before, after, reason |
 
 ## Authorization Matrix

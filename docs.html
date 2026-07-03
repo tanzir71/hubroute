@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HubRoute Operator Docs</title>
-  <meta name="description" content="Fast HubRoute setup guide for shared hosting, VPS, Vercel demo deploys, and the PHP 8 + SQLite production backend.">
+  <meta name="description" content="Fast HubRoute setup guide for shared hosting, VPS, and the PHP 8 + SQLite production backend.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%232f56d9'/%3E%3Cpath%20d='M6.5%2025.5%20L20.5%2011.5'%20fill='none'%20stroke='%23fff'%20stroke-width='3.4'/%3E%3Cpath%20d='M24%208%20L23.1%2015.7%20L15.9%2014.4%20Z'%20fill='%23fff'/%3E%3Crect%20x='9.3'%20y='19.1'%20width='3.8'%20height='3.8'%20fill='%232f56d9'%20stroke='%23fff'%20stroke-width='1.5'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles/tokens.css">
   <style>
@@ -95,7 +95,7 @@
     <header class="hero">
       <div class="kicker">Documentation</div>
       <h1>Run HubRoute in minutes.</h1>
-      <p class="lead">Extract one generated zip on shared hosting, sync the same PHP + SQLite app to a VPS, or deploy the browser walkthrough to Vercel. HubRoute creates its production SQLite database on first load.</p>
+      <p class="lead">Extract one generated zip on shared hosting or sync the same PHP + SQLite app to a VPS. HubRoute creates its production SQLite database on first load.</p>
       <div class="actions">
         <a class="btn primary" href="#zip-deploy">Zip deploy</a>
         <a class="btn" href="#single-command">Single command</a>
@@ -113,6 +113,7 @@
         <a href="#single-command">Single Command</a>
         <a href="#hosting">Shared Hosting</a>
         <a href="#first-run">First Run</a>
+        <a href="#credential-rotation">Credentials</a>
         <a href="#accounts">Seed Accounts</a>
         <a href="#workflow">How It Works</a>
         <a href="#llm-deploy">LLM Deploy</a>
@@ -130,22 +131,21 @@
           </div>
           <div class="grid">
             <div class="card top">
-              <h3>1. Vercel demo</h3>
-              <p>Run one command to rebuild, test, and deploy the browser walkthrough to Vercel production.</p>
-              <pre><code>npm run deploy:vercel</code></pre>
-            </div>
-            <div class="card top">
-              <h3>2. Shared-host zip</h3>
+              <h3>1. Shared-host zip</h3>
               <p>Run one command, upload <code>dist/hubroute-php-sqlite.zip</code>, extract it, and open <code>/health.php</code>.</p>
               <pre><code>npm run deploy:shared</code></pre>
             </div>
             <div class="card top">
-              <h3>3. One-command SSH</h3>
+              <h3>2. One-command SSH</h3>
               <p>Package and sync the runtime folder in one command with <code>npm run deploy:shared &amp;&amp; rsync ...</code>.</p>
             </div>
             <div class="card top">
-              <h3>4. LLM-assisted deploy</h3>
+              <h3>3. LLM-assisted deploy</h3>
               <p>Point an LLM at the repo and tell it to deploy only the PHP + SQLite app, keeping SQLite as production storage.</p>
+            </div>
+            <div class="card top">
+              <h3>4. Vercel production</h3>
+              <p>Use Vercel only for a deliberate production port with Vercel-supported server runtimes and hosted storage.</p>
             </div>
           </div>
         </section>
@@ -169,15 +169,9 @@
               <pre><code>npm run deploy:shared &amp;&amp; rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/</code></pre>
             </div>
             <div class="card top">
-              <span class="tag">Demo</span>
-              <h3>Vercel static walkthrough</h3>
-              <p>Deploy the browser walkthrough from <code>public/</code>. This is useful for showing the product flow, but it is not the production backend.</p>
-              <pre><code>npm run deploy:vercel</code></pre>
-            </div>
-            <div class="card top">
               <span class="tag">Port Required</span>
               <h3>Vercel production app</h3>
-              <p>Build a Vercel-native version with Next.js or Node routes and hosted SQLite-compatible storage such as libSQL/Turso. Keep the PHP shared-host build intact.</p>
+              <p>Build a Vercel-native production version with Next.js or Node routes and hosted SQLite-compatible storage such as libSQL/Turso. The static demo is maintainer-only.</p>
               <pre><code>vercel build --prod
 vercel deploy --prebuilt --prod</code></pre>
             </div>
@@ -282,7 +276,7 @@ vercel deploy --prebuilt --prod</code></pre>
           <div class="grid">
             <div class="card top">
               <h3>1. Rotate seeded passwords</h3>
-              <p>Change or disable all seeded admin, hub, rider, and customer users before entering real parcel data.</p>
+              <p>Use <code>Admin -&gt; Users</code> to create a production admin, then reset or disable all seeded admin, hub, rider, and customer users.</p>
             </div>
             <div class="card top">
               <h3>2. Protect runtime files</h3>
@@ -299,6 +293,24 @@ vercel deploy --prebuilt --prod</code></pre>
           </div>
         </section>
 
+        <section id="credential-rotation">
+          <div>
+            <div class="eyebrow">Credential Rotation</div>
+            <h2>Replace seed logins before production data enters the system.</h2>
+          </div>
+          <ul class="checks">
+            <li>Log in as <code>admin@hubroute.local</code> with <code>admin1234</code>.</li>
+            <li>Open <code>Admin -&gt; Users</code> and create a production admin with a real email address and a unique temporary password.</li>
+            <li>Log out, then log back in as the production admin.</li>
+            <li>For each seeded user, enter a new unique password or set status to <code>disabled</code>.</li>
+            <li>Disable <code>admin@hubroute.local</code> only after the production admin account is confirmed.</li>
+            <li>Confirm old seed passwords no longer work for admin, hub, agent, and customer accounts.</li>
+            <li>Open <code>Admin -&gt; Audit</code> and confirm the user access changes were recorded.</li>
+            <li>Run <code>php maintenance.php backup</code> after the credential rotation is complete.</li>
+          </ul>
+          <p class="warn">Do not enter real parcel, merchant, rider, or customer data until seeded credentials have been rotated or disabled.</p>
+        </section>
+
         <section id="accounts">
           <div>
             <div class="eyebrow">PHP Seed Accounts</div>
@@ -310,7 +322,7 @@ vercel deploy --prebuilt --prod</code></pre>
             <div class="card"><span class="tag">Agents</span><h3>Rider/agent users</h3><p><code>amina</code>, <code>noah</code>, <code>liam</code>, <code>maya</code>, <code>sofia</code>, <code>owen</code> at <code>@hubroute.local</code> / <code>agent1234</code></p></div>
             <div class="card"><span class="tag">Customers</span><h3>Customer users</h3><p><code>alice@example.com</code>, <code>bob@example.com</code> / <code>customer1234</code></p></div>
           </div>
-          <p class="warn">Rotate or disable every seeded account before entering real parcel, merchant, or customer data.</p>
+          <p class="warn">Rotate or disable every seeded account from <code>Admin -&gt; Users</code> before entering real parcel, merchant, or customer data.</p>
         </section>
 
         <section id="workflow">
@@ -347,22 +359,16 @@ After deploy, rotate or disable all seeded accounts before real operations.</cod
         <section id="vercel">
           <div>
             <div class="eyebrow">Vercel</div>
-            <h2>Use Vercel for the demo, or port production deliberately.</h2>
+            <h2>Use Vercel only for a deliberate production port.</h2>
           </div>
           <div class="grid">
-            <div class="card top">
-              <h3>Static walkthrough</h3>
-              <p>The existing Vercel-friendly path is the browser walkthrough. It is generated into <code>public/index.html</code> and stores changes in browser storage.</p>
-              <pre><code>npm run deploy:vercel</code></pre>
-              <p>For a preview URL first, run <code>npm run deploy:vercel:preview</code>.</p>
-            </div>
             <div class="card top">
               <h3>Production on Vercel</h3>
               <p>A real production Vercel build should be a separate Next.js or Node implementation that preserves the same product rules and uses hosted SQLite-compatible storage.</p>
               <pre><code>vercel deploy --prod</code></pre>
             </div>
           </div>
-          <p class="warn">Do not deploy the PHP + local SQLite zip as a Vercel production backend. The zip is for PHP hosts; Vercel production needs Vercel-supported server runtimes and hosted storage.</p>
+          <p class="warn">Do not deploy the static browser walkthrough as a user deployment. It is maintainer-only. Also do not deploy the PHP + local SQLite zip as a Vercel production backend; the zip is for PHP hosts.</p>
           <pre><code>Port HubRoute to a Vercel-native production app.
 Keep the existing PHP + SQLite shared-hosting build intact.
 Rebuild server behavior in Next.js or Vercel-supported Node routes.
@@ -380,6 +386,7 @@ Deploy with vercel deploy --prod or vercel build --prod followed by vercel deplo
           </div>
           <ul class="checks">
             <li>Do not reuse seeded emails or passwords in production.</li>
+            <li>Use <code>Admin -&gt; Users</code> to create production admins, reset passwords, and disable unused or seeded accounts.</li>
             <li>Keep environment files and SQLite data outside public web paths when possible.</li>
             <li>Use HTTPS, secure session settings, CSRF protection, prepared SQL, and escaped output for the PHP app.</li>
             <li>Use role-based checks for parcel, route, rider, hub, and export operations.</li>

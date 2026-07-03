@@ -10,25 +10,13 @@ Repository: <https://github.com/tanzir71/hubroute>
 
 ## Get Running Fast
 
-Vercel browser demo:
-
-```bash
-npm run deploy:vercel
-```
-
-Vercel preview URL:
-
-```bash
-npm run deploy:vercel:preview
-```
-
 Shared-hosting production zip:
 
 ```bash
 npm run deploy:shared
 ```
 
-The Vercel command rebuilds and verifies the browser walkthrough, then runs `npx --yes vercel deploy --prod`. The shared-host command creates `dist/hubroute-php-sqlite.zip` for upload/extraction on a PHP 8 + SQLite host.
+The shared-host command creates `dist/hubroute-php-sqlite.zip` for upload/extraction on a PHP 8 + SQLite host.
 
 Local smoke run:
 
@@ -50,7 +38,7 @@ One-command SSH deploy:
 npm run deploy:shared && rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/
 ```
 
-LLM-assisted deploy: point an LLM or deployment agent at this repo and use the prompt in [SETUP.md](SETUP.md#option-4-ask-an-llm-or-deployment-agent).
+LLM-assisted deploy: point an LLM or deployment agent at this repo and use the prompt in [SETUP.md](SETUP.md#option-3-ask-an-llm-or-deployment-agent).
 
 Automated backup and cleanup cron:
 
@@ -64,13 +52,7 @@ The command backs up SQLite first, then prunes old terminal parcels, old audit r
 
 Shared hosting and small VPS deployments are the supported production path today: build `dist/hubroute-php-sqlite.zip`, upload/extract it or sync it over SSH, then run the PHP 8 + SQLite app.
 
-Vercel is supported for the static browser walkthrough with:
-
-```bash
-npm run deploy:vercel
-```
-
-That Vercel deployment is a demo only. A production Vercel app should be a separate Vercel-native port using Next.js/Node functions and hosted SQLite-compatible storage such as libSQL/Turso if the product must remain SQLite-based. The PHP + local SQLite production bundle is intentionally kept simple for shared hosts.
+The Vercel browser demo is maintainer-only and is not a user deployment path. A production Vercel app should be a separate Vercel-native port using Next.js/Node functions and hosted SQLite-compatible storage such as libSQL/Turso if the product must remain SQLite-based. The PHP + local SQLite production bundle is intentionally kept simple for shared hosts.
 
 ## Why PHP + SQLite
 
@@ -88,12 +70,14 @@ Technical advantages:
 
 ## Default Seed Accounts
 
-Change these immediately after first deployment.
+Change or disable these immediately after first deployment under `Admin -> Users`.
 
 - Admin: `admin@hubroute.local` / `admin1234`
 - Hubs: `pickuphub@hubroute.local`, `warehouse@hubroute.local`, `eastmile@hubroute.local` / `hub1234`
 - Agents: `amina@hubroute.local`, `noah@hubroute.local`, `liam@hubroute.local`, `maya@hubroute.local`, `sofia@hubroute.local`, `owen@hubroute.local` / `agent1234`
 - Customers: `alice@example.com`, `bob@example.com` / `customer1234`
+
+Production rotation flow: log in as the seeded admin, create a real production admin in `Admin -> Users`, log in as that production admin, then reset or disable every seeded account and confirm old seed passwords fail.
 
 ## Security Posture
 
@@ -105,6 +89,7 @@ Change these immediately after first deployment.
 - SQLite rate limiting for login and POST actions.
 - SQLite-backed idempotency keys for parcel, event, route, settlement, and admin form mutations.
 - SQLite audit log for privileged and custody-affecting mutations.
+- Admin user access control for creating production admins, resetting passwords, and disabling unused or seeded accounts.
 - CLI maintenance for SQLite backups and retention cleanup.
 - CSP and standard browser security headers.
 - Authorization checks for parcel, route, hub, agent, settlement, and CSV access.
@@ -114,7 +99,7 @@ The executable status-transition, authorization, idempotency, and audit-log rule
 
 ## Maintainer Browser Walkthrough
 
-The browser walkthrough is separate from production. It is generated from `src/demo/` into `public/index.html` and stores changes in localStorage.
+The browser walkthrough is separate from production and is maintainer-only. It is generated from `src/demo/` into `public/index.html` and stores changes in localStorage.
 
 ```bash
 npm run sync:demo
@@ -122,6 +107,13 @@ npm run check:demo
 ```
 
 `npm test` runs the domain-rule tests, generated-output checks, and browser walkthrough smoke test.
+
+Internal Vercel demo deploy:
+
+```bash
+npm run maintainer:deploy:demo
+npm run maintainer:deploy:demo:preview
+```
 
 ## Static Security Scan
 

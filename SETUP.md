@@ -8,7 +8,6 @@ HubRoute production is the PHP 8 + SQLite app. No external database is required.
 | --- | --- | --- | --- |
 | Shared hosting / cPanel | Supported production | `npm run deploy:shared` | PHP 8.1+, `pdo_sqlite`, `sqlite3`, writable private data directory, and cron for maintenance. |
 | VPS / SSH host | Supported production | `npm run deploy:shared && rsync ...` | Use Apache, Nginx, or PHP-FPM for traffic. The built-in PHP server is only for smoke tests. |
-| Vercel static walkthrough | Supported demo only | `npm run deploy:vercel` | This deploys the browser walkthrough generated into `public/index.html`; it stores data in browser storage and is not the production backend. |
 | Vercel production app | Requires a Vercel-native port | Next.js/Node functions plus hosted storage | The current PHP + local SQLite bundle is for PHP hosts. A production Vercel version should preserve the product rules while moving server code to Vercel-supported runtimes and using hosted SQLite-compatible storage such as libSQL/Turso if SQLite semantics must remain. |
 
 ## Why PHP + SQLite
@@ -27,23 +26,7 @@ Advantages:
 
 ## Fastest Paths
 
-### Option 1: Vercel browser demo
-
-```bash
-npm run deploy:vercel
-```
-
-This rebuilds the browser walkthrough, runs the test suite, and deploys `public/` to Vercel production with `npx --yes vercel deploy --prod`. The first run may ask you to log in or link the Vercel project.
-
-For a preview URL instead of production:
-
-```bash
-npm run deploy:vercel:preview
-```
-
-Use this path for the interactive Vercel demo only. It does not run the PHP backend or create the production SQLite database.
-
-### Option 2: Shared-hosting production zip
+### Option 1: Shared-hosting production zip
 
 ```bash
 npm run deploy:shared
@@ -65,7 +48,7 @@ The package contains a small `README.txt` plus these runtime files:
 
 `npm run deploy:shared` is an easy name for `npm run package:php`.
 
-### Option 3: One-command SSH deploy
+### Option 2: One-command SSH deploy
 
 From a checked-out repo, replace the host path and run:
 
@@ -76,7 +59,7 @@ npm run deploy:shared && rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:
 Then open `/health.php` and `/`.
 If someone gave you a prebuilt zip, extract it locally and sync the extracted folder instead.
 
-### Option 4: Ask an LLM or deployment agent
+### Option 3: Ask an LLM or deployment agent
 
 Point the LLM at this repository and give it this prompt:
 
@@ -88,24 +71,14 @@ Confirm PHP 8.1+, pdo_sqlite, sqlite3, writable DATA_DIR, /health.php, and the f
 Configure cron to run php maintenance.php run --apply for automated backups and retention cleanup.
 Keep SQLite as production storage. Do not add Postgres, MySQL, Supabase, or another backend.
 If the host allows it, put DATA_DIR outside public_html and leave DB_PATH unset unless needed.
-After deploy, rotate or disable all seeded accounts before real operations.
+After deploy, use Admin -> Users to create a production admin and rotate or disable all seeded accounts before real operations.
 ```
 
-## Vercel Paths
-
-### Browser walkthrough on Vercel
-
-Use this only for the public demo or product walkthrough:
-
-```bash
-npm run deploy:vercel
-```
-
-This path rebuilds and tests the static browser walkthrough from `public/`, then runs `npx --yes vercel deploy --prod`. It does not use the PHP backend, does not create the production SQLite database, and does not run real operations.
-
-### Production build on Vercel
+## Vercel Production Path
 
 Vercel production is possible, but it is not the same artifact as the shared-hosting zip. The existing production backend is PHP 8 + local SQLite, while Vercel production functions run on Vercel-supported runtimes such as Node.js, Edge, Bun, or Rust.
+
+The static Vercel browser demo is maintainer-only and is not a user deployment path.
 
 If a user wants HubRoute production on Vercel, treat it as a Vercel-native port:
 
@@ -140,7 +113,7 @@ Deploy with vercel deploy --prod or vercel build --prod followed by vercel deplo
 7. Open `/health.php` and confirm every check passes.
 8. Open `/` or `/hubroute.php?r=login&demo=hub`.
 9. Confirm `/data/hubroute.sqlite` is not downloadable if `DATA_DIR=data`.
-10. Rotate or disable seeded credentials before entering real parcel/customer data.
+10. Use `Admin -> Users` to create a production admin, then rotate or disable seeded credentials before entering real parcel/customer data.
 11. Add the maintenance cron below for automated backups and old-data cleanup.
 
 ## First Login
@@ -171,6 +144,27 @@ Change these immediately after first deployment.
 - Hubs: `pickuphub@hubroute.local`, `warehouse@hubroute.local`, `eastmile@hubroute.local` / `hub1234`
 - Agents: `amina@hubroute.local`, `noah@hubroute.local`, `liam@hubroute.local`, `maya@hubroute.local`, `sofia@hubroute.local`, `owen@hubroute.local` / `agent1234`
 - Customers: `alice@example.com`, `bob@example.com` / `customer1234`
+
+## Rotate Or Disable Seed Credentials
+
+Do this immediately after the first production deployment and before entering real parcel, merchant, rider, or customer data.
+
+1. Log in as the seeded admin: `admin@hubroute.local` / `admin1234`.
+2. Open `Admin -> Users`.
+3. Create a production admin with a real email address and a unique temporary password of at least 12 characters.
+4. Log out, then log back in as the production admin.
+5. Return to `Admin -> Users`.
+6. For every seeded user, either set a unique production password or set status to `disabled`.
+7. Disable `admin@hubroute.local` after the production admin login is confirmed.
+8. Confirm the old seed passwords no longer work.
+9. Open `Admin -> Audit` and confirm the user access changes were recorded.
+10. Run a backup after rotation:
+
+```bash
+php maintenance.php backup
+```
+
+Use active/disabled status as user access control. Admins can reset passwords, disable unused accounts, re-enable accounts, and create production admin users. Hub, agent, and customer access remains scoped by role and linked hub/agent/customer records.
 
 ## Automated Backups And Cleanup
 

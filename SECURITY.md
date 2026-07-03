@@ -10,6 +10,7 @@
 - Login and POST actions are rate limited per IP/account using SQLite.
 - State-changing forms use SQLite-backed idempotency keys to prevent duplicate parcel, scan/event, route, settlement, and admin writes.
 - Privileged and custody-affecting changes are written to the SQLite `audit_log`.
+- Admin users can create production admins, reset passwords, and activate/deactivate users from `Admin -> Users`.
 - Parcel, route, agent, and settlement access now enforce ownership checks before reads or writes.
 - Hub assignment validates that selected routes and agents belong to the current hub.
 - Security headers include CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and a restrictive `Permissions-Policy`.
@@ -20,13 +21,13 @@
 ## Rotate Keys and Credentials
 
 1. Copy `.env.example` to `.env` and keep `.env` private.
-2. Change all seeded PHP app passwords after first deployment: `admin@hubroute.local`, `pickuphub@hubroute.local`, `warehouse@hubroute.local`, `eastmile@hubroute.local`, agent accounts, and customer accounts.
+2. After first deployment, log in as `admin@hubroute.local`, open `Admin -> Users`, create a real production admin, log in as that production admin, then reset or disable all seeded accounts.
 3. If `.env` is exposed, replace it, rotate all account passwords, and move `DATA_DIR` outside `public_html`.
 4. If the SQLite database is exposed, treat all parcel/customer data as compromised and rotate user passwords.
 
 ## Seeded Account Exposure
 
-The app includes seeded accounts for first-run evaluation. Treat all seeded users as non-production scaffolding: rotate them, disable them, or replace them before handling real parcel/customer data.
+The app includes seeded accounts for first-run evaluation. Treat all seeded users as non-production scaffolding: rotate them, disable them, or replace them before handling real parcel/customer data. Do not disable the seeded admin until a real production admin has been created and tested.
 
 ## Logging
 

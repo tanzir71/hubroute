@@ -58,7 +58,7 @@ await writeFile(
     "2. Enable pdo_sqlite and sqlite3.",
     "3. Open /health.php.",
     "4. Open / or /hubroute.php?r=login&demo=hub.",
-    "5. Rotate seeded passwords before real operations.",
+    "5. Open Admin -> Users, create a production admin, then rotate or disable seeded accounts before real operations.",
     "6. Optional cron: php maintenance.php run --apply",
     "",
     "Default first login:",

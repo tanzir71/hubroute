@@ -318,7 +318,7 @@ function allowedEventTypes(): array
 
 function idempotentOperations(): array
 {
-    return ['customer_create','customer_confirm','hub_assign','hub_create_route','record_event','agent_step','settle','admin_create_hub','admin_create_agent','admin_create_customer'];
+    return ['customer_create','customer_confirm','hub_assign','hub_create_route','record_event','agent_step','settle','admin_create_hub','admin_create_agent','admin_create_customer','admin_create_user','admin_update_user'];
 }
 
 function nowIso(): string
@@ -1162,6 +1162,29 @@ function roleLabel(string $role): string
         'customer' => 'Customer',
         default => $role,
     };
+}
+
+function seededAccountEmails(): array
+{
+    return [
+        'admin@hubroute.local',
+        'pickuphub@hubroute.local',
+        'warehouse@hubroute.local',
+        'eastmile@hubroute.local',
+        'amina@hubroute.local',
+        'noah@hubroute.local',
+        'liam@hubroute.local',
+        'maya@hubroute.local',
+        'sofia@hubroute.local',
+        'owen@hubroute.local',
+        'alice@example.com',
+        'bob@example.com',
+    ];
+}
+
+function isSeededAccountEmail(string $email): bool
+{
+    return in_array(strtolower($email), seededAccountEmails(), true);
 }
 
 function statusPill(string $status): string
@@ -2566,12 +2589,13 @@ function pageAdmin(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
     $tab = queryText('tab', 20);
-    if (!in_array($tab, ['overview','hubs','agents','customers','audit'], true)) {
+    if (!in_array($tab, ['overview','users','hubs','agents','customers','audit'], true)) {
         $tab = 'overview';
     }
 
     $content = '<div class="card"><div class="h1">Admin</div><div class="row" style="margin-top:8px">'
         . '<a class="btn" href="?r=admin&tab=overview">Overview</a>'
+        . '<a class="btn" href="?r=admin&tab=users">Users</a>'
         . '<a class="btn" href="?r=admin&tab=hubs">Hubs</a>'
         . '<a class="btn" href="?r=admin&tab=agents">Agents</a>'
         . '<a class="btn" href="?r=admin&tab=customers">Customers</a>'
@@ -2589,6 +2613,57 @@ function pageAdmin(PDO $pdo, array $u): void
             . '<div class="kpi"><div class="n">' . $k3 . '</div><div class="l">Agents</div></div>'
             . '<div class="kpi"><div class="n">' . $k4 . '</div><div class="l">Events</div></div>'
             . '</div></div>';
+    }
+
+    if ($tab === 'users') {
+        $users = $pdo->query("SELECT u.*, h.name AS hub_name, a.name AS agent_name, c.name AS customer_name
+            FROM users u
+            LEFT JOIN hubs h ON h.id=u.hub_id
+            LEFT JOIN agents a ON a.id=u.agent_id
+            LEFT JOIN customers c ON c.id=u.customer_id
+            ORDER BY u.active DESC, u.role, u.email")->fetchAll();
+        $content .= '<div class="card"><div class="h1">User access control</div><div class="muted">Create a production admin first, then reset or disable every seeded login before real operations.</div>';
+        $content .= '<table class="table"><thead><tr><th>User</th><th>Role</th><th>Scope</th><th>Status</th><th>Access action</th></tr></thead><tbody>';
+        foreach ($users as $row) {
+            $email = (string)$row['email'];
+            $role = (string)$row['role'];
+            $scopeParts = [];
+            if (!empty($row['hub_name'])) {
+                $scopeParts[] = 'Hub: ' . (string)$row['hub_name'];
+            }
+            if (!empty($row['agent_name'])) {
+                $scopeParts[] = 'Agent: ' . (string)$row['agent_name'];
+            }
+            if (!empty($row['customer_name'])) {
+                $scopeParts[] = 'Customer: ' . (string)$row['customer_name'];
+            }
+            $scope = $scopeParts ? implode(' / ', $scopeParts) : 'Global';
+            $isActive = (int)$row['active'] === 1;
+            $seededTag = isSeededAccountEmail($email) ? '<div><span class="pill bg-red">seeded</span></div>' : '';
+            $content .= '<tr>'
+                . '<td>' . e($email) . $seededTag . '<div class="muted" style="font-size:12px">User #' . (int)$row['id'] . '</div></td>'
+                . '<td>' . e(roleLabel($role)) . '</td>'
+                . '<td class="muted">' . e($scope) . '</td>'
+                . '<td>' . ($isActive ? '<span class="pill bg-green">active</span>' : '<span class="pill bg-red">disabled</span>') . '</td>'
+                . '<td><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput()
+                . '<input type="hidden" name="action" value="admin_update_user">'
+                . '<input type="hidden" name="user_id" value="' . (int)$row['id'] . '">'
+                . '<div><label>New password</label><input name="password" type="password" placeholder="Leave blank to keep"></div>'
+                . '<div><label>Status</label><select name="active"><option value="1"' . ($isActive ? ' selected' : '') . '>active</option><option value="0"' . (!$isActive ? ' selected' : '') . '>disabled</option></select></div>'
+                . '<div><label>Reason</label><input name="reason" value="' . (isSeededAccountEmail($email) ? 'Post-deploy seeded credential rotation' : '') . '" required></div>'
+                . '<button class="btn" type="submit">Update access</button>'
+                . '</form></td>'
+                . '</tr>';
+        }
+        $content .= '</tbody></table></div>';
+
+        $content .= '<div class="card"><div class="h1">Create production admin</div><div class="muted">Use this before disabling <code>admin@hubroute.local</code>.</div>'
+            . '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput()
+            . '<input type="hidden" name="action" value="admin_create_user">'
+            . '<div><label>Admin email</label><input name="email" type="email" required></div>'
+            . '<div><label>Temporary password</label><input name="password" type="password" required></div>'
+            . '<button class="btn primary" type="submit">Create admin</button>'
+            . '</form></div>';
     }
 
     if ($tab === 'hubs') {
@@ -2877,6 +2952,166 @@ function actionAdminCreateCustomer(PDO $pdo, array $u): void
     redirect('admin', ['tab' => 'customers']);
 }
 
+function actionAdminCreateUser(PDO $pdo, array $u): void
+{
+    requireRole($u, ['admin']);
+    csrfCheck();
+    try {
+        $email = validEmail((string)($_POST['email'] ?? ''));
+        $password = (string)($_POST['password'] ?? '');
+        if ($password === '' || hrLen($password) < 12) {
+            throw new UserSafeException('Admin temporary password must be at least 12 characters');
+        }
+        if (isSeededAccountEmail($email)) {
+            throw new UserSafeException('Use a real production email, not a seeded account email');
+        }
+        $existing = $pdo->prepare("SELECT COUNT(*) FROM users WHERE email=?");
+        $existing->execute([$email]);
+        if ((int)$existing->fetchColumn() > 0) {
+            throw new UserSafeException('A user with that email already exists');
+        }
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('admin', ['tab' => 'users']);
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $idem = beginIdempotentAction($pdo, $u, 'admin_create_user', [
+            'email' => $email,
+            'role' => 'admin',
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'admin', ['tab' => 'users']);
+        }
+
+        $pdo->prepare("INSERT INTO users (email,password_hash,role,hub_id,agent_id,customer_id,active,created_at) VALUES (?,?,?,?,?,?,?,?)")
+            ->execute([$email, password_hash($password, PASSWORD_DEFAULT), 'admin', null, null, null, 1, nowIso()]);
+        $userId = (int)$pdo->lastInsertId();
+        addAuditLog(
+            $pdo,
+            $u,
+            'user_access_changed',
+            'user',
+            $userId,
+            ['exists' => false],
+            [
+                'email' => $email,
+                'role' => 'admin',
+                'active' => 1,
+                'password_reset' => true,
+            ],
+            'Production admin created'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'admin', ['tab' => 'users']);
+        $pdo->commit();
+        flash('ok', 'Production admin created. Log in as that user before disabling the seeded admin.');
+    } catch (UserSafeException $e) {
+        $pdo->rollBack();
+        flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'admin_create_user']);
+        flash('err', 'Admin user could not be created.');
+    }
+    redirect('admin', ['tab' => 'users']);
+}
+
+function actionAdminUpdateUser(PDO $pdo, array $u): void
+{
+    requireRole($u, ['admin']);
+    csrfCheck();
+    try {
+        $userId = postPositiveInt('user_id');
+        $newActive = (string)($_POST['active'] ?? '1') === '1' ? 1 : 0;
+        $password = (string)($_POST['password'] ?? '');
+        $reason = postText('reason', 255);
+        if ($reason === '') {
+            throw new UserSafeException('A reason is required for user access changes');
+        }
+        if ($password !== '' && hrLen($password) < 8) {
+            throw new UserSafeException('New password must be at least 8 characters');
+        }
+    } catch (UserSafeException $e) {
+        flash('err', $e->getMessage());
+        redirect('admin', ['tab' => 'users']);
+    }
+
+    $pdo->beginTransaction();
+    try {
+        $st = $pdo->prepare("SELECT * FROM users WHERE id=?");
+        $st->execute([$userId]);
+        $target = $st->fetch();
+        if (!$target) {
+            throw new UserSafeException('Selected user does not exist');
+        }
+        if ((int)$target['id'] === (int)$u['id'] && $newActive === 0) {
+            throw new UserSafeException('You cannot disable your own active session');
+        }
+        if ((string)$target['role'] === 'admin' && (int)$target['active'] === 1 && $newActive === 0) {
+            $admins = $pdo->query("SELECT COUNT(*) FROM users WHERE role='admin' AND active=1")->fetchColumn();
+            if ((int)$admins <= 1) {
+                throw new UserSafeException('Create another active admin before disabling the last admin');
+            }
+        }
+
+        $idem = beginIdempotentAction($pdo, $u, 'admin_update_user', [
+            'user_id' => $userId,
+            'active' => $newActive,
+            'password_reset' => $password !== '',
+            'reason' => $reason,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'admin', ['tab' => 'users']);
+        }
+
+        $before = [
+            'email' => (string)$target['email'],
+            'role' => (string)$target['role'],
+            'active' => (int)$target['active'],
+        ];
+        $after = $before;
+        $after['active'] = $newActive;
+        $after['password_reset'] = $password !== '';
+
+        if ($password !== '') {
+            $pdo->prepare("UPDATE users SET password_hash=?, active=? WHERE id=?")
+                ->execute([password_hash($password, PASSWORD_DEFAULT), $newActive, $userId]);
+        } else {
+            $pdo->prepare("UPDATE users SET active=? WHERE id=?")
+                ->execute([$newActive, $userId]);
+        }
+
+        if ((int)$target['agent_id'] > 0) {
+            $pdo->prepare("UPDATE agents SET active=? WHERE id=?")
+                ->execute([$newActive, (int)$target['agent_id']]);
+        }
+
+        addAuditLog(
+            $pdo,
+            $u,
+            'user_access_changed',
+            'user',
+            $userId,
+            $before,
+            $after,
+            $reason,
+            ['seeded_account' => isSeededAccountEmail((string)$target['email'])]
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'admin', ['tab' => 'users']);
+        $pdo->commit();
+        flash('ok', 'User access updated');
+    } catch (UserSafeException $e) {
+        $pdo->rollBack();
+        flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'admin_update_user']);
+        flash('err', 'User access could not be updated.');
+    }
+    redirect('admin', ['tab' => 'users']);
+}
+
 function routeExport(PDO $pdo, array $u): void
 {
     requireRole($u, ['hub', 'admin']);
@@ -2946,7 +3181,7 @@ $action = (string)($_POST['action'] ?? '');
 if ($action !== '') {
     $pdo = bootDbOrFail();
     $u = currentUser($pdo);
-    $knownActions = ['login','logout','customer_create','customer_confirm','hub_assign','hub_create_route','record_event','agent_step','settle','admin_create_hub','admin_create_agent','admin_create_customer'];
+    $knownActions = ['login','logout','customer_create','customer_confirm','hub_assign','hub_create_route','record_event','agent_step','settle','admin_create_hub','admin_create_agent','admin_create_customer','admin_create_user','admin_update_user'];
     if (!in_array($action, $knownActions, true)) {
         csrfCheck();
         http_response_code(400);
@@ -2992,6 +3227,12 @@ if ($action !== '') {
     }
     if ($action === 'admin_create_customer') {
         actionAdminCreateCustomer($pdo, $u);
+    }
+    if ($action === 'admin_create_user') {
+        actionAdminCreateUser($pdo, $u);
+    }
+    if ($action === 'admin_update_user') {
+        actionAdminUpdateUser($pdo, $u);
     }
 
     http_response_code(400);

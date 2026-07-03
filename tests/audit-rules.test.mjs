@@ -21,6 +21,7 @@ test("audit registry references known authorization capabilities", () => {
     "remittance_created",
     "remittance_mark_paid",
     "route_run_update",
+    "user_access_changed",
     "user_role_changed"
   ]);
 });
@@ -104,6 +105,33 @@ test("unknown audit actions fail closed", () => {
       entityId: "user_1"
     }),
     ["unknown audit action: unknown_action"]
+  );
+});
+
+test("user access changes require before, after, and reason", () => {
+  assert.deepEqual(
+    validateAuditEntry({
+      actorId: "admin_1",
+      action: "user_access_changed",
+      entityType: "user",
+      entityId: "user_1",
+      before: { active: true },
+      after: { active: false },
+      reason: "seed account disabled after production admin created"
+    }),
+    []
+  );
+
+  assert.deepEqual(
+    validateAuditEntry({
+      actorId: "admin_1",
+      action: "user_access_changed",
+      entityType: "user",
+      entityId: "user_1",
+      before: { active: true },
+      after: { active: false }
+    }),
+    ["user_access_changed requires a reason"]
   );
 });
 

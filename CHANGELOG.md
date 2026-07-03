@@ -3,10 +3,12 @@
 ## 2026-07-04
 
 - Added CLI-only SQLite maintenance for automated backups, retention cleanup, and cron-friendly production pruning.
+- Added admin user access control for creating production admins, resetting passwords, and disabling seeded or unused accounts.
 - Added `npm run package:php` for a fresh shared-hosting zip and rewrote setup docs around zip extraction, one-command deploys, and LLM-assisted deployment.
-- Added `npm run deploy:vercel`, `npm run deploy:vercel:preview`, and `npm run deploy:shared` as easy deployment entry points.
+- Added `npm run deploy:shared` as the user production deployment entry point and moved Vercel demo deployment behind maintainer-only scripts.
 - Documented why PHP + SQLite is the preferred first production target for older shared-host infrastructure, emerging-market deployments, and low startup cost.
-- Documented shared-hosting, VPS, Vercel static walkthrough, and Vercel-native production deployment paths.
+- Documented shared-hosting, VPS, and Vercel-native production paths while marking the static Vercel demo as maintainer-only.
+- Added a GitHub Pages Jekyll config so Pages publishes only the static landing/docs assets instead of the PHP app, Node source, tests, zips, and runtime files.
 - Fixed the PHP + SQLite handoff path by aligning `index.php`, `health.php`, `.env.example`, setup docs, and seeded-account docs with `hubroute.php`.
 - Resolved the backend direction to simple PHP 8 + SQLite and updated the build plan/M1 contract accordingly.
 - Added SQLite-backed idempotency and audit tables to the PHP backend, idempotency keys on mutating forms, and an admin audit-log view.
