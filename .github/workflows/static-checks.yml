@@ -22,3 +22,15 @@ jobs:
 
       - name: Verify demo build and mirror
         run: npm test
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: pdo_sqlite, sqlite3
+
+      - name: Verify PHP runtime files
+        run: php -l index.php && php -l health.php && php -l hubroute.php && php -l maintenance.php
+
+      - name: Package PHP shared-hosting zip
+        run: npm run package:php

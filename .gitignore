@@ -1,6 +1,7 @@
 .env
 node_modules/
 data/
+dist/
 *.log
 *.sqlite
 *.sqlite-shm

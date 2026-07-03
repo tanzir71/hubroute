@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HubRoute Operator Docs</title>
-  <meta name="description" content="Step-by-step HubRoute setup guide for the PHP 8 + SQLite production backend, hosted browser demo, GitHub landing page, and operator first-run checklist.">
+  <meta name="description" content="Fast HubRoute setup guide for shared hosting, VPS, Vercel demo deploys, and the PHP 8 + SQLite production backend.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%232f56d9'/%3E%3Cpath%20d='M6.5%2025.5%20L20.5%2011.5'%20fill='none'%20stroke='%23fff'%20stroke-width='3.4'/%3E%3Cpath%20d='M24%208%20L23.1%2015.7%20L15.9%2014.4%20Z'%20fill='%23fff'/%3E%3Crect%20x='9.3'%20y='19.1'%20width='3.8'%20height='3.8'%20fill='%232f56d9'%20stroke='%23fff'%20stroke-width='1.5'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles/tokens.css">
   <style>
@@ -82,8 +82,11 @@
       </span><span>HubRoute</span></a>
       <div class="links">
         <a href="index.html">Landing</a>
-        <a href="https://hubroute.vercel.app/">Demo</a>
-        <a href="#hosting">Setup</a>
+        <a href="#quick-start">Setup</a>
+        <a href="#targets">Targets</a>
+        <a href="#why-php">Why PHP</a>
+        <a href="#zip-deploy">Zip</a>
+        <a href="#llm-deploy">LLM Deploy</a>
         <a href="#security">Security</a>
         <a href="https://github.com/tanzir71/hubroute">GitHub</a>
       </div>
@@ -91,25 +94,29 @@
 
     <header class="hero">
       <div class="kicker">Documentation</div>
-      <h1>Step-by-step setup for HubRoute.</h1>
-      <p class="lead">HubRoute production runs on the simple PHP 8 + SQLite backend. The Vercel site is only the browser demo, and the landing/docs stay on GitHub Pages.</p>
+      <h1>Run HubRoute in minutes.</h1>
+      <p class="lead">Extract one generated zip on shared hosting, sync the same PHP + SQLite app to a VPS, or deploy the browser walkthrough to Vercel. HubRoute creates its production SQLite database on first load.</p>
       <div class="actions">
-        <a class="btn primary" href="https://hubroute.vercel.app/">Open demo</a>
-        <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Public tracking</a>
-        <a class="btn" href="index.html">Back to landing</a>
+        <a class="btn primary" href="#zip-deploy">Zip deploy</a>
+        <a class="btn" href="#single-command">Single command</a>
+        <a class="btn" href="#llm-deploy">LLM prompt</a>
       </div>
     </header>
 
     <main class="layout">
       <aside class="toc" aria-label="Docs sections">
         <strong>On This Page</strong>
-        <a href="#quick-start">Overview</a>
-        <a href="#local-run">Local Run</a>
+        <a href="#quick-start">Fast Start</a>
+        <a href="#targets">Deployment Targets</a>
+        <a href="#why-php">Why PHP</a>
+        <a href="#zip-deploy">Zip Deploy</a>
+        <a href="#single-command">Single Command</a>
         <a href="#hosting">Shared Hosting</a>
         <a href="#first-run">First Run</a>
         <a href="#accounts">Seed Accounts</a>
         <a href="#workflow">How It Works</a>
-        <a href="#static-demo">Vercel Demo</a>
+        <a href="#llm-deploy">LLM Deploy</a>
+        <a href="#vercel">Vercel</a>
         <a href="#security">Security</a>
         <a href="#operations">Operations</a>
         <a href="#troubleshooting">Troubleshooting</a>
@@ -118,42 +125,137 @@
       <div class="docs">
         <section id="quick-start">
           <div>
-            <div class="eyebrow">Overview</div>
-            <h2>There are three surfaces. Only one is the production backend.</h2>
+            <div class="eyebrow">Fast Start</div>
+            <h2>Pick the easiest path for your host.</h2>
           </div>
           <div class="grid">
             <div class="card top">
-              <h3>1. PHP + SQLite app</h3>
-              <p>Run <code>hubroute.php</code> on PHP 8.1+ with PDO SQLite enabled. This is the production backend and source of truth.</p>
+              <h3>1. Vercel demo</h3>
+              <p>Run one command to rebuild, test, and deploy the browser walkthrough to Vercel production.</p>
+              <pre><code>npm run deploy:vercel</code></pre>
             </div>
             <div class="card top">
-              <h3>2. Vercel browser demo</h3>
-              <p>Serves generated files from <code>public/</code>. It is a localStorage walkthrough for prospects, not the production database.</p>
+              <h3>2. Shared-host zip</h3>
+              <p>Run one command, upload <code>dist/hubroute-php-sqlite.zip</code>, extract it, and open <code>/health.php</code>.</p>
+              <pre><code>npm run deploy:shared</code></pre>
             </div>
             <div class="card top">
-              <h3>3. GitHub Pages</h3>
-              <p>Serves the landing page and these docs from <code>index.html</code> and <code>docs.html</code>. It does not run PHP.</p>
+              <h3>3. One-command SSH</h3>
+              <p>Package and sync the runtime folder in one command with <code>npm run deploy:shared &amp;&amp; rsync ...</code>.</p>
             </div>
             <div class="card top">
-              <h3>4. SQLite data</h3>
-              <p>The live app stores users, parcels, events, idempotency keys, audit logs, and configuration in <code>data/hubroute.sqlite</code>.</p>
+              <h3>4. LLM-assisted deploy</h3>
+              <p>Point an LLM at the repo and tell it to deploy only the PHP + SQLite app, keeping SQLite as production storage.</p>
             </div>
           </div>
         </section>
 
-        <section id="local-run">
+        <section id="targets">
           <div>
-            <div class="eyebrow">Local Run</div>
-            <h2>Run the production backend on your machine.</h2>
+            <div class="eyebrow">Deployment Targets</div>
+            <h2>Choose the host before choosing the command.</h2>
+          </div>
+          <div class="grid">
+            <div class="card top">
+              <span class="tag">Production</span>
+              <h3>Shared hosting / cPanel</h3>
+              <p>Use the generated PHP + SQLite zip. Upload, extract, open <code>/health.php</code>, then schedule <code>php maintenance.php run --apply</code>.</p>
+              <pre><code>npm run deploy:shared</code></pre>
+            </div>
+            <div class="card top">
+              <span class="tag">Production</span>
+              <h3>VPS / SSH host</h3>
+              <p>Package locally and sync the runtime folder to Apache, Nginx, or PHP-FPM. Keep the SQLite data directory writable and private.</p>
+              <pre><code>npm run deploy:shared &amp;&amp; rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/</code></pre>
+            </div>
+            <div class="card top">
+              <span class="tag">Demo</span>
+              <h3>Vercel static walkthrough</h3>
+              <p>Deploy the browser walkthrough from <code>public/</code>. This is useful for showing the product flow, but it is not the production backend.</p>
+              <pre><code>npm run deploy:vercel</code></pre>
+            </div>
+            <div class="card top">
+              <span class="tag">Port Required</span>
+              <h3>Vercel production app</h3>
+              <p>Build a Vercel-native version with Next.js or Node routes and hosted SQLite-compatible storage such as libSQL/Turso. Keep the PHP shared-host build intact.</p>
+              <pre><code>vercel build --prod
+vercel deploy --prebuilt --prod</code></pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="why-php">
+          <div>
+            <div class="eyebrow">Why PHP + SQLite</div>
+            <h2>Production starts where operators already host software.</h2>
+          </div>
+          <p>HubRoute uses PHP + SQLite deliberately. Many courier, merchant, and local-operations teams in emerging markets begin with shared hosting, cPanel, FTP/SFTP, or a small VPS instead of containers, managed databases, and always-on app servers.</p>
+          <div class="grid">
+            <div class="card top">
+              <span class="tag">Compatibility</span>
+              <h3>Runs on older infrastructure</h3>
+              <p>PHP 8 + SQLite works on common LAMP-style hosts, shared hosting plans, Apache/Nginx/PHP-FPM setups, and small VPSes.</p>
+            </div>
+            <div class="card top">
+              <span class="tag">Cost</span>
+              <h3>Low startup cost</h3>
+              <p>No managed database, queue, Redis service, object storage account, container registry, or always-on app server is required.</p>
+            </div>
+            <div class="card top">
+              <span class="tag">Operations</span>
+              <h3>Simple backup and support</h3>
+              <p>SQLite keeps early production data in one file, so backup, restore, staging copies, and support handoff stay straightforward.</p>
+            </div>
+            <div class="card top">
+              <span class="tag">Runtime</span>
+              <h3>Host-managed workers</h3>
+              <p>PHP's request-scoped lifecycle lets the host manage workers, memory cleanup, process restarts, HTTPS, and logs.</p>
+            </div>
+            <div class="card top">
+              <span class="tag">Security</span>
+              <h3>Mature platform primitives</h3>
+              <p>The app uses PDO prepared statements, <code>password_hash()</code>, standard sessions, CSRF tokens, CSP headers, and role checks.</p>
+            </div>
+            <div class="card top">
+              <span class="tag">Upgrade Path</span>
+              <h3>Start simple, move later</h3>
+              <p>The same product rules can move to a Vercel-native or managed-database version later without raising the first deployment cost.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="zip-deploy">
+          <div>
+            <div class="eyebrow">Zip Deploy</div>
+            <h2>Shared hosting can be a zip extraction.</h2>
           </div>
           <div class="flow">
-            <div class="step"><b>1. Check PHP</b><p>Install PHP 8.1+ with <code>pdo_sqlite</code> and <code>sqlite3</code> enabled.</p></div>
-            <div class="step"><b>2. Create config</b><p>Use defaults for a quick run, or copy <code>.env.example</code> to <code>.env</code> for custom paths, timezone, or timeouts.</p></div>
-            <div class="step"><b>3. Start server</b><p>Run the built-in PHP server from the repository root.</p></div>
+            <div class="step"><b>1. Build zip</b><p>Create a fresh package from the current PHP runtime files.</p></div>
+            <div class="step"><b>2. Extract</b><p>Upload the zip to <code>public_html</code> or the subdomain folder and extract it.</p></div>
+            <div class="step"><b>3. Open</b><p>Visit <code>/health.php</code>, then <code>/</code>. First load creates SQLite.</p></div>
           </div>
-          <pre><code>mkdir -p data
-php -S 127.0.0.1:8080</code></pre>
-          <p>Open <code>http://127.0.0.1:8080/</code>. First load creates the SQLite database, seeded users, runtime denial files, and log file.</p>
+          <pre><code>npm run deploy:shared</code></pre>
+          <p>The package is written to <code>dist/hubroute-php-sqlite.zip</code> and contains the PHP app, CLI maintenance command, health check, environment example, root denial rules, empty protected <code>data/</code> folder, and a tiny <code>README.txt</code>. If you received a prebuilt zip, skip the command and upload/extract that file.</p>
+        </section>
+
+        <section id="single-command">
+          <div>
+            <div class="eyebrow">Single Command</div>
+            <h2>Run locally or sync to an SSH host.</h2>
+          </div>
+          <div class="grid">
+            <div class="card top">
+              <h3>Local smoke run</h3>
+              <p>Use PHP's built-in server to confirm the app boots before uploading.</p>
+              <pre><code>php -S 127.0.0.1:8080</code></pre>
+            </div>
+            <div class="card top">
+              <h3>SSH deploy</h3>
+              <p>Replace <code>USER</code>, <code>HOST</code>, and the host path.</p>
+              <pre><code>npm run deploy:shared &amp;&amp; rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/</code></pre>
+            </div>
+          </div>
+          <p class="warn">Use the built-in PHP server for local smoke tests only. For production traffic, run through your shared host, Apache, Nginx, or PHP-FPM setup.</p>
         </section>
 
         <section id="hosting">
@@ -163,7 +265,7 @@ php -S 127.0.0.1:8080</code></pre>
           </div>
           <ul class="checks">
             <li>Set the domain or subdomain to PHP 8.1+ and enable <code>pdo_sqlite</code> plus <code>sqlite3</code>.</li>
-            <li>Upload only <code>hubroute.php</code>, <code>health.php</code>, <code>index.php</code>, <code>.htaccess</code>, and <code>.env.example</code> to the app directory.</li>
+            <li>Upload only <code>hubroute.php</code>, <code>maintenance.php</code>, <code>health.php</code>, <code>index.php</code>, <code>.htaccess</code>, and <code>.env.example</code> to the app directory.</li>
             <li>Create a writable <code>data/</code> directory, or copy <code>.env.example</code> to <code>.env</code> and set <code>DATA_DIR</code> to a private path outside <code>public_html</code>.</li>
             <li>Leave <code>DB_PATH</code> commented unless the SQLite file needs a different path from <code>DATA_DIR/hubroute.sqlite</code>.</li>
             <li>Visit <code>/health.php</code> and confirm PHP version, PDO SQLite, SQLite3, directory writability, database writability, and SQLite write all pass.</li>
@@ -226,40 +328,55 @@ Dhaka North Pickup -> Tejgaon Sortation -> Chattogram Delivery
 Savar Pickup/Return -> Tejgaon Sortation -> Dhaka North Delivery</code></pre>
         </section>
 
-        <section id="static-demo">
+        <section id="llm-deploy">
           <div>
-            <div class="eyebrow">Vercel Demo</div>
-            <h2>Deploy only the browser demo to Vercel.</h2>
+            <div class="eyebrow">LLM Deploy</div>
+            <h2>Give this repo to an LLM or deployment agent.</h2>
+          </div>
+          <p>Use this when a customer has an AI coding agent, hosting control panel agent, or assistant that can read the repository and operate their hosting account.</p>
+          <pre><code>Deploy HubRoute from this repo as the PHP 8 + SQLite production app.
+Use only hubroute.php, maintenance.php, index.php, health.php, .htaccess, .env.example, and the data denial files.
+Do not deploy the browser walkthrough, Node source, static output, .git, .env, logs, or SQLite databases.
+Confirm PHP 8.1+, pdo_sqlite, sqlite3, writable DATA_DIR, /health.php, and the first login.
+Configure cron to run php maintenance.php run --apply for automated SQLite backups and retention cleanup.
+Keep SQLite as production storage. Do not add Postgres, MySQL, Supabase, or another backend.
+If the host allows it, put DATA_DIR outside public_html and leave DB_PATH unset unless needed.
+After deploy, rotate or disable all seeded accounts before real operations.</code></pre>
+        </section>
+
+        <section id="vercel">
+          <div>
+            <div class="eyebrow">Vercel</div>
+            <h2>Use Vercel for the demo, or port production deliberately.</h2>
           </div>
           <div class="grid">
             <div class="card top">
-              <h3>1. Edit demo source</h3>
-              <p>Make browser-demo changes under <code>src/demo/</code> and shared visual token changes under <code>styles/tokens.css</code>.</p>
+              <h3>Static walkthrough</h3>
+              <p>The existing Vercel-friendly path is the browser walkthrough. It is generated into <code>public/index.html</code> and stores changes in browser storage.</p>
+              <pre><code>npm run deploy:vercel</code></pre>
+              <p>For a preview URL first, run <code>npm run deploy:vercel:preview</code>.</p>
             </div>
             <div class="card top">
-              <h3>2. Build generated files</h3>
-              <p>Run <code>npm run sync:demo</code>. This regenerates <code>public/index.html</code> and mirrors <code>vercel-demo/index.html</code>.</p>
-            </div>
-            <div class="card top">
-              <h3>3. Verify before deploy</h3>
-              <p>Run <code>npm test</code>. It checks domain rules, generated demo drift, and demo smoke rendering.</p>
-            </div>
-            <div class="card top">
-              <h3>4. Push demo to Vercel</h3>
-              <p>Run <code>vercel deploy --prod --yes</code>. Vercel serves the <code>public/</code> output directory and aliases <code>hubroute.vercel.app</code>.</p>
+              <h3>Production on Vercel</h3>
+              <p>A real production Vercel build should be a separate Next.js or Node implementation that preserves the same product rules and uses hosted SQLite-compatible storage.</p>
+              <pre><code>vercel deploy --prod</code></pre>
             </div>
           </div>
-          <pre><code>npm run sync:demo
-npm test
-vercel deploy --prod --yes</code></pre>
-          <p>The browser demo accounts are <code>pickuphub@hubroute.local</code>, <code>sortation@hubroute.local</code>, <code>ctghub@hubroute.local</code>, and <code>savarhub@hubroute.local</code> with password <code>hub1234</code>. They live only in localStorage.</p>
-          <p class="warn">Do not point Vercel at the root landing page. The landing page and docs belong on GitHub Pages; Vercel is for the generated browser demo.</p>
+          <p class="warn">Do not deploy the PHP + local SQLite zip as a Vercel production backend. The zip is for PHP hosts; Vercel production needs Vercel-supported server runtimes and hosted storage.</p>
+          <pre><code>Port HubRoute to a Vercel-native production app.
+Keep the existing PHP + SQLite shared-hosting build intact.
+Rebuild server behavior in Next.js or Vercel-supported Node routes.
+Preserve auth, RBAC, status transitions, idempotency, audit logging, CSV export, public tracking, and maintenance retention rules.
+Use hosted SQLite-compatible storage such as libSQL/Turso if production must stay SQLite-based.
+Do not replace SQLite with Postgres, MySQL, Supabase, or another backend unless the project owner explicitly changes the database decision.
+Configure Vercel environment variables, a production build, and a cron route for backup/cleanup behavior.
+Deploy with vercel deploy --prod or vercel build --prod followed by vercel deploy --prebuilt --prod.</code></pre>
         </section>
 
         <section id="security">
           <div>
             <div class="eyebrow">Security</div>
-            <h2>Demo convenience and production credentials are separate concerns.</h2>
+            <h2>Seeded credentials and production credentials are separate concerns.</h2>
           </div>
           <ul class="checks">
             <li>Do not reuse seeded emails or passwords in production.</li>
@@ -272,14 +389,15 @@ vercel deploy --prod --yes</code></pre>
         <section id="operations">
           <div>
             <div class="eyebrow">Operations</div>
-            <h2>Keep the SQLite backend healthy.</h2>
+            <h2>Automate backups and old-data cleanup.</h2>
           </div>
           <ul class="checks">
-            <li>Back up <code>data/hubroute.sqlite</code> daily, or more often if parcel volume is high.</li>
-            <li>Test restore by copying the backup into a separate staging folder and opening <code>/health.php</code>.</li>
+            <li>Run <code>php maintenance.php prune</code> first to preview what would be removed.</li>
+            <li>Run <code>php maintenance.php run --apply</code> from cron to back up SQLite, prune old rows, and vacuum after cleanup.</li>
+            <li>Terminal parcels in <code>delivered</code>, <code>failed</code>, or <code>returned</code> are removed only after the configured retention window; active parcels are kept.</li>
+            <li>Backups default to <code>data/backups</code> and are retained for 30 days unless <code>MAINTENANCE_BACKUP_KEEP_DAYS</code> changes.</li>
+            <li>Test restore by copying a backup into a separate staging folder and opening <code>/health.php</code>.</li>
             <li>Review <code>data/php-error.log</code> after deployments and keep <code>ENABLE_EXTRA_LOGGING=false</code> outside troubleshooting windows.</li>
-            <li>Keep write operations short; the app already enables SQLite WAL mode and a busy timeout on startup.</li>
-            <li>Use <code>Admin -> Audit</code> to review assignment, scan, settlement, hub, and user changes.</li>
           </ul>
         </section>
 
@@ -289,9 +407,9 @@ vercel deploy --prod --yes</code></pre>
             <h2>Common setup and deployment checks.</h2>
           </div>
           <ul class="checks">
-            <li>If demo data looks stale, use Reset seed data in the sidebar or clear localStorage for <code>hubroute.vercel.app</code>.</li>
-            <li>If a parcel cannot be assigned, receive it at the active hub first; assignment is intentionally local to the current hub.</li>
-            <li>If a dropdown is long inside the operator console, type into it; all demo selects are searchable after JavaScript loads.</li>
+            <li>If <code>/health.php</code> fails, enable PHP 8.1+, <code>pdo_sqlite</code>, and <code>sqlite3</code>, then confirm the data directory is writable.</li>
+            <li>If first login works but actions fail, check <code>data/php-error.log</code> and host write permissions.</li>
+            <li>If <code>/data/hubroute.sqlite</code> downloads in a browser, move <code>DATA_DIR</code> outside the web root immediately.</li>
             <li>If the PHP app fails on a host, confirm PHP 8.1+, PDO SQLite, writable data directory, and private environment configuration.</li>
           </ul>
         </section>
@@ -299,8 +417,8 @@ vercel deploy --prod --yes</code></pre>
     </main>
 
     <footer>
-      <span>HubRoute docs / Bangladesh parcel operations demo</span>
-      <span><a href="index.html">Landing</a> / <a href="https://hubroute.vercel.app/">Demo</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
+      <span>HubRoute docs / PHP + SQLite parcel operations</span>
+      <span><a href="index.html">Landing</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
     </footer>
   </div>
 </body>

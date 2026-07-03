@@ -1,31 +1,99 @@
 # HubRoute MVP
 
-HubRoute is a compact parcel operations product with a static GitHub landing page, a browser-only Vercel walkthrough, and a simple PHP 8 + SQLite backend for the real shared-hosting app. It supports customer pickup requests, hub assignment, rider delivery runs, public tracking, COD settlement, audit logging, idempotent mutations, and route CSV export.
+HubRoute is a compact parcel operations product with a simple PHP 8 + SQLite backend for shared hosting or a small VPS. It supports customer pickup requests, hub assignment, rider delivery runs, public tracking, COD settlement, audit logging, idempotent mutations, and route CSV export.
 
-Landing page: `index.html` on GitHub Pages
-Docs page: `docs.html` on GitHub Pages
-Hosted demo: <https://hubroute.vercel.app/>
-Vercel demo source: `public/index.html`
-Source app entry: `hubroute.php`
-Production PHP files: `hubroute.php`, `index.php`, `health.php`, `.htaccess`, `.env.example`
+Production app entry: `hubroute.php`
+Production PHP files: `hubroute.php`, `maintenance.php`, `index.php`, `health.php`, `.htaccess`, `.env.example`
+Setup runbook: [SETUP.md](SETUP.md)
+Security notes: [SECURITY.md](SECURITY.md)
 Repository: <https://github.com/tanzir71/hubroute>
 
-## Demo Source Workflow
+## Get Running Fast
 
-`src/demo/` is the canonical browser-demo source. The source is split into ES modules for seeded data, the localStorage API shim, session/filter state, components/helpers, view routing, and the console orchestration layer.
-
-`styles/tokens.css` is the shared design-token source for the landing page, docs, and console. The demo build copies it to `public/styles/tokens.css`; `npm run sync:demo` mirrors that copy to `vercel-demo/styles/tokens.css`.
-
-`public/index.html` is the generated single-file demo output for Vercel. `vercel-demo/index.html` is kept as a generated mirror for legacy/static deploy paths.
+Vercel browser demo:
 
 ```bash
-npm run build:demo  # bundle src/demo into public/index.html
-npm run sync:demo   # build public/index.html and mirror it to vercel-demo/index.html
-npm run check:demo  # fail if either generated demo file has drifted
+npm run deploy:vercel
 ```
 
-`npm test` runs the generated-output checks so pull requests do not accidentally edit only the built files.
-The smoke test also boots the console with an empty valid dataset to verify empty/error handling on the operational screens.
+Vercel preview URL:
+
+```bash
+npm run deploy:vercel:preview
+```
+
+Shared-hosting production zip:
+
+```bash
+npm run deploy:shared
+```
+
+The Vercel command rebuilds and verifies the browser walkthrough, then runs `npx --yes vercel deploy --prod`. The shared-host command creates `dist/hubroute-php-sqlite.zip` for upload/extraction on a PHP 8 + SQLite host.
+
+Local smoke run:
+
+```bash
+php -S 127.0.0.1:8080
+```
+
+Direct shared-hosting package command:
+
+```bash
+npm run package:php
+```
+
+Upload and extract `dist/hubroute-php-sqlite.zip`, open `/health.php`, then open `/`.
+
+One-command SSH deploy:
+
+```bash
+npm run deploy:shared && rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/
+```
+
+LLM-assisted deploy: point an LLM or deployment agent at this repo and use the prompt in [SETUP.md](SETUP.md#option-4-ask-an-llm-or-deployment-agent).
+
+Automated backup and cleanup cron:
+
+```bash
+php maintenance.php run --apply
+```
+
+The command backs up SQLite first, then prunes old terminal parcels, old audit rows, old idempotency keys, old rate-limit rows, and expired backup files according to `.env` retention settings.
+
+## Deployment Targets
+
+Shared hosting and small VPS deployments are the supported production path today: build `dist/hubroute-php-sqlite.zip`, upload/extract it or sync it over SSH, then run the PHP 8 + SQLite app.
+
+Vercel is supported for the static browser walkthrough with:
+
+```bash
+npm run deploy:vercel
+```
+
+That Vercel deployment is a demo only. A production Vercel app should be a separate Vercel-native port using Next.js/Node functions and hosted SQLite-compatible storage such as libSQL/Turso if the product must remain SQLite-based. The PHP + local SQLite production bundle is intentionally kept simple for shared hosts.
+
+## Why PHP + SQLite
+
+HubRoute uses PHP + SQLite deliberately. Many courier, merchant, and local-operations teams in emerging markets still start on inexpensive shared hosting, cPanel, FTP/SFTP uploads, or older LAMP-style infrastructure where containers, managed databases, and always-on Node services may be unavailable, expensive, or hard for local IT teams to support.
+
+Technical advantages:
+
+- Broad backward compatibility with existing shared hosts, Apache/Nginx/PHP-FPM setups, and small VPSes.
+- Low startup cost because there is no required managed database, queue, Redis instance, container registry, or app server process.
+- Simple deployment by zip extraction, file copy, FTP/SFTP, cPanel file manager, or `rsync`.
+- SQLite keeps early production data in one file, which makes backup, restore, migration, and support handoff straightforward.
+- PHP's request-scoped runtime lets the host manage workers, memory cleanup, process restarts, HTTPS, and logs.
+- Mature built-in security primitives such as PDO prepared statements, `password_hash()`, and standard session handling.
+- A clear upgrade path: the same product rules can later move to a Vercel-native or managed-database version without raising the first deployment cost.
+
+## Default Seed Accounts
+
+Change these immediately after first deployment.
+
+- Admin: `admin@hubroute.local` / `admin1234`
+- Hubs: `pickuphub@hubroute.local`, `warehouse@hubroute.local`, `eastmile@hubroute.local` / `hub1234`
+- Agents: `amina@hubroute.local`, `noah@hubroute.local`, `liam@hubroute.local`, `maya@hubroute.local`, `sofia@hubroute.local`, `owen@hubroute.local` / `agent1234`
+- Customers: `alice@example.com`, `bob@example.com` / `customer1234`
 
 ## Security Posture
 
@@ -37,48 +105,23 @@ The smoke test also boots the console with an empty valid dataset to verify empt
 - SQLite rate limiting for login and POST actions.
 - SQLite-backed idempotency keys for parcel, event, route, settlement, and admin form mutations.
 - SQLite audit log for privileged and custody-affecting mutations.
+- CLI maintenance for SQLite backups and retention cleanup.
 - CSP and standard browser security headers.
 - Authorization checks for parcel, route, hub, agent, settlement, and CSV access.
 
-See [docs.html](docs.html) for the product walkthrough, [SECURITY.md](SECURITY.md) for the full security notes, and [SETUP.md](SETUP.md) for the step-by-step PHP + SQLite deployment runbook.
 The M1 SQLite/PHP backend contract lives at [docs/m1-backend-contract.md](docs/m1-backend-contract.md).
-The executable status-transition, authorization, idempotency, and audit-log rules for that contract live in [src/domain/status-rules.mjs](src/domain/status-rules.mjs), [src/domain/authorization-rules.mjs](src/domain/authorization-rules.mjs), [src/domain/idempotency-rules.mjs](src/domain/idempotency-rules.mjs), and [src/domain/audit-rules.mjs](src/domain/audit-rules.mjs).
+The executable status-transition, authorization, idempotency, and audit-log rules live in [src/domain/status-rules.mjs](src/domain/status-rules.mjs), [src/domain/authorization-rules.mjs](src/domain/authorization-rules.mjs), [src/domain/idempotency-rules.mjs](src/domain/idempotency-rules.mjs), and [src/domain/audit-rules.mjs](src/domain/audit-rules.mjs).
 
-## Hosted Demo Accounts
+## Maintainer Browser Walkthrough
 
-The hosted browser demo highlights a Bangladesh hub-and-spoke network. All demo accounts use `hub1234`.
-
-- Demo URL: <https://hubroute.vercel.app/>
-- Pickup hub: `pickuphub@hubroute.local`
-- Sortation hub: `sortation@hubroute.local`
-- Delivery hub: `ctghub@hubroute.local`
-- Return hub: `savarhub@hubroute.local`
-
-Use these accounts to inspect parcel queues, CRUD, search/filter panels, route/rider assignment, hub-to-hub handoff, scan/event capture, and public tracking. Change or disable all seeded credentials before production use.
-
-## Default Seed Accounts
-
-Change these immediately after first deployment.
-
-- Admin: `admin@hubroute.local` / `admin1234`
-- Hubs: `pickuphub@hubroute.local`, `warehouse@hubroute.local`, `eastmile@hubroute.local` / `hub1234`
-- Agents: `amina@hubroute.local`, `noah@hubroute.local`, `liam@hubroute.local`, `maya@hubroute.local`, `sofia@hubroute.local`, `owen@hubroute.local` / `agent1234`
-- Customers: `alice@example.com`, `bob@example.com` / `customer1234`
-
-## Local Run
+The browser walkthrough is separate from production. It is generated from `src/demo/` into `public/index.html` and stores changes in localStorage.
 
 ```bash
-mkdir -p data
-php -S 127.0.0.1:8080
+npm run sync:demo
+npm run check:demo
 ```
 
-Open `http://127.0.0.1:8080/`. Copy `.env.example` to `.env` first only when you need custom runtime paths, timezone, or rate limits.
-
-## PHP Deployment Files
-
-The production PHP + SQLite app needs only `hubroute.php`, `index.php`, `health.php`, `.htaccess`, and `.env.example`. Do not upload the landing page, GitHub docs, Node source, Vercel output, `.env`, SQLite databases, logs, `.git`, or generated runtime state to the PHP host.
-
-First startup creates the SQLite database and runtime denial files. See [SETUP.md](SETUP.md) for the exact shared-hosting sequence.
+`npm test` runs the domain-rule tests, generated-output checks, and browser walkthrough smoke test.
 
 ## Static Security Scan
 

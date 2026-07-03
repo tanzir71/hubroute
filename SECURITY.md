@@ -24,9 +24,9 @@
 3. If `.env` is exposed, replace it, rotate all account passwords, and move `DATA_DIR` outside `public_html`.
 4. If the SQLite database is exposed, treat all parcel/customer data as compromised and rotate user passwords.
 
-## Demo Account Exposure
+## Seeded Account Exposure
 
-The landing page and browser demo deliberately show browser-only hub operator accounts for first-run evaluation. Treat all seeded users as non-production scaffolding: rotate them, disable them, or replace them before handling real parcel/customer data.
+The app includes seeded accounts for first-run evaluation. Treat all seeded users as non-production scaffolding: rotate them, disable them, or replace them before handling real parcel/customer data.
 
 ## Logging
 

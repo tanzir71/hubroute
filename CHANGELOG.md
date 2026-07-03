@@ -2,6 +2,11 @@
 
 ## 2026-07-04
 
+- Added CLI-only SQLite maintenance for automated backups, retention cleanup, and cron-friendly production pruning.
+- Added `npm run package:php` for a fresh shared-hosting zip and rewrote setup docs around zip extraction, one-command deploys, and LLM-assisted deployment.
+- Added `npm run deploy:vercel`, `npm run deploy:vercel:preview`, and `npm run deploy:shared` as easy deployment entry points.
+- Documented why PHP + SQLite is the preferred first production target for older shared-host infrastructure, emerging-market deployments, and low startup cost.
+- Documented shared-hosting, VPS, Vercel static walkthrough, and Vercel-native production deployment paths.
 - Fixed the PHP + SQLite handoff path by aligning `index.php`, `health.php`, `.env.example`, setup docs, and seeded-account docs with `hubroute.php`.
 - Resolved the backend direction to simple PHP 8 + SQLite and updated the build plan/M1 contract accordingly.
 - Added SQLite-backed idempotency and audit tables to the PHP backend, idempotency keys on mutating forms, and an admin audit-log view.

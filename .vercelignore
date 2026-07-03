@@ -2,6 +2,7 @@
 .env
 .trae
 data
+dist
 tests
 *.zip
 *.md
