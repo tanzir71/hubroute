@@ -8,6 +8,8 @@
 - Passwords use `password_hash()` and `password_verify()`, and login regenerates the session ID.
 - Idle and absolute session timeouts are enforced with configurable values.
 - Login and POST actions are rate limited per IP/account using SQLite.
+- State-changing forms use SQLite-backed idempotency keys to prevent duplicate parcel, scan/event, route, settlement, and admin writes.
+- Privileged and custody-affecting changes are written to the SQLite `audit_log`.
 - Parcel, route, agent, and settlement access now enforce ownership checks before reads or writes.
 - Hub assignment validates that selected routes and agents belong to the current hub.
 - Security headers include CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and a restrictive `Permissions-Policy`.
@@ -35,7 +37,7 @@ The landing page and browser demo deliberately show demo hub operator accounts f
 ## Production Hardening
 
 - Enforce HTTPS/TLS at the host or CDN.
-- Move from SQLite to Postgres or MySQL for concurrent production traffic.
-- Put automated backups around the database and test restores.
+- Keep SQLite as the simple production backend unless the product requirement changes; enable WAL/busy timeout, keep writes short, and monitor lock errors.
+- Put automated backups around `data/hubroute.sqlite` and test restores.
 - Add WAF/CDN rules for `/hubroute.php` login and POST endpoints.
 - Move `DATA_DIR` and `.env` outside the document root whenever the host supports it.

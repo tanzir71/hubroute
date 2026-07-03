@@ -312,6 +312,11 @@ function allowedEventTypes(): array
     return ['hub_arrived','hub_departed','in_warehouse','out_for_delivery','returned','failed','note_only','payment_collected','delivered','picked_up','en_route'];
 }
 
+function idempotentOperations(): array
+{
+    return ['customer_create','customer_confirm','hub_assign','hub_create_route','record_event','agent_step','settle','admin_create_hub','admin_create_agent','admin_create_customer'];
+}
+
 function nowIso(): string
 {
     return gmdate('c');
@@ -342,6 +347,25 @@ function csrfCheck(): void
         echo 'Bad CSRF token';
         exit;
     }
+}
+
+function newIdempotencyKey(): string
+{
+    return bin2hex(random_bytes(16));
+}
+
+function idempotencyInput(): string
+{
+    return '<input type="hidden" name="idempotency_key" value="' . e(newIdempotencyKey()) . '">';
+}
+
+function postIdempotencyKey(): string
+{
+    $key = boundedText((string)($_POST['idempotency_key'] ?? ''), 128);
+    if (!preg_match('/^[A-Za-z0-9._:-]{12,128}$/', $key)) {
+        throw new UserSafeException('Invalid idempotency key');
+    }
+    return $key;
 }
 
 function flash(string $type, string $msg): void
@@ -533,6 +557,36 @@ function migrateAndSeed(PDO $pdo): void
         FOREIGN KEY (parcel_id) REFERENCES parcels(id)
     )");
 
+    $pdo->exec("CREATE TABLE IF NOT EXISTS idempotency_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor_user_id INTEGER NOT NULL,
+        operation TEXT NOT NULL,
+        idempotency_key TEXT NOT NULL,
+        request_hash TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('processing','completed')),
+        result_route TEXT,
+        result_params TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        UNIQUE(actor_user_id, operation, idempotency_key),
+        FOREIGN KEY (actor_user_id) REFERENCES users(id)
+    )");
+
+    $pdo->exec("CREATE TABLE IF NOT EXISTS audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        actor_user_id INTEGER NOT NULL,
+        actor_role TEXT NOT NULL,
+        action TEXT NOT NULL,
+        entity_type TEXT NOT NULL,
+        entity_id INTEGER NOT NULL,
+        before_json TEXT,
+        after_json TEXT,
+        reason TEXT,
+        metadata_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (actor_user_id) REFERENCES users(id)
+    )");
+
     $pdo->exec("CREATE TABLE IF NOT EXISTS rate_limits (
         key TEXT PRIMARY KEY,
         bucket TEXT NOT NULL,
@@ -546,8 +600,15 @@ function migrateAndSeed(PDO $pdo): void
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_parcels_hub_pickup ON parcels(hub_pickup_id)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_parcels_tracking ON parcels(tracking_code)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_events_parcel_ts ON events(parcel_id, ts)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_idempotency_actor_operation ON idempotency_keys(actor_user_id, operation, created_at)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_audit_log_entity ON audit_log(entity_type, entity_id, created_at)");
+    $pdo->exec("CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON audit_log(actor_user_id, created_at)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_routes_hub_active ON routes(hub_id, active)");
     $pdo->exec("CREATE INDEX IF NOT EXISTS idx_rate_limits_bucket ON rate_limits(bucket, window_start)");
+
+    $idempotencyCutoff = gmdate('c', time() - (7 * 24 * 60 * 60));
+    $cleanup = $pdo->prepare("DELETE FROM idempotency_keys WHERE created_at < ?");
+    $cleanup->execute([$idempotencyCutoff]);
 
     $hubCount = (int)$pdo->query("SELECT COUNT(*) AS c FROM hubs")->fetch()['c'];
     if ($hubCount > 0) {
@@ -852,6 +913,118 @@ function addEvent(PDO $pdo, int $parcelId, string $userType, ?int $userId, ?int 
     $pdo->prepare("INSERT INTO events (parcel_id,user_type,user_id,agent_id,hub_id,route_id,event_type,note,lat,lng,ts)
         VALUES (?,?,?,?,?,?,?,?,?,?,?)")
         ->execute([$parcelId, $userType, $userId, $agentId, $hubId, $routeId, $eventType, $note, $lat, $lng, nowIso()]);
+}
+
+function stablePayloadHash(string $operation, array $payload): string
+{
+    return hash('sha256', json_encode([
+        'operation' => $operation,
+        'payload' => $payload,
+    ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+}
+
+function beginIdempotentAction(PDO $pdo, array $u, string $operation, array $payload): array
+{
+    if (!in_array($operation, idempotentOperations(), true)) {
+        throw new UserSafeException('Unknown idempotent operation');
+    }
+
+    $key = postIdempotencyKey();
+    $requestHash = stablePayloadHash($operation, $payload);
+    $now = nowIso();
+
+    $insert = $pdo->prepare("INSERT OR IGNORE INTO idempotency_keys (actor_user_id,operation,idempotency_key,request_hash,status,created_at,updated_at)
+        VALUES (?,?,?,?,?,?,?)");
+    $insert->execute([(int)$u['id'], $operation, $key, $requestHash, 'processing', $now, $now]);
+    if ($insert->rowCount() === 1) {
+        return [
+            'duplicate' => false,
+            'operation' => $operation,
+            'key' => $key,
+            'request_hash' => $requestHash,
+        ];
+    }
+
+    $st = $pdo->prepare("SELECT * FROM idempotency_keys WHERE actor_user_id=? AND operation=? AND idempotency_key=?");
+    $st->execute([(int)$u['id'], $operation, $key]);
+    $existing = $st->fetch();
+    if (!$existing) {
+        throw new UserSafeException('Idempotency state could not be loaded');
+    }
+    if (!hash_equals((string)$existing['request_hash'], $requestHash)) {
+        throw new UserSafeException('Idempotency key was reused for different input');
+    }
+
+    return [
+        'duplicate' => true,
+        'operation' => $operation,
+        'key' => $key,
+        'request_hash' => $requestHash,
+        'result_route' => (string)($existing['result_route'] ?? ''),
+        'result_params' => jsonArray((string)($existing['result_params'] ?? '{}')),
+    ];
+}
+
+function completeIdempotentAction(PDO $pdo, array $u, array $idem, string $route, array $params = []): void
+{
+    if (!empty($idem['duplicate'])) {
+        return;
+    }
+
+    $pdo->prepare("UPDATE idempotency_keys
+        SET status='completed', result_route=?, result_params=?, updated_at=?
+        WHERE actor_user_id=? AND operation=? AND idempotency_key=?")
+        ->execute([
+            $route,
+            json_encode($params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            nowIso(),
+            (int)$u['id'],
+            (string)$idem['operation'],
+            (string)$idem['key'],
+        ]);
+}
+
+function redirectDuplicateAction(PDO $pdo, array $idem, string $fallbackRoute, array $fallbackParams = []): void
+{
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+
+    $route = (string)($idem['result_route'] ?? '');
+    $params = $idem['result_params'] ?? [];
+    if ($route === '') {
+        $route = $fallbackRoute;
+        $params = $fallbackParams;
+    }
+    if (!is_array($params)) {
+        $params = $fallbackParams;
+    }
+
+    flash('ok', 'Duplicate request ignored; the original submission was already handled.');
+    redirect($route, $params);
+}
+
+function jsonOrNull(?array $value): ?string
+{
+    return $value === null ? null : json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+}
+
+function addAuditLog(PDO $pdo, array $u, string $action, string $entityType, int $entityId, ?array $before, ?array $after, ?string $reason = null, array $metadata = []): void
+{
+    $pdo->prepare("INSERT INTO audit_log (actor_user_id,actor_role,action,entity_type,entity_id,before_json,after_json,reason,metadata_json,created_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?)")
+        ->execute([
+            (int)$u['id'],
+            (string)$u['role'],
+            $action,
+            $entityType,
+            $entityId,
+            jsonOrNull($before),
+            jsonOrNull($after),
+            $reason,
+            json_encode($metadata, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            nowIso(),
+        ]);
 }
 
 function clientIp(): string
@@ -1337,7 +1510,7 @@ function pageCustomerParcels(PDO $pdo, array $u): void
     $content .= '</tbody></table></div>';
 
     $content .= '<div class="card"><div class="h1">Create pickup request</div>';
-    $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="customer_create">';
+    $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="customer_create">';
     $content .= '<div><label>Pickup address</label><textarea name="pickup_address" required></textarea></div>';
     $content .= '<div><label>Dropoff address</label><textarea name="dropoff_address" required></textarea></div>';
     $content .= '<div class="row"><div style="flex:1"><label>Amount to collect (USD)</label><input name="amount" type="number" min="0" step="0.01" placeholder="0.00"></div><div style="flex:1"><label>Preferred pickup window</label><input name="pickup_window" type="text" placeholder="e.g., 10:00–12:00"></div></div>';
@@ -1387,6 +1560,17 @@ function actionCustomerCreate(PDO $pdo, array $u): void
 
     $pdo->beginTransaction();
     try {
+        $idem = beginIdempotentAction($pdo, $u, 'customer_create', [
+            'pickup' => $pickup,
+            'dropoff' => $dropoff,
+            'amount_cents' => $amountCents,
+            'pickup_window' => $pickupWindow,
+            'note' => $note,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'customer_parcels');
+        }
+
         $pdo->prepare("INSERT INTO parcels (customer_id,hub_pickup_id,hub_warehouse_id,hub_delivery_id,current_hub_id,pickup_address,pickup_lat,pickup_lng,dropoff_address,dropoff_lat,dropoff_lng,amount_cents,status,assigned_agent_id,route_id,tracking_code,metadata,cod_settled,created_at,updated_at)
             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
             ->execute([
@@ -1419,7 +1603,12 @@ function actionCustomerCreate(PDO $pdo, array $u): void
         if ($status === 'assigned') {
             addEvent($pdo, $pid, 'system', null, $agentId, $pickupHubId, $routeId, 'assigned', 'Auto-assigned by routing rules', null, null);
         }
+        completeIdempotentAction($pdo, $u, $idem, 'customer_parcels');
         $pdo->commit();
+    } catch (UserSafeException $e) {
+        $pdo->rollBack();
+        flash('err', $e->getMessage());
+        redirect('customer_parcels');
     } catch (Throwable $e) {
         $pdo->rollBack();
         logAppError($e, ['action' => 'customer_create']);
@@ -1499,7 +1688,7 @@ function pageHubParcels(PDO $pdo, array $u): void
         $content .= '<td class="muted">' . e((string)$p['created_at']) . '</td>';
 
         $content .= '<td>';
-        $content .= '<form method="post" class="row" style="gap:6px"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="hub_assign"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '">';
+        $content .= '<form method="post" class="row" style="gap:6px"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="hub_assign"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '">';
         $content .= '<select name="route_id" style="min-width:160px"><option value="">No route</option>';
         foreach ($routeRows as $r) {
             $sel = ((int)$p['route_id'] === (int)$r['id']) ? ' selected' : '';
@@ -1535,6 +1724,13 @@ function actionCustomerConfirm(PDO $pdo, array $u): void
 
     $pdo->beginTransaction();
     try {
+        $idem = beginIdempotentAction($pdo, $u, 'customer_confirm', [
+            'parcel_id' => $parcelId,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'parcel', ['id' => (string)$parcelId]);
+        }
+
         $st = $pdo->prepare("SELECT * FROM parcels WHERE id=? AND customer_id=?");
         $st->execute([$parcelId, (int)$u['customer_id']]);
         $p = $st->fetch();
@@ -1555,6 +1751,7 @@ function actionCustomerConfirm(PDO $pdo, array $u): void
         $upd = $pdo->prepare("UPDATE parcels SET metadata=?, updated_at=? WHERE id=? AND customer_id=?");
         $upd->execute([json_encode($meta, JSON_UNESCAPED_UNICODE), nowIso(), $parcelId, (int)$u['customer_id']]);
         addEvent($pdo, $parcelId, 'customer', (int)$u['id'], null, $p['current_hub_id'] !== null ? (int)$p['current_hub_id'] : null, $p['route_id'] !== null ? (int)$p['route_id'] : null, 'customer_confirmed', 'Customer confirmed receipt', null, null);
+        completeIdempotentAction($pdo, $u, $idem, 'parcel', ['id' => (string)$parcelId]);
         $pdo->commit();
         flash('ok', 'Receipt confirmed');
     } catch (UserSafeException $e) {
@@ -1595,6 +1792,15 @@ function actionHubAssign(PDO $pdo, array $u): void
             throw new UserSafeException('Parcel is not visible to this hub');
         }
 
+        $idem = beginIdempotentAction($pdo, $u, 'hub_assign', [
+            'parcel_id' => $parcelId,
+            'agent_id' => $agentId,
+            'route_id' => $routeId,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'hub_parcels');
+        }
+
         $now = nowIso();
         $status = (string)$p['status'];
         $newStatus = $status;
@@ -1623,6 +1829,25 @@ function actionHubAssign(PDO $pdo, array $u): void
             addEvent($pdo, $parcelId, 'hub', (int)$u['id'], null, $hubId, $routeId, 'unassigned', 'Unassigned by hub operator', null, null);
         }
 
+        addAuditLog(
+            $pdo,
+            $u,
+            'parcel_metadata_update',
+            'parcel',
+            $parcelId,
+            [
+                'assigned_agent_id' => $p['assigned_agent_id'] !== null ? (int)$p['assigned_agent_id'] : null,
+                'route_id' => $p['route_id'] !== null ? (int)$p['route_id'] : null,
+                'status' => (string)$p['status'],
+            ],
+            [
+                'assigned_agent_id' => $agentId,
+                'route_id' => $routeId,
+                'status' => $newStatus,
+            ],
+            'Hub assignment updated'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'hub_parcels');
         $pdo->commit();
         flash('ok', 'Assignment updated');
     } catch (UserSafeException $e) {
@@ -1669,7 +1894,7 @@ function pageHubRoutes(PDO $pdo, array $u): void
     $content .= '</tbody></table></div>';
 
     $content .= '<div class="card"><div class="h1">Create route</div>';
-    $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="hub_create_route">';
+    $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="hub_create_route">';
     $content .= '<div><label>Route name</label><input name="name" required></div>';
     $content .= '<div><label>Match keywords/postcodes (comma-separated)</label><input name="keywords" placeholder="Northside, Uptown, 1000" required></div>';
     $content .= '<div><label>Assign agent (optional)</label><select name="assigned_agent_id"><option value="">Unassigned</option>';
@@ -1713,9 +1938,55 @@ function actionHubCreateRoute(PDO $pdo, array $u): void
         redirect('hub_routes');
     }
 
-    $pdo->prepare("INSERT INTO routes (hub_id,name,match_keywords,assigned_agent_id,active,center_lat,center_lng,radius_km,created_at) VALUES (?,?,?,?,?,?,?,?,?)")
-        ->execute([$hubId, $name, json_encode($keywords, JSON_UNESCAPED_UNICODE), $assignedAgent, 1, $centerLat, $centerLng, $radiusKm, nowIso()]);
-    flash('ok', 'Route created');
+    $pdo->beginTransaction();
+    try {
+        $idem = beginIdempotentAction($pdo, $u, 'hub_create_route', [
+            'hub_id' => $hubId,
+            'name' => $name,
+            'keywords' => $keywords,
+            'assigned_agent_id' => $assignedAgent,
+            'center_lat' => $centerLat,
+            'center_lng' => $centerLng,
+            'radius_km' => $radiusKm,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'hub_routes');
+        }
+
+        $createdAt = nowIso();
+        $pdo->prepare("INSERT INTO routes (hub_id,name,match_keywords,assigned_agent_id,active,center_lat,center_lng,radius_km,created_at) VALUES (?,?,?,?,?,?,?,?,?)")
+            ->execute([$hubId, $name, json_encode($keywords, JSON_UNESCAPED_UNICODE), $assignedAgent, 1, $centerLat, $centerLng, $radiusKm, $createdAt]);
+        $routeId = (int)$pdo->lastInsertId();
+        addAuditLog(
+            $pdo,
+            $u,
+            'route_run_update',
+            'run',
+            $routeId,
+            ['exists' => false],
+            [
+                'hub_id' => $hubId,
+                'name' => $name,
+                'match_keywords' => $keywords,
+                'assigned_agent_id' => $assignedAgent,
+                'active' => 1,
+                'center_lat' => $centerLat,
+                'center_lng' => $centerLng,
+                'radius_km' => $radiusKm,
+            ],
+            'Route created'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'hub_routes');
+        $pdo->commit();
+        flash('ok', 'Route created');
+    } catch (UserSafeException $e) {
+        $pdo->rollBack();
+        flash('err', $e->getMessage());
+    } catch (Throwable $e) {
+        $pdo->rollBack();
+        logAppError($e, ['action' => 'hub_create_route']);
+        flash('err', 'Route could not be created.');
+    }
     redirect('hub_routes');
 }
 
@@ -1749,7 +2020,7 @@ function pageScan(PDO $pdo, array $u): void
         . '<div class="muted" style="font-size:12px">Current hub: ' . e((string)($parcel['hub_name'] ?? '')) . ' · Assigned agent: ' . e((string)($parcel['agent_name'] ?? '')) . '</div>'
         . '</div>';
 
-    $content .= '<form method="post" class="form" style="margin-top:10px"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="record_event"><input type="hidden" name="parcel_id" value="' . (int)$parcel['id'] . '">';
+    $content .= '<form method="post" class="form" style="margin-top:10px"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="record_event"><input type="hidden" name="parcel_id" value="' . (int)$parcel['id'] . '">';
     $content .= '<div><label>Event type</label><select name="event_type" required>';
     foreach (['hub_arrived','hub_departed','in_warehouse','out_for_delivery','returned','failed','note_only','payment_collected','delivered','picked_up','en_route'] as $c) {
         $content .= '<option value="' . e($c) . '">' . e($c) . '</option>';
@@ -1819,6 +2090,17 @@ function actionRecordEvent(PDO $pdo, array $u): void
     $now = nowIso();
     $pdo->beginTransaction();
     try {
+        $idem = beginIdempotentAction($pdo, $u, 'record_event', [
+            'parcel_id' => $parcelId,
+            'event_type' => $eventType,
+            'note' => $note,
+            'lat' => $lat,
+            'lng' => $lng,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'scan', ['code' => (string)$p['tracking_code']]);
+        }
+
         $statusUpdate = null;
         $setHub = null;
 
@@ -1857,6 +2139,25 @@ function actionRecordEvent(PDO $pdo, array $u): void
         if ($eventType !== 'payment_collected') {
             addEvent($pdo, $parcelId, $userType, (int)$u['id'], $agentId, $hubId, $routeId, $eventType, $note, $lat, $lng);
         }
+        if ($statusUpdate !== null || $setHub !== null) {
+            addAuditLog(
+                $pdo,
+                $u,
+                'parcel_metadata_update',
+                'parcel',
+                $parcelId,
+                [
+                    'status' => (string)$p['status'],
+                    'current_hub_id' => $p['current_hub_id'] !== null ? (int)$p['current_hub_id'] : null,
+                ],
+                [
+                    'status' => $statusUpdate ?? (string)$p['status'],
+                    'current_hub_id' => $setHub ?? ($p['current_hub_id'] !== null ? (int)$p['current_hub_id'] : null),
+                ],
+                'Scan event updated parcel custody'
+            );
+        }
+        completeIdempotentAction($pdo, $u, $idem, 'scan', ['code' => (string)$p['tracking_code']]);
         $pdo->commit();
         flash('ok', 'Event recorded');
     } catch (UserSafeException $e) {
@@ -2014,7 +2315,7 @@ function pageParcelDetail(PDO $pdo, array $u): void
         $meta = is_array($meta) ? $meta : [];
         if ((string)$p['status'] === 'delivered' && empty($meta['customer_confirmed_at'])) {
             $content .= '<div class="card" style="margin-top:12px"><div class="h1">Confirm receipt</div>';
-            $content .= '<form method="post" class="row"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="customer_confirm"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '"><button class="btn primary" type="submit">Confirm delivered</button></form>';
+            $content .= '<form method="post" class="row"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="customer_confirm"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '"><button class="btn primary" type="submit">Confirm delivered</button></form>';
             $content .= '</div>';
         }
         if (!empty($meta['customer_confirmed_at'])) {
@@ -2042,7 +2343,7 @@ function pageParcelDetail(PDO $pdo, array $u): void
         if (count($next) === 0) {
             $right .= '<div class="muted">No next step available for this status.</div>';
         } else {
-            $right .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="agent_step"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '">';
+            $right .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="agent_step"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '">';
             $right .= '<div><label>Next status</label><select name="to_status">';
             foreach ($next as $n) {
                 $right .= '<option value="' . e($n) . '">' . e($n) . '</option>';
@@ -2102,6 +2403,18 @@ function actionAgentStep(PDO $pdo, array $u): void
             throw new UserSafeException('Invalid transition');
         }
 
+        $idem = beginIdempotentAction($pdo, $u, 'agent_step', [
+            'parcel_id' => $parcelId,
+            'to_status' => $toStatus,
+            'also_payment' => $alsoPayment,
+            'note' => $note,
+            'lat' => $lat,
+            'lng' => $lng,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'parcel', ['id' => (string)$parcelId]);
+        }
+
         $now = nowIso();
         $upd = $pdo->prepare("UPDATE parcels SET status=?, updated_at=? WHERE id=? AND status=? AND assigned_agent_id=?");
         $upd->execute([$toStatus, $now, $parcelId, $current, $agentId]);
@@ -2117,6 +2430,17 @@ function actionAgentStep(PDO $pdo, array $u): void
             addEvent($pdo, $parcelId, 'agent', (int)$u['id'], $agentId, $hubId, $routeId, 'payment_collected', $note !== '' ? $note : 'Payment collected', $lat, $lng);
         }
 
+        addAuditLog(
+            $pdo,
+            $u,
+            'parcel_metadata_update',
+            'parcel',
+            $parcelId,
+            ['status' => $current],
+            ['status' => $toStatus],
+            'Agent status step'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'parcel', ['id' => (string)$parcelId]);
         $pdo->commit();
         flash('ok', 'Updated');
     } catch (UserSafeException $e) {
@@ -2154,7 +2478,7 @@ function pageSettlements(PDO $pdo, array $u): void
         $content .= '<td>' . ((int)$p['cod_settled'] === 1 ? '<span class="pill bg-green">yes</span>' : '<span class="pill bg-amber">no</span>') . '</td>';
         $content .= '<td>';
         if ((int)$p['cod_settled'] === 0) {
-            $content .= '<form method="post"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="settle"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '"><button class="btn" type="submit">Mark settled</button></form>';
+            $content .= '<form method="post"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="settle"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '"><button class="btn" type="submit">Mark settled</button></form>';
         } else {
             $content .= '<span class="muted">—</span>';
         }
@@ -2187,12 +2511,36 @@ function actionSettle(PDO $pdo, array $u): void
         if (!parcelTouchesHub($p, $hubId)) {
             throw new UserSafeException('Not visible to this hub');
         }
+        $idem = beginIdempotentAction($pdo, $u, 'settle', [
+            'parcel_id' => $pid,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'settlements');
+        }
+
         $upd = $pdo->prepare("UPDATE parcels SET cod_settled=1, updated_at=? WHERE id=? AND cod_settled=0");
         $upd->execute([nowIso(), $pid]);
         if ($upd->rowCount() !== 1) {
             throw new UserSafeException('Already settled');
         }
         addEvent($pdo, $pid, 'hub', (int)$u['id'], null, $hubId, $p['route_id'] !== null ? (int)$p['route_id'] : null, 'settlement_marked', 'COD marked settled', null, null);
+        addAuditLog(
+            $pdo,
+            $u,
+            'cod_ledger_adjustment',
+            'cod_ledger',
+            $pid,
+            [
+                'parcel_id' => $pid,
+                'cod_settled' => (int)$p['cod_settled'],
+            ],
+            [
+                'parcel_id' => $pid,
+                'cod_settled' => 1,
+            ],
+            'COD marked settled'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'settlements');
         $pdo->commit();
         flash('ok', 'Marked settled');
     } catch (UserSafeException $e) {
@@ -2210,7 +2558,7 @@ function pageAdmin(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
     $tab = getText('tab', 20);
-    if (!in_array($tab, ['overview','hubs','agents','customers'], true)) {
+    if (!in_array($tab, ['overview','hubs','agents','customers','audit'], true)) {
         $tab = 'overview';
     }
 
@@ -2219,6 +2567,7 @@ function pageAdmin(PDO $pdo, array $u): void
         . '<a class="btn" href="?r=admin&tab=hubs">Hubs</a>'
         . '<a class="btn" href="?r=admin&tab=agents">Agents</a>'
         . '<a class="btn" href="?r=admin&tab=customers">Customers</a>'
+        . '<a class="btn" href="?r=admin&tab=audit">Audit</a>'
         . '</div></div>';
 
     if ($tab === 'overview') {
@@ -2242,7 +2591,7 @@ function pageAdmin(PDO $pdo, array $u): void
             $content .= '<tr><td>' . e((string)$h['name']) . '</td><td>' . e((string)$h['type']) . '</td><td class="muted">' . e((string)($h['city'] ?? '')) . '</td><td>' . ((int)$h['auto_assign'] === 1 ? 'yes' : 'no') . '</td></tr>';
         }
         $content .= '</tbody></table></div>';
-        $content .= '<div class="card"><div class="h1">Create hub</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="admin_create_hub">'
+        $content .= '<div class="card"><div class="h1">Create hub</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_hub">'
             . '<div><label>Name</label><input name="name" required></div>'
             . '<div><label>Type</label><select name="type" required><option value="pickup">pickup</option><option value="warehouse">warehouse</option><option value="lastmile">lastmile</option></select></div>'
             . '<div><label>Address</label><input name="address"></div>'
@@ -2263,7 +2612,7 @@ function pageAdmin(PDO $pdo, array $u): void
             $content .= '<tr><td>' . e((string)$a['name']) . '</td><td class="muted">' . e((string)$a['hub_name']) . '</td><td>' . e((string)$a['role']) . '</td><td>' . ((int)$a['active'] === 1 ? 'yes' : 'no') . '</td></tr>';
         }
         $content .= '</tbody></table></div>';
-        $content .= '<div class="card"><div class="h1">Create agent + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="admin_create_agent">'
+        $content .= '<div class="card"><div class="h1">Create agent + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_agent">'
             . '<div><label>Name</label><input name="name" required></div>'
             . '<div><label>Phone</label><input name="phone"></div>'
             . '<div><label>Role</label><select name="role"><option value="pickup">pickup</option><option value="delivery">delivery</option><option value="both">both</option></select></div>'
@@ -2287,13 +2636,33 @@ function pageAdmin(PDO $pdo, array $u): void
             $content .= '<tr><td>' . e((string)$c['name']) . '</td><td class="muted">' . e((string)$c['email']) . '</td><td class="muted">' . e((string)$c['created_at']) . '</td></tr>';
         }
         $content .= '</tbody></table></div>';
-        $content .= '<div class="card"><div class="h1">Create customer + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="admin_create_customer">'
+        $content .= '<div class="card"><div class="h1">Create customer + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_customer">'
             . '<div><label>Name</label><input name="name" required></div>'
             . '<div><label>Email</label><input name="email" type="email" required></div>'
             . '<div><label>Temporary password</label><input name="password" required></div>'
             . '<button class="btn primary" type="submit">Create</button>'
             . '</form></div>';
         $content .= '</div>';
+    }
+
+    if ($tab === 'audit') {
+        $rows = $pdo->query("SELECT a.*, u.email AS actor_email
+            FROM audit_log a
+            LEFT JOIN users u ON u.id=a.actor_user_id
+            ORDER BY a.created_at DESC, a.id DESC
+            LIMIT 200")->fetchAll();
+        $content .= '<div class="card"><div class="h1">Audit log</div><div class="muted">Privileged changes and custody-affecting mutations, newest first.</div>';
+        $content .= '<table class="table"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Reason</th></tr></thead><tbody>';
+        foreach ($rows as $row) {
+            $content .= '<tr>'
+                . '<td class="muted">' . e((string)$row['created_at']) . '</td>'
+                . '<td>' . e((string)($row['actor_email'] ?? ('User #' . $row['actor_user_id']))) . '<div class="muted" style="font-size:12px">' . e((string)$row['actor_role']) . '</div></td>'
+                . '<td>' . e((string)$row['action']) . '</td>'
+                . '<td>' . e((string)$row['entity_type']) . ' #' . (int)$row['entity_id'] . '</td>'
+                . '<td class="muted">' . e((string)($row['reason'] ?? '')) . '</td>'
+                . '</tr>';
+        }
+        $content .= '</tbody></table></div>';
     }
 
     renderLayout('Admin', $u, $content);
@@ -2320,11 +2689,48 @@ function actionAdminCreateHub(PDO $pdo, array $u): void
 
     $coverage = parseCsvKeywords($coverageRaw);
 
+    $pdo->beginTransaction();
     try {
+        $idem = beginIdempotentAction($pdo, $u, 'admin_create_hub', [
+            'name' => $name,
+            'type' => $type,
+            'address' => $address,
+            'city' => $city,
+            'coverage' => $coverage,
+            'auto_assign' => $autoAssign,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'admin', ['tab' => 'hubs']);
+        }
+
         $pdo->prepare("INSERT INTO hubs (name,type,address,city,coverage_keywords,auto_assign,created_at) VALUES (?,?,?,?,?,?,?)")
             ->execute([$name, $type, $address !== '' ? $address : null, $city !== '' ? $city : null, json_encode($coverage, JSON_UNESCAPED_UNICODE), $autoAssign, nowIso()]);
+        $hubId = (int)$pdo->lastInsertId();
+        addAuditLog(
+            $pdo,
+            $u,
+            'network_config_changed',
+            'hub',
+            $hubId,
+            ['exists' => false],
+            [
+                'name' => $name,
+                'type' => $type,
+                'address' => $address !== '' ? $address : null,
+                'city' => $city !== '' ? $city : null,
+                'coverage_keywords' => $coverage,
+                'auto_assign' => $autoAssign,
+            ],
+            'Hub created'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'admin', ['tab' => 'hubs']);
+        $pdo->commit();
         flash('ok', 'Hub created');
+    } catch (UserSafeException $e) {
+        $pdo->rollBack();
+        flash('err', $e->getMessage());
     } catch (Throwable $e) {
+        $pdo->rollBack();
         logAppError($e, ['action' => 'admin_create_hub']);
         flash('err', 'Hub could not be created.');
     }
@@ -2356,13 +2762,45 @@ function actionAdminCreateAgent(PDO $pdo, array $u): void
     }
     $pdo->beginTransaction();
     try {
+        $idem = beginIdempotentAction($pdo, $u, 'admin_create_agent', [
+            'name' => $name,
+            'phone' => $phone,
+            'role' => $role,
+            'hub_id' => $hubId,
+            'email' => $email,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'admin', ['tab' => 'agents']);
+        }
+
         $pdo->prepare("INSERT INTO agents (hub_id,name,phone,role,active,current_status,last_seen_ts,created_at) VALUES (?,?,?,?,?,?,?,?)")
             ->execute([$hubId, $name, $phone !== '' ? $phone : null, $role, 1, 'idle', null, nowIso()]);
         $agentId = (int)$pdo->lastInsertId();
         $pdo->prepare("INSERT INTO users (email,password_hash,role,hub_id,agent_id,customer_id,active,created_at) VALUES (?,?,?,?,?,?,?,?)")
             ->execute([$email, password_hash($password, PASSWORD_DEFAULT), 'agent', $hubId, $agentId, null, 1, nowIso()]);
+        $userId = (int)$pdo->lastInsertId();
+        addAuditLog(
+            $pdo,
+            $u,
+            'user_role_changed',
+            'user',
+            $userId,
+            ['exists' => false],
+            [
+                'email' => $email,
+                'role' => 'agent',
+                'hub_id' => $hubId,
+                'agent_id' => $agentId,
+                'active' => 1,
+            ],
+            'Agent user created'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'admin', ['tab' => 'agents']);
         $pdo->commit();
         flash('ok', 'Agent created');
+    } catch (UserSafeException $e) {
+        $pdo->rollBack();
+        flash('err', $e->getMessage());
     } catch (Throwable $e) {
         $pdo->rollBack();
         logAppError($e, ['action' => 'admin_create_agent']);
@@ -2388,13 +2826,41 @@ function actionAdminCreateCustomer(PDO $pdo, array $u): void
     }
     $pdo->beginTransaction();
     try {
+        $idem = beginIdempotentAction($pdo, $u, 'admin_create_customer', [
+            'name' => $name,
+            'email' => $email,
+        ]);
+        if (!empty($idem['duplicate'])) {
+            redirectDuplicateAction($pdo, $idem, 'admin', ['tab' => 'customers']);
+        }
+
         $pdo->prepare("INSERT INTO customers (name,email,api_key,created_at) VALUES (?,?,?,?)")
             ->execute([$name, $email, null, nowIso()]);
         $cid = (int)$pdo->lastInsertId();
         $pdo->prepare("INSERT INTO users (email,password_hash,role,hub_id,agent_id,customer_id,active,created_at) VALUES (?,?,?,?,?,?,?,?)")
             ->execute([$email, password_hash($password, PASSWORD_DEFAULT), 'customer', null, null, $cid, 1, nowIso()]);
+        $userId = (int)$pdo->lastInsertId();
+        addAuditLog(
+            $pdo,
+            $u,
+            'user_role_changed',
+            'user',
+            $userId,
+            ['exists' => false],
+            [
+                'email' => $email,
+                'role' => 'customer',
+                'customer_id' => $cid,
+                'active' => 1,
+            ],
+            'Customer user created'
+        );
+        completeIdempotentAction($pdo, $u, $idem, 'admin', ['tab' => 'customers']);
         $pdo->commit();
         flash('ok', 'Customer created');
+    } catch (UserSafeException $e) {
+        $pdo->rollBack();
+        flash('err', $e->getMessage());
     } catch (Throwable $e) {
         $pdo->rollBack();
         logAppError($e, ['action' => 'admin_create_customer']);

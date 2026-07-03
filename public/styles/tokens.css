@@ -1,0 +1,24 @@
+:root {
+  --bg:#f4f5f7;
+  --panel:#ffffff;
+  --panel-2:#f8f9fb;
+  --text:#141821;
+  --muted:#5c6470;
+  --line:#e5e8ee;
+  --line-strong:#d3d8e0;
+  --ink:#0b0d12;
+  --brand:#2f56d9;
+  --brand-ink:#2444b8;
+  --brand-soft:#eef2fe;
+  --ok:#0f7a4d;
+  --warn:#9a5b00;
+  --danger:#c0362c;
+  --mono:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;
+  --shadow:0 16px 40px rgba(11,13,18,.14);
+  --band:var(--panel-2);
+  --soft:var(--brand-soft);
+  --blue:var(--brand);
+  --green:var(--ok);
+  --amber:var(--warn);
+  --red:var(--danger);
+}

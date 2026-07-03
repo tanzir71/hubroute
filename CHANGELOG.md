@@ -1,5 +1,20 @@
 # Changelog
 
+## 2026-07-04
+
+- Resolved the backend direction to simple PHP 8 + SQLite and updated the build plan/M1 contract accordingly.
+- Added SQLite-backed idempotency and audit tables to the PHP backend, idempotency keys on mutating forms, and an admin audit-log view.
+- Added provider-neutral audit-log rules and validation tests for privileged `[M1-06]` mutations.
+- Added provider-neutral idempotency rules and duplicate-request tests for the `[M1]` API contract.
+- Added provider-neutral authorization matrix rules and allow/deny tests for the `[M1-03]` RBAC contract.
+- Added provider-neutral status-transition rules and unit tests for the `[M1-05]` parcel event contract.
+- Added provider-neutral `[M1]` backend contract notes covering entities, APIs, event transitions, public redaction, idempotency, and RBAC test scope.
+- Added `[M0-04]` landing/docs copy pass with courier-operator positioning, a clearer workflow, and screenshot-style console sections.
+- Added `[M0-05]` structured console empty/error/loading panels plus smoke coverage for an empty valid demo dataset.
+- Added `[M0-03]` shared `styles/tokens.css` imported by landing, docs, and the generated console demo.
+- Added `[M0-02]` ES-module demo source under `src/demo/` with a bundled single-file `public/index.html` build output.
+- Added `[M0-01]` demo sync scripts and CI so `vercel-demo/index.html` stays mirrored from generated `public/index.html`.
+
 ## 2026-07-03
 
 - Added `docs.html` for GitHub Pages with demo accounts, hub-and-spoke workflow, deployment notes, security posture, and polish/scalability roadmap.

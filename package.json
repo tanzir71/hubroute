@@ -1,0 +1,21 @@
+{
+  "name": "hubroute",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HubRoute parcel operations demo and static site",
+  "scripts": {
+    "build:demo": "node scripts/build-demo.mjs",
+    "sync:demo": "node scripts/build-demo.mjs && node scripts/sync-demo.mjs",
+    "check:demo": "node scripts/build-demo.mjs --check && node scripts/sync-demo.mjs --check",
+    "smoke:demo": "node scripts/smoke-demo.mjs",
+    "test:domain": "node --test tests/*.test.mjs",
+    "test": "npm run test:domain && npm run check:demo && npm run smoke:demo"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "jsdom": "^26.0.0"
+  }
+}

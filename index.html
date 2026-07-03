@@ -4,115 +4,148 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HubRoute / Bangladesh parcel routing demo</title>
-  <meta name="description" content="HubRoute is a compact parcel operations demo for Bangladesh hub routing, searchable dispatch, custody handoff, and public tracking.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Crect width='34' height='34' rx='8' fill='%23090a0c'/%3E%3Cpath d='M16 12.4 9.2 8.4 10.5 6.2 17.3 10.2z' fill='%23225f9f'/%3E%3Cpath d='M17.8 10.4 24.5 6.2 25.8 8.4 19.1 12.6z' fill='%239a6108'/%3E%3Cpath d='M18.5 15.4 24.8 21.2 23.1 23 16.8 17.2z' fill='%23176f45'/%3E%3Ccircle cx='17' cy='14' r='4' fill='%23fff'/%3E%3Ccircle cx='8.8' cy='7.7' r='3' fill='%23225f9f'/%3E%3Ccircle cx='25.2' cy='7.7' r='3' fill='%239a6108'/%3E%3Ccircle cx='24' cy='22.2' r='3' fill='%23176f45'/%3E%3Ctext x='17' y='29' font-family='Arial,sans-serif' font-size='5.8' font-weight='900' text-anchor='middle' fill='%23fff'%3EHR%3C/text%3E%3C/svg%3E">
+  <meta name="description" content="HubRoute is a compact courier operations console for Bangladesh hub routing, searchable dispatch, custody handoff, public tracking, and COD control.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%232f56d9'/%3E%3Cpath%20d='M6.5%2025.5%20L20.5%2011.5'%20fill='none'%20stroke='%23fff'%20stroke-width='3.4'/%3E%3Cpath%20d='M24%208%20L23.1%2015.7%20L15.9%2014.4%20Z'%20fill='%23fff'/%3E%3Crect%20x='9.3'%20y='19.1'%20width='3.8'%20height='3.8'%20fill='%232f56d9'%20stroke='%23fff'%20stroke-width='1.5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles/tokens.css">
   <style>
-    :root{
-      --bg:#fbfbfa;
-      --text:#101114;
-      --muted:#62666f;
-      --line:#d9dce2;
-      --soft:#f0f2f4;
-      --ink:#090a0c;
-      --blue:#225f9f;
-      --green:#176f45;
-      --amber:#a35f00;
-      --red:#9d2f2f;
-    }
     *{box-sizing:border-box}
     html{scroll-behavior:smooth}
-    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased}
     a{color:inherit;text-decoration:none}
-    a:focus-visible,.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-    .shell{max-width:1060px;margin:0 auto;padding:0 20px}
-    .nav{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line)}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:780;letter-spacing:0}
-    .logo-mark{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 34px;border:0;border-radius:8px;background:transparent}
-    .logo-mark svg{display:block;width:34px;height:34px}
-    .logo-bg{fill:var(--ink)}
-    .logo-route.blue{fill:var(--blue)}
-    .logo-route.amber{fill:var(--amber)}
-    .logo-route.green{fill:var(--green)}
-    .logo-node{fill:#fff}
-    .logo-node.blue{fill:var(--blue)}
-    .logo-node.amber{fill:var(--amber)}
-    .logo-node.green{fill:var(--green)}
-    .logo-text{font-size:5.8px;font-weight:900;letter-spacing:.2px;fill:#fff}
-    .links{display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    a:focus-visible,.btn:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+    .shell{max-width:1080px;margin:0 auto;padding:0 24px}
+    .nav{min-height:64px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em}
+    .logo-mark{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:0 0 30px}
+    .logo-mark svg,.logo-svg{display:block;width:30px;height:30px}
+    .logo-bg{fill:var(--brand)}
+    .logo-arrow{stroke:#fff}
+    .logo-head{fill:#fff}
+    .logo-node{fill:var(--brand);stroke:#fff}
+    .links{display:flex;gap:22px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13.5px;font-weight:500}
+    .links a{position:relative;padding:2px 0}
     .links a:hover{color:var(--text)}
-    .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.82fr);gap:30px;padding:36px 0 24px;align-items:center}
-    .kicker{color:var(--muted);font-size:12px;margin-bottom:9px}
-    h1{font-size:34px;line-height:1.08;letter-spacing:0;margin:0 0 13px;max-width:580px}
-    .lead{font-size:15px;line-height:1.58;color:#30343b;max-width:600px;margin:0 0 18px}
-    .actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--ink);border-radius:6px;padding:8px 12px;font-weight:700;background:#fff}
-    .btn.primary{background:var(--ink);color:#fff}
-    .btn.download{border-color:var(--blue);color:var(--blue)}
-    .runtime-note{color:var(--muted);font-size:12px;margin:-6px 0 18px}
-    .proof{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 0}
-    .proof-item{border-top:1px solid var(--line);padding-top:9px}
-    .proof-item strong{display:block;font-size:15px;line-height:1.1;margin-bottom:3px}
+    .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,.86fr);gap:44px;padding:64px 0 44px;align-items:center}
+    .kicker{display:inline-flex;align-items:center;gap:8px;color:var(--brand);font-size:12px;font-weight:600;letter-spacing:.02em;margin-bottom:16px;text-transform:uppercase}
+    .kicker:before{content:"";width:20px;height:1px;background:var(--brand)}
+    h1{font-size:44px;line-height:1.05;letter-spacing:-.025em;margin:0 0 18px;max-width:600px;font-weight:700}
+    .lead{font-size:16.5px;line-height:1.6;color:#3a4049;max-width:560px;margin:0 0 26px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:42px;border:1px solid var(--line-strong);border-radius:0;padding:10px 18px;font-weight:600;font-size:14px;background:#fff;color:var(--text);transition:background .12s,border-color .12s,color .12s}
+    .btn:hover{border-color:var(--ink)}
+    .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+    .btn.primary:hover{background:var(--brand-ink);border-color:var(--brand-ink)}
+    .btn.download{border-color:var(--brand);color:var(--brand)}
+    .runtime-note{color:var(--muted);font-size:12.5px;margin:2px 0 26px}
+    .proof{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin:26px 0 0;border-top:1px solid var(--line)}
+    .proof-item{padding:16px 16px 16px 0;border-right:1px solid var(--line)}
+    .proof-item:last-child{border-right:0}
+    .proof-item strong{display:block;font-size:19px;line-height:1.1;margin-bottom:4px;font-family:var(--mono);letter-spacing:-.02em}
     .proof-item span{display:block;color:var(--muted);font-size:12px}
-    .demo-card{border:1px solid var(--ink);border-radius:8px;background:#fff;box-shadow:5px 5px 0 var(--ink);overflow:hidden}
-    .demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:12px 14px;font-size:12px;color:var(--muted)}
-    .status-dot{width:8px;height:8px;border-radius:999px;background:var(--green);box-shadow:16px 0 0 var(--amber),32px 0 0 var(--red)}
-    .route-board{padding:12px;display:grid;gap:10px}
-    .mini-map{height:126px;border:1px solid var(--line);border-radius:6px;background:linear-gradient(135deg,#fff 0%,#f6f7f9 58%,#eef6f1 100%);position:relative;overflow:hidden}
-    .mini-map:before{content:"";position:absolute;left:9%;right:9%;top:51%;height:2px;background:var(--ink)}
-    .node{position:absolute;width:15px;height:15px;border-radius:999px;background:#fff;border:3px solid var(--ink);top:calc(51% - 7px)}
-    .node.a{left:8%}.node.b{left:46%;border-color:var(--blue)}.node.c{right:8%;border-color:var(--green)}
-    .node-label{position:absolute;font-size:11px;font-weight:750;background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 6px}
-    .node-label.a{left:7%;top:20%}.node-label.b{left:39%;bottom:18%}.node-label.c{right:6%;top:22%}
-    .queue{display:grid;gap:7px}
-    .queue-row{display:grid;grid-template-columns:82px 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:8px 9px;font-size:12px}
-    .tag{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:11px;color:#333;background:#fff;white-space:nowrap}
-    .tag.blue{border-color:#a9c5de;color:var(--blue);background:#f4f8fb}.tag.green{border-color:#a9d0ba;color:var(--green);background:#f2f8f5}.tag.amber{border-color:#dfc498;color:var(--amber);background:#fbf7ef}
-    section{padding:30px 0;border-top:1px solid var(--line)}
-    .section-head{display:grid;grid-template-columns:132px 1fr;gap:20px;align-items:start;margin-bottom:16px}
-    .eyebrow{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-    h2{font-size:22px;line-height:1.18;letter-spacing:0;margin:0;max-width:690px}
-    h3{font-size:15px;line-height:1.22;letter-spacing:0;margin:0 0 8px}
+    .demo-card{border:1px solid var(--line-strong);border-radius:0;background:#fff;overflow:hidden}
+    .demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:12px 16px;font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;background:var(--band)}
+    .status-dot{width:8px;height:8px;border-radius:999px;background:var(--ok);box-shadow:15px 0 0 var(--warn),30px 0 0 var(--danger)}
+    .route-board{padding:16px;display:grid;gap:12px}
+    .mini-map{height:150px;border:1px solid var(--line);border-radius:0;background:var(--band);position:relative;overflow:hidden}
+    .mini-map:before{content:"";position:absolute;left:9%;right:9%;top:51%;height:2px;background:repeating-linear-gradient(90deg,var(--ink) 0 8px,transparent 8px 14px)}
+    .node{position:absolute;width:14px;height:14px;border-radius:0;background:#fff;border:3px solid var(--ink);top:calc(51% - 7px);transform:rotate(45deg)}
+    .node.a{left:8%}.node.b{left:46%;border-color:var(--brand)}.node.c{right:8%;border-color:var(--ok)}
+    .node-label{position:absolute;font-size:10.5px;font-weight:600;background:#fff;border:1px solid var(--line);border-radius:0;padding:3px 7px;font-family:var(--mono);text-transform:uppercase;letter-spacing:.02em}
+    .node-label.a{left:6%;top:18%}.node-label.b{left:38%;bottom:16%}.node-label.c{right:5%;top:20%}
+    .queue{display:grid;gap:8px}
+    .queue-row{display:grid;grid-template-columns:88px 1fr auto;gap:10px;align-items:center;border:1px solid var(--line);border-radius:0;padding:9px 11px;font-size:12px}
+    .queue-row strong{font-family:var(--mono);font-size:12px;letter-spacing:-.01em}
+    .screenshots{display:grid;grid-template-columns:1.15fr .85fr;gap:0;border:1px solid var(--line)}
+    .screen-shot{background:#fff;border-right:1px solid var(--line);padding:16px;display:grid;gap:12px;min-width:0}
+    .screen-shot:last-child{border-right:0}
+    .screen-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding-bottom:10px}
+    .screen-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+    .screen-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line)}
+    .screen-kpi{padding:10px;border-right:1px solid var(--line)}
+    .screen-kpi:last-child{border-right:0}
+    .screen-kpi strong{display:block;font-family:var(--mono);font-size:18px;color:var(--ink)}
+    .screen-kpi span{display:block;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+    .screen-table{border:1px solid var(--line);display:grid;gap:0}
+    .screen-row{display:grid;grid-template-columns:96px 1fr auto;gap:10px;align-items:center;border-top:1px solid var(--line);padding:9px 10px;font-size:12px}
+    .screen-row:first-child{border-top:0;background:var(--panel-2);color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+    .screen-row strong{font-family:var(--mono)}
+    .screen-stack{display:grid;gap:12px}
+    .scan-card{border:1px solid var(--line);background:#fff;padding:12px;display:grid;gap:9px}
+    .scan-line{height:32px;border:1px solid var(--line);background:var(--panel-2)}
+    .tag{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line-strong);border-radius:0;padding:3px 8px;font-size:10.5px;color:#333;background:#fff;white-space:nowrap;text-transform:uppercase;font-weight:600;letter-spacing:.03em}
+    .tag.blue{border-color:#c2cef0;color:var(--brand);background:var(--brand-soft)}
+    .tag.green{border-color:#b6ddc7;color:var(--ok);background:#eef8f2}
+    .tag.amber{border-color:#e6d2a6;color:var(--warn);background:#fbf6ec}
+    section{padding:56px 0;border-top:1px solid var(--line)}
+    .section-head{display:grid;grid-template-columns:160px 1fr;gap:28px;align-items:start;margin-bottom:28px}
+    .eyebrow{font-size:11px;color:var(--brand);text-transform:uppercase;letter-spacing:.08em;font-weight:600;padding-top:5px}
+    h2{font-size:29px;line-height:1.15;letter-spacing:-.02em;margin:0;max-width:640px;font-weight:700}
+    h3{font-size:15px;line-height:1.25;letter-spacing:-.01em;margin:0 0 8px;font-weight:650}
     p{color:#41464f;margin:0}
-    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    .panel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:14px}
-    .panel.top{border-top:3px solid var(--ink)}
-    .num{color:var(--muted);font-size:12px;margin-bottom:18px}
-    .demo-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(300px,1.1fr);gap:16px;align-items:start}
-    .credential{display:grid;grid-template-columns:96px 1fr;gap:8px 12px;margin:14px 0 12px;font-size:14px}
-    .credential dt{color:var(--muted)}
-    .credential dd{margin:0;font-weight:720;word-break:break-word}
-    .warn{border-left:3px solid var(--amber);padding:8px 10px;background:#fff8eb;color:#4d3a14;font-size:13px}
-    .sheet{border:1px solid var(--ink);border-radius:8px;background:#101114;color:#f7f7f4;padding:15px;overflow:hidden}
-    .sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    .sheet-cell{min-height:74px;border:1px solid #383b42;border-radius:6px;padding:10px;background:#171a1f}
-    .sheet-cell b{display:block;color:#fff;font-size:12px;margin-bottom:8px}
-    .sheet-cell span{display:block;color:#b9bec7;font-size:12px}
-    .code{margin:0;background:#101114;color:#f8f8f2;border-radius:8px;padding:15px;overflow:auto;font-size:13px;line-height:1.5}
-    .setup{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
-    .checks{display:grid;gap:9px;margin:0;padding:0;list-style:none}
-    .checks li{border-left:3px solid var(--green);background:#fff;padding:10px 12px;border-radius:0 6px 6px 0;color:#30343b}
-    footer{padding:28px 0 40px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
-    footer a{text-decoration:underline;text-underline-offset:3px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line)}
+    .grid3 .panel{border:0;border-right:1px solid var(--line)}
+    .grid3 .panel:last-child{border-right:0}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--line)}
+    .grid4 .panel{border:0;border-right:1px solid var(--line)}
+    .grid4 .panel:last-child{border-right:0}
+    .panel{border:1px solid var(--line);border-radius:0;background:#fff;padding:20px}
+    .panel.top{border-top:2px solid var(--brand)}
+    .num{color:var(--muted);font-size:11px;margin-bottom:16px;font-family:var(--mono);letter-spacing:.03em}
+    .demo-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(300px,1.08fr);gap:0;align-items:stretch;border:1px solid var(--line)}
+    .demo-grid > .panel.top{border:0;border-right:1px solid var(--line)}
+    .demo-grid > .grid3{border:0}
+    .credential{display:grid;grid-template-columns:96px 1fr;gap:9px 14px;margin:16px 0 14px;font-size:14px}
+    .credential dt{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
+    .credential dd{margin:0;font-weight:500;word-break:break-word;font-family:var(--mono);font-size:13px}
+    .warn{border-left:2px solid var(--warn);padding:10px 12px;background:#fbf6ec;color:#4d3a14;font-size:12.5px}
+    .sheet{border:1px solid var(--ink);border-radius:0;background:var(--ink);color:#f2f4f7;padding:0;overflow:hidden}
+    .sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+    .sheet-cell{min-height:96px;border-right:1px solid #23262e;padding:16px;background:var(--ink)}
+    .sheet-cell:last-child{border-right:0}
+    .sheet-cell b{display:block;color:#fff;font-size:11px;margin-bottom:10px;font-family:var(--mono);letter-spacing:.04em;color:#8fa6ee}
+    .sheet-cell span{display:block;color:#b9bec7;font-size:12.5px;line-height:1.5}
+    .code{margin:0;background:var(--ink);color:#e6eaf2;border-radius:0;padding:18px;overflow:auto;font-size:12.5px;line-height:1.6;font-family:var(--mono);border:1px solid var(--ink)}
+    .setup{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+    .checks{display:grid;gap:0;margin:0;padding:0;list-style:none;border:1px solid var(--line)}
+    .checks li{border-left:2px solid var(--ok);border-bottom:1px solid var(--line);background:#fff;padding:13px 16px;color:#30343b;font-size:14px}
+    .checks li:last-child{border-bottom:0}
+    footer{padding:40px 0 56px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    footer a{color:var(--muted)}
+    footer a:hover{color:var(--text)}
     @media(max-width:920px){
-      h1{font-size:31px}
-      h2{font-size:21px}
+      h1{font-size:36px}
+      h2{font-size:25px}
       .hero,.demo-grid,.setup{grid-template-columns:1fr}
+      .screenshots{grid-template-columns:1fr}
+      .screen-shot{border-right:0;border-bottom:1px solid var(--line)}
+      .screen-shot:last-child{border-bottom:0}
+      .demo-grid > .panel.top{border-right:0;border-bottom:1px solid var(--line)}
       .proof,.grid4{grid-template-columns:repeat(2,1fr)}
+      .grid4 .panel:nth-child(2){border-right:0}
       .grid3{grid-template-columns:1fr}
-      .demo-card{box-shadow:6px 6px 0 var(--ink)}
+      .grid3 .panel{border-right:0;border-bottom:1px solid var(--line)}
+      .grid3 .panel:last-child{border-bottom:0}
+      .section-head{grid-template-columns:1fr;gap:10px}
     }
     @media(max-width:640px){
-      .shell{padding:0 16px}
-      .nav{align-items:flex-start;flex-direction:column;padding:14px 0}
-      .links{gap:12px}
-      .hero{padding:28px 0 20px}
-      h1{font-size:27px}
-      h2{font-size:20px}
-      .lead{font-size:15px}
-      .section-head,.proof,.grid4,.sheet-grid{grid-template-columns:1fr}
-      .queue-row{grid-template-columns:1fr}
-      .credential{grid-template-columns:1fr}
+      .shell{padding:0 18px}
+      .nav{align-items:flex-start;flex-direction:column;padding:14px 0;gap:12px}
+      .links{gap:16px}
+      .hero{padding:40px 0 28px}
+      h1{font-size:30px}
+      h2{font-size:22px}
+      section{padding:40px 0}
+      .proof,.grid4,.sheet-grid{grid-template-columns:1fr}
+      .proof-item{border-right:0;border-bottom:1px solid var(--line)}
+      .sheet-cell{border-right:0;border-bottom:1px solid #23262e}
+      .grid4 .panel{border-right:0;border-bottom:1px solid var(--line)}
+      .queue-row{grid-template-columns:1fr;gap:6px}
+      .screen-row{grid-template-columns:1fr;gap:5px}
+      .screen-kpis{grid-template-columns:1fr}
+      .screen-kpi{border-right:0;border-bottom:1px solid var(--line)}
+      .screen-kpi:last-child{border-bottom:0}
+      .credential{grid-template-columns:1fr;gap:3px}
+      .credential dt{margin-top:8px}
     }
   </style>
 </head>
@@ -120,22 +153,13 @@
   <div class="shell">
     <nav class="nav" aria-label="Main navigation">
       <a class="brand" href="index.html"><span class="logo-mark" aria-hidden="true">
-        <svg viewBox="0 0 34 34" focusable="false">
-          <rect class="logo-bg" width="34" height="34" rx="8"></rect>
-          <path class="logo-route blue" d="M16 12.4 9.2 8.4 10.5 6.2 17.3 10.2z"></path>
-          <path class="logo-route amber" d="M17.8 10.4 24.5 6.2 25.8 8.4 19.1 12.6z"></path>
-          <path class="logo-route green" d="M18.5 15.4 24.8 21.2 23.1 23 16.8 17.2z"></path>
-          <circle class="logo-node" cx="17" cy="14" r="4"></circle>
-          <circle class="logo-node blue" cx="8.8" cy="7.7" r="3"></circle>
-          <circle class="logo-node amber" cx="25.2" cy="7.7" r="3"></circle>
-          <circle class="logo-node green" cx="24" cy="22.2" r="3"></circle>
-          <text class="logo-text" x="17" y="29" text-anchor="middle">HR</text>
-        </svg>
+        <svg viewBox="0 0 32 32" class="logo-svg" focusable="false" aria-hidden="true"><rect class="logo-bg" width="32" height="32"></rect><path class="logo-arrow" d="M6.5 25.5 L20.5 11.5" fill="none" stroke-width="3.4"></path><path class="logo-head" d="M24 8 L23.1 15.7 L15.9 14.4 Z"></path><rect class="logo-node" x="9.3" y="19.1" width="3.8" height="3.8" stroke-width="1.5"></rect></svg>
       </span><span>HubRoute</span></a>
       <div class="links">
-        <a href="#demo">Demo</a>
+        <a href="#demo">Walkthrough</a>
+        <a href="#how">How it works</a>
+        <a href="#screenshots">Screens</a>
         <a href="docs.html">Docs</a>
-        <a href="#system">System</a>
         <a href="#docs">Guide</a>
         <a href="docs.html#deployment">Setup</a>
         <a href="docs.html#security">Security</a>
@@ -146,20 +170,20 @@
     <main>
       <section class="hero" id="overview">
         <div>
-          <div class="kicker">Bangladesh hub-and-spoke parcel routing</div>
-          <h1>Parcel routing without a heavyweight logistics stack.</h1>
-          <p class="lead">HubRoute gives small delivery teams a hardened operations console for Bangladesh pickup hubs, warehouse handoffs, last-mile agents, searchable dispatch queues, public tracking, COD settlement, and CSV route manifests.</p>
+          <div class="kicker">Courier operator console for Bangladesh</div>
+          <h1>Run parcel movement from booking to doorstep.</h1>
+          <p class="lead">HubRoute gives courier operators one lean control room for pickup intake, hub sortation, line-haul handoff, last-mile dispatch, public tracking, COD visibility, and searchable custody history.</p>
           <div class="actions" aria-label="Primary actions">
             <a class="btn primary" href="https://hubroute.vercel.app/">Open hosted demo</a>
             <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Track sample parcel</a>
             <a class="btn" href="docs.html">Read docs</a>
           </div>
-          <p class="runtime-note">GitHub Pages hosts this landing page and docs. Vercel hosts the browser demo at hubroute.vercel.app.</p>
+          <p class="runtime-note">Use the hosted browser walkthrough to inspect the operator flow; the production roadmap moves this surface onto a real backend.</p>
           <div class="proof" aria-label="Product facts">
-            <div class="proof-item"><strong>1 file</strong><span>PHP app entry</span></div>
-            <div class="proof-item"><strong>4 roles</strong><span>admin, hub, agent, customer</span></div>
-            <div class="proof-item"><strong>SQLite</strong><span>no managed DB required</span></div>
-            <div class="proof-item"><strong>CSRF</strong><span>protected POST actions</span></div>
+            <div class="proof-item"><strong>4 hubs</strong><span>pickup, sortation, delivery, return</span></div>
+            <div class="proof-item"><strong>COD</strong><span>collection and outstanding visibility</span></div>
+            <div class="proof-item"><strong>Search</strong><span>tracking, route, rider, merchant</span></div>
+            <div class="proof-item"><strong>Track</strong><span>redacted public parcel view</span></div>
           </div>
         </div>
 
@@ -185,8 +209,8 @@
 
       <section id="demo">
         <div class="section-head">
-          <div class="eyebrow">Demo</div>
-          <h2>Start as one hub, then switch accounts to watch custody move across the network.</h2>
+          <div class="eyebrow">Operator walkthrough</div>
+          <h2>Start as one hub, then switch accounts to move custody across the network.</h2>
         </div>
         <div class="demo-grid">
           <div class="panel top">
@@ -225,17 +249,56 @@
         </div>
       </section>
 
-      <section id="system">
+      <section id="how">
         <div class="section-head">
-          <div class="eyebrow">System</div>
-          <h2>The whole parcel chain on one sheet.</h2>
+          <div class="eyebrow">How it works</div>
+          <h2>A courier flow built around operational jobs.</h2>
         </div>
         <div class="sheet" aria-label="HubRoute system overview">
           <div class="sheet-grid">
-            <div class="sheet-cell"><b>01 / REQUEST</b><span>Customer creates pickup, dropoff, COD amount, and note.</span></div>
-            <div class="sheet-cell"><b>02 / ROUTE</b><span>Keyword and postcode matching suggest hub route and agent.</span></div>
-            <div class="sheet-cell"><b>03 / HANDOFF</b><span>Hub and agent events preserve custody across pickup, warehouse, and last mile.</span></div>
-            <div class="sheet-cell"><b>04 / TRACK</b><span>Public tracking shows status and redacted movement without exposing full addresses.</span></div>
+            <div class="sheet-cell"><b>01 / INTAKE</b><span>Merchant parcel details, COD amount, weight, pickup hub, and destination are captured once.</span></div>
+            <div class="sheet-cell"><b>02 / SORT</b><span>Hub staff filter by destination, service area, current custody, rider, route, and payment state.</span></div>
+            <div class="sheet-cell"><b>03 / DISPATCH</b><span>Pickup, sortation, and delivery hubs assign local capacity and send parcels to the next handoff.</span></div>
+            <div class="sheet-cell"><b>04 / PROVE</b><span>Events form the timeline used by operations teams, merchants, riders, and the redacted public tracker.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="screenshots">
+        <div class="section-head">
+          <div class="eyebrow">Screenshots</div>
+          <h2>Dense console screens for repeated operations work.</h2>
+        </div>
+        <div class="screenshots" aria-label="HubRoute product screenshots">
+          <div class="screen-shot">
+            <div class="screen-bar"><span class="screen-title">Dashboard / Dhaka North Pickup</span><span class="tag blue">current hub</span></div>
+            <div class="screen-kpis">
+              <div class="screen-kpi"><strong>04</strong><span>requested</span></div>
+              <div class="screen-kpi"><strong>02</strong><span>assigned</span></div>
+              <div class="screen-kpi"><strong>07</strong><span>in motion</span></div>
+            </div>
+            <div class="screen-table">
+              <div class="screen-row"><span>Code</span><span>Custody</span><span>Status</span></div>
+              <div class="screen-row"><strong>HR260711</strong><span>Dhaka North to Tejgaon Sortation</span><span class="tag amber">sent</span></div>
+              <div class="screen-row"><strong>HR260706</strong><span>Dhanmondi-Mohammadpur Loop</span><span class="tag blue">requested</span></div>
+              <div class="screen-row"><strong>HR260707</strong><span>Bulk Merchant Van / COD</span><span class="tag green">assigned</span></div>
+            </div>
+          </div>
+          <div class="screen-shot">
+            <div class="screen-bar"><span class="screen-title">Scan and public tracking</span><span class="tag green">redacted</span></div>
+            <div class="screen-stack">
+              <div class="scan-card">
+                <strong>Record event</strong>
+                <span class="scan-line" aria-hidden="true"></span>
+                <span class="scan-line" aria-hidden="true"></span>
+                <button class="btn primary slim" type="button">Record event</button>
+              </div>
+              <div class="screen-table">
+                <div class="screen-row"><span>Public code</span><span>Visible detail</span><span>Status</span></div>
+                <div class="screen-row"><strong>HR260703</strong><span>Dhaka area to Dhaka area</span><span class="tag blue">in transit</span></div>
+                <div class="screen-row"><strong>HR260709</strong><span>Chattogram area only</span><span class="tag green">out</span></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
