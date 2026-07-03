@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HubRoute / Shared-hosting parcel routing</title>
-  <meta name="description" content="HubRoute is a compact PHP 8 and SQLite parcel operations console for cPanel and shared hosting.">
+  <title>HubRoute / Bangladesh parcel routing demo</title>
+  <meta name="description" content="HubRoute is a compact parcel operations demo for Bangladesh hub routing, searchable dispatch, custody handoff, and public tracking.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>HR</text></svg>">
   <style>
     :root{
@@ -24,30 +24,30 @@
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     a{color:inherit;text-decoration:none}
     a:focus-visible,.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
-    .shell{max-width:1120px;margin:0 auto;padding:0 20px}
-    .nav{min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line)}
+    .shell{max-width:1060px;margin:0 auto;padding:0 20px}
+    .nav{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line)}
     .brand{display:flex;align-items:center;gap:9px;font-weight:780;letter-spacing:0}
     .mark{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--ink);border-radius:6px;background:#fff;font-size:11px;font-weight:850}
-    .links{display:flex;gap:18px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    .links{display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
     .links a:hover{color:var(--text)}
-    .hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(310px,.95fr);gap:36px;padding:54px 0 28px;align-items:center}
-    .kicker{color:var(--muted);font-size:13px;margin-bottom:12px}
-    h1{font-size:46px;line-height:1.02;letter-spacing:0;margin:0 0 18px;max-width:690px}
-    .lead{font-size:17px;line-height:1.6;color:#30343b;max-width:670px;margin:0 0 22px}
-    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;border:1px solid var(--ink);border-radius:6px;padding:9px 13px;font-weight:700;background:#fff}
+    .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.82fr);gap:30px;padding:36px 0 24px;align-items:center}
+    .kicker{color:var(--muted);font-size:12px;margin-bottom:9px}
+    h1{font-size:34px;line-height:1.08;letter-spacing:0;margin:0 0 13px;max-width:580px}
+    .lead{font-size:15px;line-height:1.58;color:#30343b;max-width:600px;margin:0 0 18px}
+    .actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--ink);border-radius:6px;padding:8px 12px;font-weight:700;background:#fff}
     .btn.primary{background:var(--ink);color:#fff}
     .btn.download{border-color:var(--blue);color:var(--blue)}
     .runtime-note{color:var(--muted);font-size:12px;margin:-6px 0 18px}
-    .proof{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0 0}
-    .proof-item{border-top:1px solid var(--line);padding-top:11px}
-    .proof-item strong{display:block;font-size:17px;line-height:1.1;margin-bottom:3px}
+    .proof{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:18px 0 0}
+    .proof-item{border-top:1px solid var(--line);padding-top:9px}
+    .proof-item strong{display:block;font-size:15px;line-height:1.1;margin-bottom:3px}
     .proof-item span{display:block;color:var(--muted);font-size:12px}
-    .demo-card{border:1px solid var(--ink);border-radius:8px;background:#fff;box-shadow:8px 8px 0 var(--ink);overflow:hidden}
+    .demo-card{border:1px solid var(--ink);border-radius:8px;background:#fff;box-shadow:5px 5px 0 var(--ink);overflow:hidden}
     .demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:12px 14px;font-size:12px;color:var(--muted)}
     .status-dot{width:8px;height:8px;border-radius:999px;background:var(--green);box-shadow:16px 0 0 var(--amber),32px 0 0 var(--red)}
-    .route-board{padding:14px;display:grid;gap:12px}
-    .mini-map{height:152px;border:1px solid var(--line);border-radius:6px;background:linear-gradient(135deg,#fff 0%,#f6f7f9 58%,#eef6f1 100%);position:relative;overflow:hidden}
+    .route-board{padding:12px;display:grid;gap:10px}
+    .mini-map{height:126px;border:1px solid var(--line);border-radius:6px;background:linear-gradient(135deg,#fff 0%,#f6f7f9 58%,#eef6f1 100%);position:relative;overflow:hidden}
     .mini-map:before{content:"";position:absolute;left:9%;right:9%;top:51%;height:2px;background:var(--ink)}
     .node{position:absolute;width:15px;height:15px;border-radius:999px;background:#fff;border:3px solid var(--ink);top:calc(51% - 7px)}
     .node.a{left:8%}.node.b{left:46%;border-color:var(--blue)}.node.c{right:8%;border-color:var(--green)}
@@ -57,36 +57,36 @@
     .queue-row{display:grid;grid-template-columns:82px 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:8px 9px;font-size:12px}
     .tag{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:11px;color:#333;background:#fff;white-space:nowrap}
     .tag.blue{border-color:#a9c5de;color:var(--blue);background:#f4f8fb}.tag.green{border-color:#a9d0ba;color:var(--green);background:#f2f8f5}.tag.amber{border-color:#dfc498;color:var(--amber);background:#fbf7ef}
-    section{padding:46px 0;border-top:1px solid var(--line)}
-    .section-head{display:grid;grid-template-columns:180px 1fr;gap:28px;align-items:start;margin-bottom:24px}
+    section{padding:30px 0;border-top:1px solid var(--line)}
+    .section-head{display:grid;grid-template-columns:132px 1fr;gap:20px;align-items:start;margin-bottom:16px}
     .eyebrow{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-    h2{font-size:31px;line-height:1.12;letter-spacing:0;margin:0;max-width:760px}
-    h3{font-size:17px;line-height:1.22;letter-spacing:0;margin:0 0 8px}
+    h2{font-size:22px;line-height:1.18;letter-spacing:0;margin:0;max-width:690px}
+    h3{font-size:15px;line-height:1.22;letter-spacing:0;margin:0 0 8px}
     p{color:#41464f;margin:0}
-    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .panel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:16px}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .panel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:14px}
     .panel.top{border-top:3px solid var(--ink)}
     .num{color:var(--muted);font-size:12px;margin-bottom:18px}
-    .demo-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(320px,1.1fr);gap:18px;align-items:start}
+    .demo-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(300px,1.1fr);gap:16px;align-items:start}
     .credential{display:grid;grid-template-columns:96px 1fr;gap:8px 12px;margin:14px 0 12px;font-size:14px}
     .credential dt{color:var(--muted)}
     .credential dd{margin:0;font-weight:720;word-break:break-word}
     .warn{border-left:3px solid var(--amber);padding:8px 10px;background:#fff8eb;color:#4d3a14;font-size:13px}
     .sheet{border:1px solid var(--ink);border-radius:8px;background:#101114;color:#f7f7f4;padding:15px;overflow:hidden}
     .sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    .sheet-cell{min-height:92px;border:1px solid #383b42;border-radius:6px;padding:10px;background:#171a1f}
+    .sheet-cell{min-height:74px;border:1px solid #383b42;border-radius:6px;padding:10px;background:#171a1f}
     .sheet-cell b{display:block;color:#fff;font-size:12px;margin-bottom:8px}
     .sheet-cell span{display:block;color:#b9bec7;font-size:12px}
     .code{margin:0;background:#101114;color:#f8f8f2;border-radius:8px;padding:15px;overflow:auto;font-size:13px;line-height:1.5}
-    .setup{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+    .setup{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
     .checks{display:grid;gap:9px;margin:0;padding:0;list-style:none}
     .checks li{border-left:3px solid var(--green);background:#fff;padding:10px 12px;border-radius:0 6px 6px 0;color:#30343b}
-    footer{padding:32px 0 46px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    footer{padding:28px 0 40px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
     footer a{text-decoration:underline;text-underline-offset:3px}
     @media(max-width:920px){
-      h1{font-size:39px}
-      h2{font-size:27px}
+      h1{font-size:31px}
+      h2{font-size:21px}
       .hero,.demo-grid,.setup{grid-template-columns:1fr}
       .proof,.grid4{grid-template-columns:repeat(2,1fr)}
       .grid3{grid-template-columns:1fr}
@@ -96,10 +96,10 @@
       .shell{padding:0 16px}
       .nav{align-items:flex-start;flex-direction:column;padding:14px 0}
       .links{gap:12px}
-      .hero{padding:34px 0 24px}
-      h1{font-size:32px}
-      h2{font-size:24px}
-      .lead{font-size:16px}
+      .hero{padding:28px 0 20px}
+      h1{font-size:27px}
+      h2{font-size:20px}
+      .lead{font-size:15px}
       .section-head,.proof,.grid4,.sheet-grid{grid-template-columns:1fr}
       .queue-row{grid-template-columns:1fr}
       .credential{grid-template-columns:1fr}
@@ -112,10 +112,11 @@
       <a class="brand" href="index.html"><span class="mark">HR</span><span>HubRoute</span></a>
       <div class="links">
         <a href="#demo">Demo</a>
+        <a href="docs.html">Docs</a>
         <a href="#system">System</a>
-        <a href="#setup">Setup</a>
-        <a href="#security">Security</a>
-        <a href="README.md">README</a>
+        <a href="#docs">Guide</a>
+        <a href="docs.html#deployment">Setup</a>
+        <a href="docs.html#security">Security</a>
         <a href="https://github.com/tanzir71/hubroute">GitHub</a>
       </div>
     </nav>
@@ -123,15 +124,15 @@
     <main>
       <section class="hero" id="overview">
         <div>
-          <div class="kicker">PHP 8 + SQLite · built for cPanel and shared hosting</div>
+          <div class="kicker">Bangladesh hub-and-spoke parcel routing</div>
           <h1>Parcel routing without a heavyweight logistics stack.</h1>
-          <p class="lead">HubRoute gives small delivery teams a hardened operations console for pickup hubs, warehouse handoffs, last-mile agents, public tracking, COD settlement, and CSV route manifests.</p>
+          <p class="lead">HubRoute gives small delivery teams a hardened operations console for Bangladesh pickup hubs, warehouse handoffs, last-mile agents, searchable dispatch queues, public tracking, COD settlement, and CSV route manifests.</p>
           <div class="actions" aria-label="Primary actions">
             <a class="btn primary" href="https://hubroute.vercel.app/">Open hosted demo</a>
-            <a class="btn" href="https://hubroute.vercel.app/track">Track sample parcel</a>
-            <a class="btn" href="https://github.com/tanzir71/hubroute">View source</a>
+            <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Track sample parcel</a>
+            <a class="btn" href="docs.html">Read docs</a>
           </div>
-          <p class="runtime-note">GitHub Pages hosts this landing page. Vercel hosts the browser demo at hubroute.vercel.app.</p>
+          <p class="runtime-note">GitHub Pages hosts this landing page and docs. Vercel hosts the browser demo at hubroute.vercel.app.</p>
           <div class="proof" aria-label="Product facts">
             <div class="proof-item"><strong>1 file</strong><span>PHP app entry</span></div>
             <div class="proof-item"><strong>4 roles</strong><span>admin, hub, agent, customer</span></div>
@@ -152,9 +153,9 @@
               <span class="node-label c">last mile</span>
             </div>
             <div class="queue">
-              <div class="queue-row"><strong>HR260703</strong><span>North Pickup to Central Warehouse</span><span class="tag blue">assigned</span></div>
-              <div class="queue-row"><strong>HR260704</strong><span>Warehouse scan with hub path visible</span><span class="tag amber">in warehouse</span></div>
-              <div class="queue-row"><strong>HR260705</strong><span>Out for delivery, COD pending</span><span class="tag green">out</span></div>
+              <div class="queue-row"><strong>HR260703</strong><span>Dhaka North to Tejgaon Sortation</span><span class="tag blue">assigned</span></div>
+              <div class="queue-row"><strong>HR260704</strong><span>Banani pickup with route and rider search</span><span class="tag amber">in warehouse</span></div>
+              <div class="queue-row"><strong>HR260705</strong><span>Chattogram last mile, COD pending</span><span class="tag green">out</span></div>
             </div>
           </div>
         </div>
@@ -163,20 +164,22 @@
       <section id="demo">
         <div class="section-head">
           <div class="eyebrow">Demo</div>
-          <h2>Start as the hub operator who assigns parcels and keeps movement explainable.</h2>
+          <h2>Start as one hub, then switch accounts to watch custody move across the network.</h2>
         </div>
         <div class="demo-grid">
           <div class="panel top">
             <h3>Demo account</h3>
-            <p>The seeded data includes hubs, agents, routes, customers, and sample parcels. Use the hub account first to see the operational workflow.</p>
+            <p>The Bangladesh seeded data includes Dhaka, Savar, Gazipur, Narayanganj, and Chattogram hubs, riders, routes, customers, and sample parcels. Use Dhaka first, send a parcel to Tejgaon, then switch to the sortation account to receive it.</p>
             <dl class="credential">
-              <dt>Email</dt><dd>pickuphub@hubroute.local</dd>
+              <dt>Pickup</dt><dd>pickuphub@hubroute.local</dd>
+              <dt>Sortation</dt><dd>sortation@hubroute.local</dd>
+              <dt>Delivery</dt><dd>ctghub@hubroute.local</dd>
               <dt>Password</dt><dd>hub1234</dd>
-              <dt>Role</dt><dd>North Pickup Hub operator</dd>
             </dl>
             <div class="actions">
               <a class="btn primary" href="https://hubroute.vercel.app/">Open hosted demo</a>
-              <a class="btn" href="https://hubroute.vercel.app/track">Public tracking</a>
+              <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Public tracking</a>
+              <a class="btn" href="docs.html">Read docs</a>
             </div>
             <p class="warn">These are seeded demo credentials. Rotate or disable them immediately after a production deployment.</p>
           </div>
@@ -215,6 +218,31 @@
         </div>
       </section>
 
+      <section id="docs">
+        <div class="section-head">
+          <div class="eyebrow">Guide</div>
+          <h2>Docs live as navigable pages, not raw Markdown detours.</h2>
+        </div>
+        <div class="grid4">
+          <article class="panel">
+            <h3><a href="docs.html#quick-start">Quick start</a></h3>
+            <p>Open the hosted demo, sign in as Dhaka North, send a parcel onward, then switch hubs to receive it.</p>
+          </article>
+          <article class="panel">
+            <h3><a href="docs.html#workflow">Hub workflow</a></h3>
+            <p>See how pickup, sortation, delivery, return, route assignment, and scan events fit together.</p>
+          </article>
+          <article class="panel">
+            <h3><a href="docs.html#deployment">Deployment</a></h3>
+            <p>Understand the split between GitHub Pages, the Vercel browser demo, and the PHP source app.</p>
+          </article>
+          <article class="panel">
+            <h3><a href="docs.html#security">Security</a></h3>
+            <p>Review credential rotation, private data storage, CSRF, prepared SQL, and role-based checks.</p>
+          </article>
+        </div>
+      </section>
+
       <section id="setup">
         <div class="section-head">
           <div class="eyebrow">Setup</div>
@@ -223,10 +251,11 @@
         <div class="setup">
           <div class="panel top">
             <h3>Hosted browser demo</h3>
-            <p>The Vercel demo is a browser-only walkthrough of the HubRoute workflow. The repo still includes the PHP 8 + SQLite source for shared-hosting deployment.</p>
+            <p>The Vercel demo is a browser-side operations console with CRUD, detailed search and filters, assignment, scan events, Bangladesh sample data, and public tracking. The repo still includes the PHP 8 + SQLite source for shared-hosting deployment.</p>
             <div class="actions" style="margin-top:16px">
               <a class="btn primary" href="https://hubroute.vercel.app/">Open Vercel demo</a>
-              <a class="btn" href="SETUP.md">Open PHP setup notes</a>
+              <a class="btn" href="docs.html">Read docs</a>
+              <a class="btn" href="docs.html#deployment">Deployment guide</a>
             </div>
           </div>
           <pre class="code"><code>Hosted demo
@@ -235,8 +264,8 @@ https://hubroute.vercel.app/
 Source app
 hubroute.php
 
-Shared-hosting notes
-SETUP.md</code></pre>
+Deployment guide
+docs.html#deployment</code></pre>
         </div>
       </section>
 
@@ -277,7 +306,7 @@ SETUP.md</code></pre>
 
     <footer>
       <span>HubRoute / PHP 8 + SQLite parcel operations console</span>
-      <span><a href="README.md">README</a> / <a href="SETUP.md">Setup</a> / <a href="SECURITY.md">Security</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
+      <span><a href="docs.html">Docs</a> / <a href="docs.html#deployment">Setup</a> / <a href="docs.html#security">Security</a> / <a href="docs.html#roadmap">Roadmap</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
     </footer>
   </div>
 </body>

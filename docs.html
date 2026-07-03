@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HubRoute Docs</title>
+  <meta name="description" content="HubRoute demo accounts, hub-and-spoke workflow, deployment notes, security posture, and scalability plan.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>HR</text></svg>">
+  <style>
+    :root{--bg:#fbfbfa;--text:#101114;--muted:#606670;--line:#d9dce2;--soft:#f0f2f4;--ink:#090a0c;--blue:#225f9f;--green:#176f45;--amber:#a35f00}
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg);color:var(--text);font:15px/1.58 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    a:hover{text-decoration:underline;text-underline-offset:3px}
+    code{font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--soft);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+    pre{margin:0;overflow:auto;background:#101114;color:#f8f8f2;border-radius:8px;padding:14px;border:1px solid #101114}
+    pre code{background:transparent;border:0;color:inherit;padding:0}
+    .shell{max-width:1060px;margin:0 auto;padding:0 20px}
+    .nav{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:9px;font-weight:780}
+    .mark{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--ink);border-radius:6px;background:#fff;font-size:11px;font-weight:850}
+    .links{display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    .hero{padding:34px 0 24px;display:grid;gap:13px;border-bottom:1px solid var(--line)}
+    .kicker,.eyebrow{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:750}
+    h1{font-size:34px;line-height:1.08;letter-spacing:0;margin:0;max-width:700px}
+    h2{font-size:22px;line-height:1.18;letter-spacing:0;margin:0 0 10px}
+    h3{font-size:15px;line-height:1.22;letter-spacing:0;margin:0 0 8px}
+    p{margin:0;color:#41464f}
+    .lead{font-size:15px;line-height:1.6;max-width:720px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--ink);border-radius:6px;padding:8px 12px;font-weight:700;background:#fff;text-decoration:none}
+    .btn.primary{background:var(--ink);color:#fff}
+    .layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:30px;padding:26px 0 42px}
+    .toc{position:sticky;top:16px;align-self:start;border:1px solid var(--line);border-radius:8px;background:#fff;padding:13px;display:grid;gap:8px}
+    .toc a{color:var(--muted);font-size:13px}
+    .docs{display:grid;gap:18px}
+    section{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;padding:20px 0;display:grid;gap:13px}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .grid.three{grid-template-columns:repeat(3,1fr)}
+    .card{border:1px solid var(--line);border-radius:8px;padding:14px;background:#fff;display:grid;gap:7px}
+    .card.top{border-top:3px solid var(--ink)}
+    .tag{display:inline-flex;width:max-content;border:1px solid var(--line);border-radius:999px;padding:2px 8px;font-size:12px;color:var(--muted)}
+    .flow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .step{border:1px solid var(--line);border-radius:8px;padding:12px;background:#fafafa}
+    .step b{display:block;margin-bottom:6px}
+    .warn{border-left:3px solid var(--amber);background:#fff8eb;color:#4d3a14;padding:10px 12px;border-radius:0 6px 6px 0}
+    .checks{display:grid;gap:9px;margin:0;padding:0;list-style:none}
+    .checks li{border-left:3px solid var(--green);background:#f8fbf9;padding:10px 12px;border-radius:0 6px 6px 0;color:#30343b}
+    footer{padding:32px 0 46px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
+    @media(max-width:860px){
+      h1{font-size:30px}
+      h2{font-size:21px}
+      .layout{grid-template-columns:1fr}
+      .toc{position:static}
+      .grid,.grid.three,.flow{grid-template-columns:1fr}
+    }
+    @media(max-width:560px){
+      .shell{padding:0 16px}
+      .nav{align-items:flex-start;flex-direction:column;padding:14px 0}
+      .links{gap:12px}
+      h1{font-size:27px}
+      h2{font-size:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <nav class="nav" aria-label="Main navigation">
+      <a class="brand" href="index.html"><span class="mark">HR</span><span>HubRoute</span></a>
+      <div class="links">
+        <a href="index.html">Landing</a>
+        <a href="https://hubroute.vercel.app/">Demo</a>
+        <a href="#deployment">Setup</a>
+        <a href="#security">Security</a>
+        <a href="https://github.com/tanzir71/hubroute">GitHub</a>
+      </div>
+    </nav>
+
+    <header class="hero">
+      <div class="kicker">Documentation</div>
+      <h1>Implementation guide for the HubRoute demo.</h1>
+      <p class="lead">Run the hosted walkthrough, inspect the Bangladesh hub-and-spoke data, understand search and custody flow, and review deployment and security notes without leaving the HTML docs.</p>
+      <div class="actions">
+        <a class="btn primary" href="https://hubroute.vercel.app/">Open demo</a>
+        <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Public tracking</a>
+        <a class="btn" href="index.html">Back to landing</a>
+      </div>
+    </header>
+
+    <main class="layout">
+      <aside class="toc" aria-label="Docs sections">
+        <strong>On This Page</strong>
+        <a href="#quick-start">Quick Start</a>
+        <a href="#accounts">Demo Accounts</a>
+        <a href="#workflow">Hub Workflow</a>
+        <a href="#screens">Screens</a>
+        <a href="#deployment">Deployment</a>
+        <a href="#security">Security</a>
+        <a href="#roadmap">Polish Plan</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+      </aside>
+
+      <div class="docs">
+        <section id="quick-start">
+          <div>
+            <div class="eyebrow">Quick Start</div>
+            <h2>Use the Vercel demo for the product walkthrough.</h2>
+          </div>
+          <div class="grid">
+            <div class="card top">
+              <h3>1. Sign in as Dhaka North</h3>
+              <p>Open <a href="https://hubroute.vercel.app/">hubroute.vercel.app</a>, choose <code>pickuphub@hubroute.local</code>, and use <code>hub1234</code>.</p>
+            </div>
+            <div class="card top">
+              <h3>2. Send a parcel onward</h3>
+              <p>Open Parcels, use the Flow filter, and send an eligible Dhaka parcel to Tejgaon Sortation Hub.</p>
+            </div>
+            <div class="card top">
+              <h3>3. Switch hubs</h3>
+              <p>Use Switch account, sign in as <code>sortation@hubroute.local</code>, then receive the incoming parcel.</p>
+            </div>
+            <div class="card top">
+              <h3>4. Continue the path</h3>
+              <p>Assign local sortation route/rider, record scan events, send to delivery, and inspect public tracking.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="accounts">
+          <div>
+            <div class="eyebrow">Demo Accounts</div>
+            <h2>Four hub operators demonstrate network handoff.</h2>
+          </div>
+          <div class="grid">
+            <div class="card"><span class="tag">Pickup</span><h3>Dhaka North Pickup Hub</h3><p><code>pickuphub@hubroute.local</code></p></div>
+            <div class="card"><span class="tag">Sortation</span><h3>Tejgaon Sortation Hub</h3><p><code>sortation@hubroute.local</code></p></div>
+            <div class="card"><span class="tag">Delivery</span><h3>Chattogram Delivery Hub</h3><p><code>ctghub@hubroute.local</code></p></div>
+            <div class="card"><span class="tag">Return</span><h3>Savar Return Hub</h3><p><code>savarhub@hubroute.local</code></p></div>
+          </div>
+          <p class="warn">All demo accounts use <code>hub1234</code>. Rotate or disable seeded credentials before any real deployment.</p>
+        </section>
+
+        <section id="workflow">
+          <div>
+            <div class="eyebrow">Hub Workflow</div>
+            <h2>Custody is explicit from pickup to sortation to delivery.</h2>
+          </div>
+          <div class="flow">
+            <div class="step"><b>Pickup hub</b><p>Create parcels, assign rider/route, pick up from merchant, and send to the next hub.</p></div>
+            <div class="step"><b>Sortation hub</b><p>Receive incoming parcels, clear old local assignment, sort by destination, and send onward.</p></div>
+            <div class="step"><b>Delivery hub</b><p>Receive line-haul parcels, assign last-mile rider, record delivery attempt, COD, or failure.</p></div>
+          </div>
+          <pre><code>Dhaka North Pickup -> Tejgaon Sortation -> Dhaka North Delivery
+Dhaka North Pickup -> Tejgaon Sortation -> Chattogram Delivery
+Savar Pickup/Return -> Tejgaon Sortation -> Dhaka North Delivery</code></pre>
+        </section>
+
+        <section id="screens">
+          <div>
+            <div class="eyebrow">Screens</div>
+            <h2>Every operational screen is searchable and filterable.</h2>
+          </div>
+          <div class="grid three">
+            <div class="card"><h3>Dashboard</h3><p>Search all operations data, inspect hub network counts, route capacity, rider workload, and recent movement.</p></div>
+            <div class="card"><h3>Parcels</h3><p>Create, edit, delete, assign, send, receive, and filter by status, custody flow, route, rider, customer, hub, and payment.</p></div>
+            <div class="card"><h3>Routes</h3><p>Create, edit, delete, and filter by service area, type, status, rider, and capacity pressure.</p></div>
+            <div class="card"><h3>Riders</h3><p>Create, edit, delete, and filter by phone, vehicle, status, free capacity, and current ride load.</p></div>
+            <div class="card"><h3>Customers</h3><p>Create, edit, archive, and search by merchant, phone, email, address, parcel count, COD history, and status.</p></div>
+            <div class="card"><h3>Scan and tracking</h3><p>Record custody events internally, then let senders and receivers enter a tracking number for a redacted public timeline.</p></div>
+          </div>
+        </section>
+
+        <section id="deployment">
+          <div>
+            <div class="eyebrow">Deployment</div>
+            <h2>Landing and demo are intentionally split.</h2>
+          </div>
+          <div class="grid">
+            <div class="card top">
+              <h3>GitHub Pages</h3>
+              <p>Serves <code>index.html</code>, <code>docs.html</code>, and repository documentation. It does not execute PHP.</p>
+            </div>
+            <div class="card top">
+              <h3>Vercel demo</h3>
+              <p>Serves the browser-only demo from <code>public/index.html</code>. Data is local to each visitor's browser.</p>
+            </div>
+            <div class="card top">
+              <h3>PHP source</h3>
+              <p><code>hubroute.php</code> remains the PHP 8 + SQLite app source for hosts that run PHP with PDO SQLite enabled.</p>
+            </div>
+            <div class="card top">
+              <h3>Static bundle</h3>
+              <p>The demo has no build step or runtime dependency. The Vercel copy is synced with <code>public/index.html</code>.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="security">
+          <div>
+            <div class="eyebrow">Security</div>
+            <h2>Demo convenience and production credentials are separate concerns.</h2>
+          </div>
+          <ul class="checks">
+            <li>Do not reuse seeded demo emails or passwords in production.</li>
+            <li>Keep environment files and SQLite data outside public web paths when possible.</li>
+            <li>Use HTTPS, secure session settings, CSRF protection, prepared SQL, and escaped output for the PHP app.</li>
+            <li>Use role-based checks for parcel, route, rider, hub, and export operations.</li>
+          </ul>
+        </section>
+
+        <section id="roadmap">
+          <div>
+            <div class="eyebrow">Polish and Scalability Plan</div>
+            <h2>Next steps after this landing/demo pass.</h2>
+          </div>
+          <div class="grid">
+            <div class="card top">
+              <h3>Product polish</h3>
+              <p>Add mobile scanner ergonomics, batch assignment, printable labels, manifest export, SLA aging, exception queues, keyboard shortcuts, and denser table column controls.</p>
+            </div>
+            <div class="card top">
+              <h3>Operational depth</h3>
+              <p>Add service-area suggestions, COD settlement reconciliation, rider shift calendars, hub cut-off windows, route manifests, and delivery attempt reason taxonomy.</p>
+            </div>
+            <div class="card top">
+              <h3>Scale architecture</h3>
+              <p>Move from browser demo state to a server-backed API, indexed parcel/event storage, tenant-aware hub access, background jobs, audit logs, and observability.</p>
+            </div>
+            <div class="card top">
+              <h3>Data evolution</h3>
+              <p>Keep the custody event log append-only, add idempotent scan/event writes, model inter-hub bags/manifests, and prepare a Postgres/MySQL path for larger deployments.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="troubleshooting">
+          <div>
+            <div class="eyebrow">Troubleshooting</div>
+            <h2>Common demo and deployment checks.</h2>
+          </div>
+          <ul class="checks">
+            <li>If demo data looks stale, use Reset seed data in the sidebar or clear localStorage for <code>hubroute.vercel.app</code>.</li>
+            <li>If a parcel cannot be assigned, receive it at the active hub first; assignment is intentionally local to the current hub.</li>
+            <li>If a dropdown is long inside the operator console, type into it; all demo selects are searchable after JavaScript loads.</li>
+            <li>If the PHP app fails on a host, confirm PHP 8.1+, PDO SQLite, writable data directory, and private environment configuration.</li>
+          </ul>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      <span>HubRoute docs / Bangladesh parcel operations demo</span>
+      <span><a href="index.html">Landing</a> / <a href="https://hubroute.vercel.app/">Demo</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
+    </footer>
+  </div>
+</body>
+</html>

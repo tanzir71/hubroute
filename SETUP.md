@@ -1,23 +1,34 @@
 # HubRoute Setup
 
-## Namecheap/cPanel Demo Deployment
+## Hosted Browser Demo
+
+The public product walkthrough runs at <https://hubroute.vercel.app/> from `public/index.html`. It is browser-only, dependency-free, and stores demo changes in localStorage.
+
+Demo accounts use password `hub1234`:
+
+- `pickuphub@hubroute.local`
+- `sortation@hubroute.local`
+- `ctghub@hubroute.local`
+- `savarhub@hubroute.local`
+
+## Optional Shared-Hosting PHP Deployment
 
 1. In cPanel, set the domain or subdomain PHP version to PHP 8.1 or newer and enable `pdo_sqlite` and `sqlite3`.
 2. Upload `hubroute-demo.zip` to the demo domain folder, usually `public_html/` or the subdomain document root, and extract it there with overwrite enabled.
-3. Visit `http://hubroute.ganges.quest/`. `index.php` redirects to the seeded demo login in `demo.php`.
+3. Visit your demo domain. If using the single-file source directly, visit `/hubroute.php?r=login&demo=hub`.
 4. First app startup creates `data/hubroute.sqlite`, `data/php-error.log`, and runtime denial files inside `data/`.
-5. Confirm `http://hubroute.ganges.quest/data/hubroute.sqlite` is not downloadable. If it is reachable, move `DATA_DIR` outside `public_html` in `.env`.
+5. Confirm `/data/hubroute.sqlite` is not downloadable. If it is reachable, move `DATA_DIR` outside `public_html` in `.env`.
 6. For a public demo, rotate or disable seeded credentials before using real parcel/customer data.
 
-The ZIP is intentionally demo-only: it does not include the GitHub landing page or docs. It includes a root `.htaccess` so `index.php` is preferred, plus a fallback redirect `index.html` in case the host still serves HTML first.
+The ZIP is intentionally demo-only: it does not need the GitHub landing page or docs. It should include denial files for `data/` and exclude `.env`, SQLite databases, logs, `.git`, and generated runtime state.
 
 No `.env` file is required for the default demo. Copy `.env.example` to `.env` only if you need to change paths, timezone, or rate-limit/session settings.
 
 ## Demo Login
 
-The deployment includes a seeded hub operator demo account:
+The PHP source includes a seeded hub operator demo account:
 
-- URL: `http://hubroute.ganges.quest/`
+- URL: `/hubroute.php?r=login&demo=hub`
 - Email: `pickuphub@hubroute.local`
 - Password: `hub1234`
 
@@ -25,7 +36,7 @@ The demo URL prefills only the email field. The password is shown in the login h
 
 If the login page loads but sign-in or public tracking fails with a startup error, recheck that `pdo_sqlite` and `sqlite3` are enabled and that `data/` is writable by PHP.
 
-If the app still fails, open `http://hubroute.ganges.quest/health.php`. It checks PHP version, PDO SQLite, SQLite3, data-folder writability, and an actual SQLite write.
+If the app still fails and `health.php` is deployed, open `/health.php`. It checks PHP version, PDO SQLite, SQLite3, data-folder writability, and an actual SQLite write.
 
 ## Local Smoke Run
 

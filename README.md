@@ -1,13 +1,14 @@
 # HubRoute MVP
 
-HubRoute is a compact PHP 8 + SQLite parcel operations console for shared hosting. It supports customer pickup requests, hub assignment, agent delivery runs, public tracking, COD settlement, and route CSV export.
+HubRoute is a compact parcel operations demo with a static GitHub landing page, a browser-only Vercel walkthrough, and a PHP 8 + SQLite source app for shared-hosting experiments. It supports customer pickup requests, hub assignment, rider delivery runs, public tracking, COD settlement, and route CSV export.
 
 Landing page: `index.html` on GitHub Pages
-Demo front door: `index.php`
-Demo app entry: `demo.php`
+Docs page: `docs.html` on GitHub Pages
+Hosted demo: <https://hubroute.vercel.app/>
+Vercel demo source: `public/index.html`
 Source app entry: `hubroute.php`
 Repository: <https://github.com/tanzir71/hubroute>
-Demo package: `hubroute-demo.zip`
+Legacy PHP demo package: `hubroute-demo.zip`
 
 ## Security Posture
 
@@ -20,18 +21,19 @@ Demo package: `hubroute-demo.zip`
 - CSP and standard browser security headers.
 - Authorization checks for parcel, route, hub, agent, settlement, and CSV access.
 
-See [SECURITY.md](SECURITY.md) for the full security notes and [SETUP.md](SETUP.md) for cPanel deployment.
+See [docs.html](docs.html) for the product walkthrough, [SECURITY.md](SECURITY.md) for the full security notes, and [SETUP.md](SETUP.md) for optional PHP deployment notes.
 
-## Demo Account
+## Hosted Demo Accounts
 
-The landing page and login screen highlight the seeded hub operator demo:
+The hosted browser demo highlights a Bangladesh hub-and-spoke network. All demo accounts use `hub1234`.
 
-- Demo URL: `http://hubroute.ganges.quest/`
-- Email: `pickuphub@hubroute.local`
-- Password: `hub1234`
-- Role: North Pickup Hub operator
+- Demo URL: <https://hubroute.vercel.app/>
+- Pickup hub: `pickuphub@hubroute.local`
+- Sortation hub: `sortation@hubroute.local`
+- Delivery hub: `ctghub@hubroute.local`
+- Return hub: `savarhub@hubroute.local`
 
-Use it to inspect parcel queues, route assignment, scan/event capture, and settlement workflows. Change or disable all seeded credentials before production use.
+Use these accounts to inspect parcel queues, CRUD, search/filter panels, route/rider assignment, hub-to-hub handoff, scan/event capture, and public tracking. Change or disable all seeded credentials before production use.
 
 ## Default Seed Accounts
 
@@ -52,9 +54,9 @@ php -S 127.0.0.1:8080 hubroute.php
 
 Open `http://127.0.0.1:8080/hubroute.php`.
 
-## Demo Deployment ZIP
+## PHP Deployment ZIP
 
-`hubroute-demo.zip` is the cPanel demo-runtime bundle. Upload it to the demo domain root, extract it, and visit the domain. It includes `index.php`, a fallback redirect `index.html`, `demo.php`, `health.php`, root `.htaccess`, `.env.example`, and staged `data/.htaccess` plus `data/index.html` denial files. The real landing page and docs stay in the GitHub repo/GitHub Pages. The ZIP excludes private/runtime state such as `.env`, SQLite databases, logs, `.git`, and design-source notes.
+`hubroute-demo.zip` is the older PHP demo-runtime bundle. The primary public demo now runs at Vercel from `public/index.html`; the real landing page and docs stay in the GitHub repo/GitHub Pages. Any PHP bundle should exclude private/runtime state such as `.env`, SQLite databases, logs, `.git`, and design-source notes.
 
 ## Static Security Scan
 

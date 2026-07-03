@@ -4,70 +4,217 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HubRoute Demo</title>
-  <meta name="description" content="Interactive HubRoute demo for parcel hub routing, event capture, and public tracking.">
+  <meta name="description" content="Interactive HubRoute demo for parcel hub routing, CRUD operations, route assignment, event capture, and public tracking.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Crect x='1' y='1' width='32' height='32' rx='8' fill='%23fff' stroke='%23090a0c' stroke-width='2'/%3E%3Cpath d='M17 14 8.5 8.5M17 14l8.5-5.5M17 14l7.5 8' fill='none' stroke='%23225f9f' stroke-width='2.2' stroke-linecap='round'/%3E%3Ccircle cx='17' cy='14' r='3.5' fill='%23090a0c'/%3E%3Ccircle cx='8.5' cy='8.5' r='3' fill='%23fff' stroke='%23090a0c' stroke-width='1.8'/%3E%3Ccircle cx='25.5' cy='8.5' r='3' fill='%23fff' stroke='%239a6108' stroke-width='1.8'/%3E%3Ccircle cx='24.5' cy='22' r='3' fill='%23fff' stroke='%23176f45' stroke-width='1.8'/%3E%3Ctext x='17' y='29' font-family='Arial,sans-serif' font-size='5.8' font-weight='900' text-anchor='middle' fill='%23090a0c'%3EHR%3C/text%3E%3C/svg%3E">
   <style>
     :root{
-      --bg:#f6f7f8;--panel:#fff;--text:#101114;--muted:#626872;--line:#d9dde3;--soft:#eef1f4;
-      --ink:#090a0c;--blue:#225f9f;--green:#176f45;--amber:#9a6108;--red:#9d2f2f;
+      --bg:#f6f7f8;
+      --panel:#fff;
+      --panel-2:#fafafa;
+      --text:#101114;
+      --muted:#626872;
+      --line:#d9dde3;
+      --soft:#eef1f4;
+      --ink:#090a0c;
+      --blue:#225f9f;
+      --green:#176f45;
+      --amber:#9a6108;
+      --red:#9d2f2f;
+      --shadow:0 12px 34px rgba(16,17,20,.08);
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-    button,input,select{font:inherit}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    button:disabled{cursor:not-allowed;opacity:.5}
     a{color:inherit}
-    .shell{max-width:1180px;margin:0 auto;padding:0 18px}
-    .topbar{min-height:60px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px}
-    .brand{display:flex;align-items:center;gap:9px;font-weight:800}
-    .mark{display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--ink);border-radius:6px;background:#fff;font-size:11px;font-weight:900}
-    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-    .tab{border:0;background:transparent;border-radius:6px;padding:8px 10px;color:var(--muted);cursor:pointer}
-    .tab.active,.tab:hover{background:#fff;color:var(--text)}
-    .layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;padding:18px 0}
-    .side{display:grid;gap:12px;align-content:start}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
-    .login{max-width:520px;margin:54px auto}
     h1,h2,h3,p{margin:0}
-    h1{font-size:30px;line-height:1.1;margin-bottom:12px}
-    h2{font-size:20px;line-height:1.2;margin-bottom:10px}
-    h3{font-size:15px;line-height:1.2;margin-bottom:8px}
+    h1{font-size:28px;line-height:1.12;letter-spacing:0}
+    h2{font-size:20px;line-height:1.2;letter-spacing:0}
+    h3{font-size:15px;line-height:1.22;letter-spacing:0}
+    label{display:grid;gap:6px;color:var(--muted);font-size:12px}
+    input,select,textarea{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--text);padding:9px 10px}
+    textarea{min-height:88px;resize:vertical}
+    input[type="checkbox"],input[type="radio"]{width:auto}
+    .shell{max-width:1220px;margin:0 auto;padding:0 18px}
+    .topbar{min-height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px}
+    .topbar.public-mode .nav{display:none}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+    .logo-mark{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 34px;border:1px solid var(--ink);border-radius:8px;background:#fff;color:var(--ink)}
+    .logo-mark svg{display:block;width:34px;height:34px}
+    .logo-route{fill:none;stroke-width:2.2;stroke-linecap:round}
+    .logo-route.blue{stroke:var(--blue)}
+    .logo-route.amber{stroke:var(--amber)}
+    .logo-route.green{stroke:var(--green)}
+    .logo-node{fill:#fff;stroke:var(--ink);stroke-width:1.8}
+    .logo-node.center{fill:var(--ink)}
+    .logo-text{font-size:5.8px;font-weight:900;letter-spacing:.2px;fill:var(--ink)}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .tab{border:0;background:transparent;border-radius:6px;padding:8px 10px;color:var(--muted)}
+    .tab.active,.tab:hover{background:#fff;color:var(--text)}
+    .layout{display:grid;grid-template-columns:248px minmax(0,1fr);gap:18px;padding:18px 0 28px}
+    .layout.public-layout{grid-template-columns:minmax(0,920px);justify-content:center}
+    .layout.public-layout .side{display:none}
+    .side{display:grid;gap:14px;align-content:start}
+    .stack{display:grid;gap:16px}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:14px;align-content:start}
+    .card.compact{gap:10px;padding:14px}
+    .surface{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;display:grid;gap:14px;align-content:start}
+    .card-head,.view-head,.toolbar{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+    .view-head{padding:2px 0 0}
+    .toolbar{align-items:center}
+    .login{max-width:720px;margin:42px auto}
     .muted{color:var(--muted)}
     .small{font-size:12px}
+    .eyebrow{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:750}
     .actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--ink);border-radius:6px;background:#fff;color:var(--text);padding:8px 12px;font-weight:720;cursor:pointer;text-decoration:none}
-    .btn.primary{background:var(--ink);color:#fff}.btn.ghost{border-color:var(--line)}
-    .btn:disabled{opacity:.45;cursor:not-allowed}
-    label{display:block;color:var(--muted);font-size:12px;margin:10px 0 5px}
-    input,select{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--text);padding:9px 10px}
-    .grid{display:grid;gap:12px}.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:repeat(3,1fr)}.grid.four{grid-template-columns:repeat(4,1fr)}
-    .kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}
-    .kpi strong{display:block;font-size:22px;line-height:1;margin-bottom:5px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--ink);border-radius:6px;background:#fff;color:var(--text);padding:8px 12px;font-weight:720;text-decoration:none}
+    .btn.primary{background:var(--ink);color:#fff}
+    .btn.ghost{border-color:var(--line)}
+    .btn.danger{border-color:var(--red);color:var(--red)}
+    .btn.slim{min-height:32px;padding:6px 9px;font-size:12px}
+    .grid{display:grid;gap:14px}
+    .grid.two{grid-template-columns:1fr 1fr}
+    .grid.three{grid-template-columns:repeat(3,1fr)}
+    .grid.four{grid-template-columns:repeat(4,1fr)}
+    .kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px;display:grid;gap:6px}
+    .kpi strong{display:block;font-size:23px;line-height:1}
+    .metric-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border-top:1px solid var(--line)}
+    .metric-row:first-child{border-top:0}
+    .metric{border:0;border-radius:0;background:transparent;padding:10px 0;display:grid;gap:3px;min-width:0}
+    .metric + .metric{border-left:1px solid var(--line);padding-left:12px}
+    .metric span{color:var(--muted);font-size:12px}
+    .metric strong{font-size:14px}
     .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
-    table{width:100%;border-collapse:collapse;min-width:760px}
-    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
-    th{font-size:12px;color:var(--muted);background:#fafafa}
+    table{width:100%;border-collapse:collapse;min-width:940px}
+    th,td{padding:11px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    th{font-size:12px;color:var(--muted);background:#fafafa;font-weight:760}
     tr:last-child td{border-bottom:0}
-    .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:12px;background:#fff;white-space:nowrap}
-    .pill.blue{background:#f4f8fb;border-color:#a9c5de;color:var(--blue)}.pill.green{background:#f2f8f5;border-color:#a9d0ba;color:var(--green)}
-    .pill.amber{background:#fbf7ef;border-color:#dfc498;color:var(--amber)}.pill.red{background:#fff3f3;border-color:#e5b2b2;color:var(--red)}
-    .notice{border-left:3px solid var(--amber);background:#fff8eb;padding:9px 10px;border-radius:0 6px 6px 0;color:#4c3710}
+    .row-title{display:grid;gap:4px}
+    .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:12px;background:#fff;white-space:nowrap;text-transform:capitalize}
+    .pill.blue{background:#f4f8fb;border-color:#a9c5de;color:var(--blue)}
+    .pill.green{background:#f2f8f5;border-color:#a9d0ba;color:var(--green)}
+    .pill.amber{background:#fbf7ef;border-color:#dfc498;color:var(--amber)}
+    .pill.red{background:#fff3f3;border-color:#e5b2b2;color:var(--red)}
+    .notice{border-left:3px solid var(--amber);background:#fff8eb;padding:10px 11px;border-radius:0 6px 6px 0;color:#4c3710}
+    .account-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+    .account-card{border:0;border-top:1px solid var(--line);background:#fff;padding:12px;display:grid;gap:7px;text-align:left}
+    .account-card:nth-child(-n+2){border-top:0}
+    .account-card:nth-child(2n){border-left:1px solid var(--line)}
+    .account-card.active{background:var(--soft);box-shadow:inset 3px 0 0 var(--ink)}
+    .account-card strong{display:block}
+    .hub-network{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+    .hub-node-card{border:0;border-left:1px solid var(--line);background:#fff;padding:12px;display:grid;gap:8px}
+    .hub-node-card:first-child{border-left:0}
+    .hub-node-card.active{background:var(--soft);box-shadow:inset 0 3px 0 var(--ink)}
+    .handoff-path{display:grid;gap:4px;font-size:12px}
+    .flow-note{color:var(--muted);font-size:12px}
+    .tracking-lookup{background:#fff;border:1px solid var(--ink);border-radius:8px;padding:16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:end}
+    .tracking-lookup label{font-size:13px;color:var(--text)}
+    .tracking-lookup input{font-size:18px;font-weight:760;letter-spacing:.02em;text-transform:uppercase}
+    .sample-codes{display:flex;gap:8px;flex-wrap:wrap}
+    .public-result{display:grid;gap:16px}
+    .status-strip{border:1px solid var(--line);border-radius:8px;background:#fff;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:0;overflow:hidden}
+    .status-strip > div{padding:14px}
+    .status-strip > div + div{border-left:1px solid var(--line)}
+    .detail-list{border:1px solid var(--line);border-radius:8px;background:#fff;overflow:hidden}
+    .detail-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:14px;padding:11px 13px;border-top:1px solid var(--line)}
+    .detail-row:first-child{border-top:0}
+    .detail-row span:first-child{color:var(--muted);font-size:12px}
+    .detail-row strong{word-break:break-word}
+    .progress-line{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff}
+    .progress-step{padding:10px;border-left:1px solid var(--line);display:grid;gap:5px;min-height:74px}
+    .progress-step:first-child{border-left:0}
+    .progress-step.done{background:#f2f8f5}
+    .progress-step.current{background:#f4f8fb;box-shadow:inset 0 3px 0 var(--blue)}
+    .progress-step.failed{background:#fff3f3;box-shadow:inset 0 3px 0 var(--red)}
+    .assignment-summary{border-left:3px solid var(--ink);background:#fafafa;padding:11px 12px;display:grid;gap:6px}
+    .js select.select-search-native{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;margin:0;padding:0}
+    .select-search{position:relative;display:grid;gap:6px}
+    .select-search-input{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--text);padding:9px 10px}
+    .select-search-list{display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:40;max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff;box-shadow:0 12px 30px rgba(16,17,20,.14);padding:4px}
+    .select-search.open .select-search-list{display:grid}
+    .select-search-option{border:0;border-radius:6px;background:#fff;color:var(--text);padding:8px 9px;text-align:left}
+    .select-search-option:hover,.select-search-option.active{background:var(--soft)}
     .route-map{height:150px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(135deg,#fff,#eef6f1);position:relative;overflow:hidden}
     .route-map:before{content:"";position:absolute;left:10%;right:10%;top:50%;height:2px;background:#111}
     .node{position:absolute;top:calc(50% - 8px);width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:#fff}
-    .node.a{left:9%}.node.b{left:48%;border-color:var(--blue)}.node.c{right:9%;border-color:var(--green)}
-    .timeline{display:grid;gap:8px}
-    .event{border-left:3px solid var(--line);padding:4px 0 4px 10px}
-    .toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;padding:10px 12px;border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.18);display:none}
+    .node.a{left:9%}
+    .node.b{left:48%;border-color:var(--blue)}
+    .node.c{right:9%;border-color:var(--green)}
+    .timeline{display:grid;gap:10px}
+    .event{border-left:3px solid var(--line);padding:2px 0 4px 11px;display:grid;gap:3px}
+    .empty{border:1px dashed var(--line);border-radius:8px;background:#fff;padding:18px;color:var(--muted)}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+    .form-grid .wide{grid-column:1/-1}
+    .checkline{display:flex;align-items:center;gap:8px;color:var(--text);font-size:13px}
+    .filter-card{background:#fff;border-top:3px solid var(--ink)}
+    .filter-grid{display:grid;grid-template-columns:minmax(240px,1.4fr) repeat(4,minmax(150px,1fr));gap:12px;align-items:end}
+    .filter-grid.three{grid-template-columns:minmax(240px,1.4fr) repeat(3,minmax(150px,1fr))}
+    .filter-grid.two{grid-template-columns:minmax(240px,1.4fr) minmax(150px,1fr)}
+    .result-count{display:inline-flex;align-items:center;min-height:32px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;color:var(--muted);font-size:12px;background:#fff}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(16,17,20,.38);display:none;align-items:center;justify-content:center;padding:20px;z-index:20}
+    .modal-backdrop.show{display:flex}
+    .modal{width:min(920px,100%);max-height:90vh;overflow:auto;background:#fff;border:1px solid var(--ink);border-radius:8px;box-shadow:var(--shadow)}
+    .modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding:16px}
+    .modal-body{padding:16px;display:grid;gap:16px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:9px;flex-wrap:wrap;border-top:1px solid var(--line);padding:14px 16px;background:#fafafa}
+    .choice-list{display:grid;gap:10px}
+    .choice-card{border:0;border-top:1px solid var(--line);border-radius:0;padding:12px 0;background:transparent;display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px;align-items:start}
+    .choice-card:first-child{border-top:0}
+    .choice-card:has(input:checked){background:var(--soft);box-shadow:inset 3px 0 0 var(--ink);padding-left:10px}
+    .choice-main{display:grid;gap:7px}
+    .choice-title{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-weight:760}
+    .toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;padding:10px 12px;border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.18);display:none;z-index:30}
     .toast.show{display:block}
     .hidden{display:none!important}
-    @media(max-width:840px){.layout{grid-template-columns:1fr}.grid.two,.grid.three,.grid.four{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column;padding:12px 0}}
+    @media(max-width:900px){
+      .layout{grid-template-columns:1fr}
+      .grid.two,.grid.three,.grid.four{grid-template-columns:1fr}
+      .topbar{align-items:flex-start;flex-direction:column;padding:12px 0}
+    }
+    @media(max-width:640px){
+      .shell{padding:0 14px}
+      .login{margin:32px auto}
+      h1{font-size:24px}
+      .form-grid,.filter-grid,.filter-grid.three,.filter-grid.two{grid-template-columns:1fr}
+      .metric-row{grid-template-columns:1fr}
+      .metric + .metric{border-left:0;border-top:1px solid var(--line);padding-left:0}
+      .account-grid,.hub-network{grid-template-columns:1fr}
+      .account-card,.account-card:nth-child(-n+2),.account-card:nth-child(2n),.hub-node-card,.hub-node-card:first-child{border-left:0;border-top:1px solid var(--line)}
+      .account-card:first-child,.hub-node-card:first-child{border-top:0}
+      .tracking-lookup,.status-strip,.progress-line,.detail-row{grid-template-columns:1fr}
+      .status-strip > div + div{border-left:0;border-top:1px solid var(--line)}
+      .progress-step{border-left:0;border-top:1px solid var(--line)}
+      .progress-step:first-child{border-top:0}
+      .modal-backdrop{padding:10px}
+    }
   </style>
 </head>
 <body>
   <div class="shell">
     <div class="topbar">
-      <div class="brand"><span class="mark">HR</span><span>HubRoute Demo</span></div>
+      <div class="brand">
+        <span class="logo-mark" aria-hidden="true">
+          <svg viewBox="0 0 34 34" focusable="false">
+            <path class="logo-route blue" d="M17 14 L8.5 8.5"></path>
+            <path class="logo-route amber" d="M17 14 L25.5 8.5"></path>
+            <path class="logo-route green" d="M17 14 L24.5 22"></path>
+            <circle class="logo-node" cx="8.5" cy="8.5" r="3"></circle>
+            <circle class="logo-node" cx="25.5" cy="8.5" r="3"></circle>
+            <circle class="logo-node" cx="24.5" cy="22" r="3"></circle>
+            <circle class="logo-node center" cx="17" cy="14" r="3.6"></circle>
+            <text class="logo-text" x="17" y="29" text-anchor="middle">HR</text>
+          </svg>
+        </span>
+        <span>HubRoute Demo</span>
+      </div>
       <div class="nav" id="nav" aria-label="Demo navigation">
-        <button class="tab active" data-view="parcels">Parcels</button>
+        <button class="tab active" data-view="dashboard">Dashboard</button>
+        <button class="tab" data-view="parcels">Parcels</button>
         <button class="tab" data-view="routes">Routes</button>
+        <button class="tab" data-view="riders">Riders</button>
+        <button class="tab" data-view="customers">Customers</button>
         <button class="tab" data-view="scan">Scan/Event</button>
         <button class="tab" data-view="track">Public Tracking</button>
         <button class="tab" data-view="login">Switch account</button>
@@ -75,134 +222,1481 @@
     </div>
 
     <section id="login" class="login card">
-      <p class="muted small">Seeded hub operator demo</p>
-      <h1>Open the North Pickup Hub console.</h1>
-      <p class="muted">This Vercel demo is browser-only and mirrors the HubRoute workflow: queue review, route assignment, scan events, and public tracking.</p>
-      <label>Email</label>
-      <input id="email" type="email" value="pickuphub@hubroute.local">
-      <label>Password</label>
-      <input id="password" type="password" value="hub1234">
-      <div class="actions" style="margin-top:14px">
+      <p class="eyebrow">Seeded hub network demo</p>
+      <h1>Switch between Bangladesh hubs and move parcels through custody.</h1>
+      <p class="muted">Pick a seeded operator, sign in, send a parcel to the next hub, then switch accounts to receive it. Search, filters, CRUD, assignment, events, and public tracking persist in this browser until reset.</p>
+      <label>Find demo account<input id="accountSearch" placeholder="Dhaka, Tejgaon, Chattogram, Savar, pickup..." autocomplete="off"></label>
+      <div id="accountCards" class="account-grid" aria-live="polite"></div>
+      <div class="grid two">
+        <label>Email<input id="email" type="email" value="pickuphub@hubroute.local" autocomplete="username"></label>
+        <label>Password<input id="password" type="password" value="hub1234" autocomplete="current-password"></label>
+      </div>
+      <div class="actions">
         <button id="signIn" class="btn primary">Sign in</button>
         <button id="tryTracking" class="btn">Public tracking</button>
       </div>
-      <p class="notice small" style="margin-top:14px">Demo credentials only. The PHP/SQLite source remains in the repo for shared-hosting deployment.</p>
+      <p class="notice small">Demo credentials only. Rotate seeded passwords before any production deployment.</p>
     </section>
 
     <main id="app" class="layout hidden">
       <aside class="side">
-        <div class="card">
-          <h3>Signed in</h3>
-          <p><strong>pickuphub@hubroute.local</strong></p>
-          <p class="muted small">North Pickup Hub operator</p>
+        <div class="card compact">
+          <p class="eyebrow">Current hub</p>
+          <h3 id="currentHubName">Dhaka North Pickup Hub</h3>
+          <p class="muted small" id="currentHubMeta">Hub operator session</p>
         </div>
-        <div class="card">
+        <div class="card compact">
           <h3>Hub path</h3>
-          <div class="route-map"><span class="node a"></span><span class="node b"></span><span class="node c"></span></div>
+          <div class="route-map" aria-label="Pickup, warehouse, and last-mile route map"><span class="node a"></span><span class="node b"></span><span class="node c"></span></div>
         </div>
-        <div class="card">
+        <div class="card compact">
           <h3>Demo account</h3>
-          <p class="muted small">Email: pickuphub@hubroute.local<br>Password: hub1234</p>
+          <p class="muted small" id="currentAccountMeta">Switch account to operate another hub.<br>Password: hub1234</p>
+        </div>
+        <div class="card compact">
+          <h3>Demo data</h3>
+          <p class="muted small" id="dataSummary">Local browser data</p>
+          <button class="btn ghost slim" data-action="reset-demo">Reset seed data</button>
         </div>
       </aside>
-      <section class="grid">
-        <div id="view"></div>
-      </section>
+      <section id="view" class="stack" aria-live="polite"></section>
     </main>
   </div>
+
+  <div id="modalRoot" class="modal-backdrop" role="dialog" aria-modal="true"></div>
   <div id="toast" class="toast"></div>
 
   <script>
-    const baseParcels = [
-      {code:'HR260703N8Q2ZK', customer:'Alice Shop', pickup:'19 Northside St, Metro City 1000', dropoff:'55 Riverside Rd, Metro City 2000', amount:1299, status:'assigned', route:'Northside Pickup Route', agent:'Amina (Pickup)', cod:false},
-      {code:'HR260704B7M5RX', customer:'Alice Shop', pickup:'88 Uptown Blvd, Metro City 1000', dropoff:'9 Eastside Ave, Metro City 2000', amount:0, status:'assigned', route:'Northside Pickup Route', agent:'Amina (Pickup)', cod:false},
-      {code:'HR260705C4P9JT', customer:'Bob Sender', pickup:'77 Unknown District, Metro City 9999', dropoff:'12 Riverside Rd, Metro City 2000', amount:0, status:'requested', route:'', agent:'', cod:false},
-      {code:'HR260706D6V2LA', customer:'Bob Sender', pickup:'22 Northside Market, Metro City 1000', dropoff:'14 Central Sq, Metro City 2000', amount:2500, status:'requested', route:'', agent:'', cod:true}
+    document.documentElement.classList.add('js');
+    const STORAGE_KEY = 'hubroute-demo-state-v5';
+    const DEMO_ACCOUNTS = [
+      { email: 'pickuphub@hubroute.local', password: 'hub1234', hubId: 'hub-north', role: 'Pickup hub operator' },
+      { email: 'sortation@hubroute.local', password: 'hub1234', hubId: 'hub-central', role: 'Sortation hub operator' },
+      { email: 'ctghub@hubroute.local', password: 'hub1234', hubId: 'hub-east', role: 'Chattogram delivery operator' },
+      { email: 'savarhub@hubroute.local', password: 'hub1234', hubId: 'hub-savar', role: 'Savar return hub operator' }
     ];
-    const events = [
-      {code:'HR260703N8Q2ZK', type:'requested', hub:'North Pickup Hub', note:'Seeded request'},
-      {code:'HR260703N8Q2ZK', type:'assigned', hub:'North Pickup Hub', note:'Auto-assigned by route keywords'},
-      {code:'HR260704B7M5RX', type:'requested', hub:'North Pickup Hub', note:'Seeded request'},
-      {code:'HR260704B7M5RX', type:'assigned', hub:'North Pickup Hub', note:'Auto-assigned by route keywords'}
-    ];
-    let parcels = structuredClone(baseParcels);
-    let currentView = 'parcels';
-    let selectedCode = parcels[0].code;
+    const STATUSES = ['requested','assigned','picked_up','in_transit','in_warehouse','out_for_delivery','delivered','failed'];
+    const EVENT_TYPES = ['requested','assigned','picked_up','handoff_departed','handoff_received','in_transit','in_warehouse','out_for_delivery','delivered','failed','payment_collected','note'];
+    const ACTIVE_STATUSES = ['requested','assigned','picked_up','in_transit','in_warehouse','out_for_delivery'];
+
+    let state = loadState();
+    let currentView = location.pathname.includes('/track') ? 'track' : 'login';
+    let signedIn = location.pathname.includes('/track');
+    let selectedParcelId = state.parcels[0]?.id || '';
+    let selectedAccountEmail = DEMO_ACCOUNTS[0].email;
+    let trackingLookup = new URLSearchParams(location.search).get('code') || '';
+    const filters = {
+      dashboard: { q: '', status: 'all' },
+      parcels: { q: '', status: 'all', flow: 'all', routeId: 'all', riderId: 'all', customerId: 'all', cod: 'all', hubId: 'current' },
+      routes: { q: '', type: 'all', status: 'all', riderId: 'all', capacity: 'all' },
+      riders: { q: '', status: 'all', vehicle: 'all', load: 'all' },
+      customers: { q: '', status: 'all', parcel: 'all' },
+      scan: { q: '', status: 'all', eventType: 'all' },
+      track: { q: '', status: 'all', customerId: 'all' }
+    };
 
     const $ = (id) => document.getElementById(id);
-    function money(cents){return cents ? '$' + (cents/100).toFixed(2) : '$0.00'}
-    function statusClass(status){return status === 'delivered' ? 'green' : status === 'requested' ? 'amber' : status === 'failed' ? 'red' : 'blue'}
-    function pill(status){return `<span class="pill ${statusClass(status)}">${status.replaceAll('_',' ')}</span>`}
-    function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
-    function setView(view){
-      currentView = view;
-      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
-      if(view === 'login'){ $('app').classList.add('hidden'); $('login').classList.remove('hidden'); return; }
-      $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+    const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+    const uid = (prefix) => prefix + '-' + Math.random().toString(36).slice(2, 9);
+
+    function seedState(){
+      const now = Date.now();
+      const ago = (minutes) => new Date(now - minutes * 60000).toISOString();
+      return {
+        version: 5,
+        currentHubId: 'hub-north',
+        hubs: [
+          {id:'hub-north', name:'Dhaka North Pickup Hub', city:'Dhaka', type:'pickup'},
+          {id:'hub-central', name:'Tejgaon Sortation Hub', city:'Dhaka', type:'warehouse'},
+          {id:'hub-east', name:'Chattogram Delivery Hub', city:'Chattogram', type:'delivery'},
+          {id:'hub-savar', name:'Savar Return Hub', city:'Savar', type:'return'}
+        ],
+        customers: [
+          {id:'cust-maya', name:'Maya Fashion', phone:'+8801711001001', email:'ops@maya-fashion.example', address:'House 14, Road 11, Banani, Dhaka 1213', status:'active'},
+          {id:'cust-bongo', name:'Bongo Mart', phone:'+8801812002002', email:'dispatch@bongomart.example', address:'Plot 22, Section 11, Mirpur, Dhaka 1216', status:'active'},
+          {id:'cust-chashi', name:'Chashi Bazaar', phone:'+8801913003003', email:'orders@chashi.example', address:'Board Bazar, Gazipur 1704', status:'active'},
+          {id:'cust-book', name:'Book Bazar BD', phone:'+8801614004004', email:'fulfilment@bookbazar.example', address:'Elephant Road, Dhaka 1205', status:'active'},
+          {id:'cust-tech', name:'Tech Ghor', phone:'+8801515005005', email:'warehouse@techghor.example', address:'Bashundhara R/A, Dhaka 1229', status:'active'},
+          {id:'cust-port', name:'Port City Traders', phone:'+8801316006006', email:'ops@portcity.example', address:'Agrabad C/A, Chattogram 4100', status:'active'}
+        ],
+        riders: [
+          {id:'rider-amina', name:'Amina Rahman', hubId:'hub-north', phone:'+8801711223344', vehicle:'Motorbike', capacity:24, status:'active'},
+          {id:'rider-karim', name:'Karim Hossain', hubId:'hub-north', phone:'+8801811223344', vehicle:'Covered van', capacity:48, status:'active'},
+          {id:'rider-nusrat', name:'Nusrat Jahan', hubId:'hub-north', phone:'+8801911223344', vehicle:'Motorbike', capacity:22, status:'active'},
+          {id:'rider-rafiq', name:'Rafiq Islam', hubId:'hub-savar', phone:'+8801611223344', vehicle:'Pickup van', capacity:36, status:'active'},
+          {id:'rider-jamal', name:'Jamal Uddin', hubId:'hub-central', phone:'+8801711778899', vehicle:'3-ton truck', capacity:80, status:'active'},
+          {id:'rider-mika', name:'Mika Roy', hubId:'hub-east', phone:'+8801511223344', vehicle:'Motorbike', capacity:18, status:'active'}
+        ],
+        routes: [
+          {id:'route-banani-gulshan', name:'Banani-Gulshan Pickup', hubId:'hub-north', type:'pickup', areas:'Banani, Gulshan, Mohakhali DOHS, Niketon', capacity:24, riderId:'rider-amina', status:'active'},
+          {id:'route-mirpur-uttara', name:'Mirpur-Uttara Pickup', hubId:'hub-north', type:'pickup', areas:'Mirpur, Uttara, Pallabi, Airport Road', capacity:22, riderId:'rider-nusrat', status:'active'},
+          {id:'route-dhanmondi-loop', name:'Dhanmondi-Mohammadpur Loop', hubId:'hub-north', type:'pickup', areas:'Dhanmondi, Mohammadpur, Kalabagan, New Market', capacity:18, riderId:'rider-amina', status:'active'},
+          {id:'route-dhaka-bulk', name:'Dhaka Bulk Merchant Van', hubId:'hub-north', type:'pickup', areas:'Tejgaon, Motijheel, Karwan Bazar, Bashundhara', capacity:48, riderId:'rider-karim', status:'active'},
+          {id:'route-tejgaon-sort', name:'Tejgaon Cross-Dock Sort Line', hubId:'hub-central', type:'warehouse', areas:'Dhaka inbound, Narayanganj, Savar, Gazipur, Chattogram trunk', capacity:80, riderId:'rider-jamal', status:'active'},
+          {id:'route-dhaka-ctg-line', name:'Dhaka-Chattogram Trunk Line', hubId:'hub-central', type:'warehouse', areas:'Tejgaon, Cumilla transfer, Chattogram inbound', capacity:64, riderId:'rider-jamal', status:'active'},
+          {id:'route-savar-return', name:'Savar-Gazipur Return Run', hubId:'hub-savar', type:'return', areas:'Savar, Ashulia, Board Bazar, Tongi', capacity:36, riderId:'rider-rafiq', status:'active'},
+          {id:'route-ctg-lastmile', name:'Chattogram Last Mile Loop', hubId:'hub-east', type:'delivery', areas:'Agrabad, Halishahar, Nasirabad, GEC', capacity:18, riderId:'rider-mika', status:'active'}
+        ],
+        parcels: [
+          {id:'parcel-1', code:'HR260703DHK1A2', customerId:'cust-maya', pickupAddress:'House 14, Road 11, Banani, Dhaka 1213', dropoffAddress:'Flat 5B, Road 27, Dhanmondi, Dhaka 1209', amountCents:129900, cod:true, status:'assigned', currentHubId:'hub-north', pendingToHubId:'', pickupHubId:'hub-north', warehouseHubId:'hub-central', deliveryHubId:'hub-north', pathIndex:0, routeId:'route-banani-gulshan', riderId:'rider-amina', weightKg:'1.2', notes:'Boutique clothing, handle clean packaging'},
+          {id:'parcel-2', code:'HR260704UTR7M5', customerId:'cust-bongo', pickupAddress:'Plot 22, Section 11, Mirpur, Dhaka 1216', dropoffAddress:'Sector 7, Uttara, Dhaka 1230', amountCents:0, cod:false, status:'picked_up', currentHubId:'hub-north', pendingToHubId:'', pickupHubId:'hub-north', warehouseHubId:'hub-central', deliveryHubId:'hub-north', pathIndex:0, routeId:'route-mirpur-uttara', riderId:'rider-nusrat', weightKg:'0.8', notes:'Prepaid marketplace parcel'},
+          {id:'parcel-3', code:'HR260705GAZ4P9', customerId:'cust-chashi', pickupAddress:'Board Bazar, Gazipur 1704', dropoffAddress:'Banasree Block C, Dhaka 1219', amountCents:85000, cod:true, status:'requested', currentHubId:'hub-savar', pendingToHubId:'', pickupHubId:'hub-savar', warehouseHubId:'hub-central', deliveryHubId:'hub-north', pathIndex:0, routeId:'', riderId:'', weightKg:'4.4', notes:'Fresh produce, pickup before noon'},
+          {id:'parcel-4', code:'HR260706DHM6V2', customerId:'cust-book', pickupAddress:'Elephant Road, Dhaka 1205', dropoffAddress:'House 8, Road 3, Mohammadpur, Dhaka 1207', amountCents:45000, cod:true, status:'requested', currentHubId:'hub-north', pendingToHubId:'', pickupHubId:'hub-north', warehouseHubId:'hub-central', deliveryHubId:'hub-north', pathIndex:0, routeId:'', riderId:'', weightKg:'2.1', notes:'Books, COD cash on delivery'},
+          {id:'parcel-5', code:'HR260707BSH8K1', customerId:'cust-tech', pickupAddress:'Bashundhara R/A, Dhaka 1229', dropoffAddress:'Motijheel C/A, Dhaka 1000', amountCents:245000, cod:true, status:'assigned', currentHubId:'hub-north', pendingToHubId:'', pickupHubId:'hub-north', warehouseHubId:'hub-central', deliveryHubId:'hub-north', pathIndex:0, routeId:'route-dhaka-bulk', riderId:'rider-karim', weightKg:'5.0', notes:'Electronics, signature required'},
+          {id:'parcel-6', code:'HR260708NAR2B6', customerId:'cust-maya', pickupAddress:'Gulshan 1, Dhaka 1212', dropoffAddress:'Chashara, Narayanganj 1400', amountCents:179000, cod:true, status:'in_warehouse', currentHubId:'hub-central', pendingToHubId:'', pickupHubId:'hub-north', warehouseHubId:'hub-central', deliveryHubId:'hub-north', pathIndex:1, routeId:'route-tejgaon-sort', riderId:'rider-jamal', weightKg:'1.7', notes:'Received at Tejgaon and ready for outbound hub handoff'},
+          {id:'parcel-7', code:'HR260709CTG3C8', customerId:'cust-port', pickupAddress:'Agrabad C/A, Chattogram 4100', dropoffAddress:'GEC Circle, Chattogram 4000', amountCents:92000, cod:true, status:'out_for_delivery', currentHubId:'hub-east', pendingToHubId:'', pickupHubId:'hub-east', warehouseHubId:'hub-central', deliveryHubId:'hub-east', pathIndex:2, routeId:'route-ctg-lastmile', riderId:'rider-mika', weightKg:'1.0', notes:'Chattogram last mile'},
+          {id:'parcel-8', code:'HR260710SVR5H3', customerId:'cust-chashi', pickupAddress:'Ashulia, Savar 1341', dropoffAddress:'Tongi Station Road, Gazipur 1710', amountCents:0, cod:false, status:'failed', currentHubId:'hub-savar', pendingToHubId:'', pickupHubId:'hub-savar', warehouseHubId:'hub-central', deliveryHubId:'hub-savar', pathIndex:2, routeId:'route-savar-return', riderId:'rider-rafiq', weightKg:'3.5', notes:'Recipient unreachable, retry scheduled'},
+          {id:'parcel-9', code:'HR260711DHK9T4', customerId:'cust-tech', pickupAddress:'Kuril, Dhaka 1229', dropoffAddress:'Kaptai Road, Chattogram 4212', amountCents:319000, cod:true, status:'in_transit', currentHubId:'hub-north', pendingToHubId:'hub-central', pickupHubId:'hub-north', warehouseHubId:'hub-central', deliveryHubId:'hub-east', pathIndex:0, routeId:'route-dhaka-bulk', riderId:'rider-karim', weightKg:'6.2', notes:'Departed Dhaka North for Tejgaon sortation'},
+          {id:'parcel-10', code:'HR260712CTG4L7', customerId:'cust-port', pickupAddress:'Tejgaon I/A, Dhaka 1208', dropoffAddress:'Halishahar, Chattogram 4216', amountCents:154000, cod:true, status:'in_transit', currentHubId:'hub-central', pendingToHubId:'hub-east', pickupHubId:'hub-north', warehouseHubId:'hub-central', deliveryHubId:'hub-east', pathIndex:1, routeId:'route-dhaka-ctg-line', riderId:'rider-jamal', weightKg:'2.4', notes:'Outbound line haul to Chattogram hub'}
+        ],
+        events: [
+          {id:'evt-1', parcelId:'parcel-1', type:'requested', hubId:'hub-north', note:'Banani merchant request created', at:ago(260)},
+          {id:'evt-2', parcelId:'parcel-1', type:'assigned', hubId:'hub-north', note:'Assigned to Banani-Gulshan Pickup and Amina Rahman', at:ago(240)},
+          {id:'evt-3', parcelId:'parcel-2', type:'requested', hubId:'hub-north', note:'Mirpur marketplace parcel created', at:ago(220)},
+          {id:'evt-4', parcelId:'parcel-2', type:'assigned', hubId:'hub-north', note:'Assigned to Mirpur-Uttara Pickup and Nusrat Jahan', at:ago(205)},
+          {id:'evt-5', parcelId:'parcel-2', type:'picked_up', hubId:'hub-north', note:'Pickup scan recorded at Mirpur', at:ago(172)},
+          {id:'evt-6', parcelId:'parcel-3', type:'requested', hubId:'hub-savar', note:'Gazipur produce pickup waiting for route', at:ago(140)},
+          {id:'evt-7', parcelId:'parcel-4', type:'requested', hubId:'hub-north', note:'Dhanmondi COD parcel created', at:ago(118)},
+          {id:'evt-8', parcelId:'parcel-5', type:'assigned', hubId:'hub-north', note:'Bulk van assigned for Bashundhara pickup', at:ago(91)},
+          {id:'evt-9', parcelId:'parcel-6', type:'in_warehouse', hubId:'hub-central', note:'Received at Tejgaon Sortation Hub', at:ago(74)},
+          {id:'evt-10', parcelId:'parcel-7', type:'out_for_delivery', hubId:'hub-east', note:'Out for delivery in Chattogram', at:ago(43)},
+          {id:'evt-11', parcelId:'parcel-8', type:'failed', hubId:'hub-savar', note:'Recipient unreachable in Tongi', at:ago(31)},
+          {id:'evt-12', parcelId:'parcel-9', type:'handoff_departed', hubId:'hub-north', note:'Departed Dhaka North Pickup Hub for Tejgaon Sortation Hub', at:ago(24)},
+          {id:'evt-13', parcelId:'parcel-10', type:'handoff_departed', hubId:'hub-central', note:'Departed Tejgaon Sortation Hub for Chattogram Delivery Hub', at:ago(18)}
+        ]
+      };
+    }
+
+    function loadState(){
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+        if (stored && stored.version === 5) return stored;
+      } catch (_) {}
+      const seeded = seedState();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+      return seeded;
+    }
+
+    function saveState(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateChrome();
+    }
+
+    function updateChrome(){
+      const hub = getHub(state.currentHubId);
+      const account = currentAccount();
+      $('currentHubName').textContent = hub?.name || 'Current hub';
+      $('currentHubMeta').textContent = `${account?.role || 'Hub operator'} / ${state.riders.filter(r => r.hubId === state.currentHubId).length} riders / ${state.routes.filter(r => r.hubId === state.currentHubId).length} routes`;
+      $('currentAccountMeta').innerHTML = `${esc(account?.email || 'demo hub account')}<br>Password: hub1234`;
+      $('dataSummary').textContent = `${state.parcels.length} parcels, ${state.customers.length} customers`;
+    }
+
+    function currentAccount(){ return DEMO_ACCOUNTS.find(account => account.hubId === state.currentHubId) || DEMO_ACCOUNTS[0]; }
+    function getHub(id){ return state.hubs.find(h => h.id === id); }
+    function getCustomer(id){ return state.customers.find(c => c.id === id); }
+    function getRoute(id){ return state.routes.find(r => r.id === id); }
+    function getRider(id){ return state.riders.find(r => r.id === id); }
+    function getParcel(id){ return state.parcels.find(p => p.id === id); }
+    function hubName(id){ return getHub(id)?.name || 'Unknown hub'; }
+    function customerName(id){ return getCustomer(id)?.name || 'Archived customer'; }
+    function routeName(id){ return id ? (getRoute(id)?.name || 'Removed route') : 'Unassigned'; }
+    function riderName(id){ return id ? (getRider(id)?.name || 'Removed rider') : 'Unassigned'; }
+    function hubPath(parcel){
+      return [parcel.pickupHubId, parcel.warehouseHubId, parcel.deliveryHubId].filter(Boolean).filter((hubId, index, rows) => index === 0 || hubId !== rows[index - 1]);
+    }
+    function hubTouchpoints(parcel){
+      return [parcel.currentHubId, parcel.pendingToHubId, ...hubPath(parcel)].filter(Boolean);
+    }
+    function pathIndex(parcel){
+      const path = hubPath(parcel);
+      return Math.max(0, Math.min(Number(parcel.pathIndex || 0), Math.max(0, path.length - 1)));
+    }
+    function nextHubFor(parcel){
+      if (!parcel || parcel.pendingToHubId || ['delivered','failed'].includes(parcel.status)) return null;
+      const path = hubPath(parcel);
+      return path[pathIndex(parcel) + 1] || null;
+    }
+    function flowState(parcel){
+      if (parcel.pendingToHubId === state.currentHubId) return 'incoming';
+      if (parcel.pendingToHubId && parcel.currentHubId === state.currentHubId) return 'sent';
+      if (parcel.pendingToHubId) return 'in_transit';
+      if (['delivered','failed'].includes(parcel.status)) return 'completed';
+      if (parcel.currentHubId === state.currentHubId) return 'at_hub';
+      return 'touchpoint';
+    }
+    function flowLabel(parcel){
+      const flow = flowState(parcel);
+      if (flow === 'incoming') return `Incoming from ${hubName(parcel.currentHubId)}`;
+      if (flow === 'sent') return `Sent to ${hubName(parcel.pendingToHubId)}`;
+      if (flow === 'in_transit') return `${hubName(parcel.currentHubId)} to ${hubName(parcel.pendingToHubId)}`;
+      if (flow === 'completed') return 'Completed';
+      if (flow === 'at_hub') return 'At current hub';
+      return 'Network touchpoint';
+    }
+    function flowClass(parcel){
+      const flow = flowState(parcel);
+      if (flow === 'incoming') return 'green';
+      if (flow === 'sent' || flow === 'in_transit') return 'amber';
+      if (flow === 'completed') return statusClass(parcel.status);
+      return 'blue';
+    }
+    function flowPill(parcel){ return `<span class="pill ${flowClass(parcel)}">${esc(flowLabel(parcel))}</span>`; }
+    function hubCounts(hubId = state.currentHubId){
+      const rows = visibleParcelsForHub(hubId);
+      return {
+        visible: rows.length,
+        atHub: rows.filter(p => !p.pendingToHubId && p.currentHubId === hubId && !['delivered','failed'].includes(p.status)).length,
+        incoming: rows.filter(p => p.pendingToHubId === hubId).length,
+        sent: rows.filter(p => p.currentHubId === hubId && p.pendingToHubId).length,
+        completed: rows.filter(p => ['delivered','failed'].includes(p.status) && hubTouchpoints(p).includes(hubId)).length
+      };
+    }
+    function money(cents){
+      return 'Tk ' + (Number(cents || 0) / 100).toLocaleString('en-BD', { maximumFractionDigits: 0 });
+    }
+    function fmtDate(iso){ return new Date(iso).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}); }
+    function redact(address){ return esc(address).replace(/[0-9]/g, '*'); }
+    function publicArea(address){
+      const parts = String(address || '').split(',').map(part => part.trim()).filter(Boolean);
+      return parts.length > 1 ? parts.slice(-2).join(', ') : String(address || 'Area unavailable');
+    }
+    function findParcelByCode(code){
+      const wanted = normalized(code).replace(/\s+/g, '');
+      if (!wanted) return null;
+      return state.parcels.find(parcel => normalized(parcel.code).replace(/\s+/g, '') === wanted) || null;
+    }
+    function setTrackingLookup(code){
+      trackingLookup = String(code || '').trim().toUpperCase();
+      const parcel = findParcelByCode(trackingLookup);
+      if (parcel) selectedParcelId = parcel.id;
+      if ((currentView === 'track' || location.pathname.includes('/track')) && typeof history !== 'undefined' && history.replaceState) {
+        const suffix = trackingLookup ? `?code=${encodeURIComponent(trackingLookup)}` : '';
+        history.replaceState(null, '', `/track${suffix}`);
+      }
+    }
+    function statusClass(status){
+      if (status === 'delivered') return 'green';
+      if (status === 'requested') return 'amber';
+      if (status === 'failed' || status === 'inactive') return 'red';
+      return 'blue';
+    }
+    function pill(status){ return `<span class="pill ${statusClass(status)}">${esc(String(status).replaceAll('_',' '))}</span>`; }
+    function activeParcels(){ return state.parcels.filter(p => ACTIVE_STATUSES.includes(p.status)); }
+    function routeLoad(routeId, excludeParcelId = ''){ return activeParcels().filter(p => p.routeId === routeId && p.id !== excludeParcelId).length; }
+    function riderLoad(riderId, excludeParcelId = ''){ return activeParcels().filter(p => p.riderId === riderId && p.id !== excludeParcelId).length; }
+    function visibleParcelsForHub(hubId){
+      return state.parcels.filter((p) => {
+        const route = getRoute(p.routeId);
+        const rider = getRider(p.riderId);
+        return hubTouchpoints(p).includes(hubId) ||
+          route?.hubId === hubId ||
+          rider?.hubId === hubId;
+      });
+    }
+    function visibleParcels(){ return visibleParcelsForHub(state.currentHubId); }
+    function toast(msg){
+      const el = $('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => el.classList.remove('show'), 2400);
+    }
+    function newTrackingCode(){
+      const d = new Date();
+      const y = String(d.getFullYear()).slice(2);
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return 'HR' + y + m + day + Math.random().toString(36).slice(2, 8).toUpperCase();
+    }
+    function addEvent(parcelId, type, hubId, note){
+      state.events.unshift({ id: uid('evt'), parcelId, type, hubId, note, at: new Date().toISOString() });
+    }
+    function options(rows, selected, labeler, blankText = ''){
+      const blank = blankText ? `<option value="">${esc(blankText)}</option>` : '';
+      return blank + rows.map(row => `<option value="${esc(row.id)}" ${row.id === selected ? 'selected' : ''}>${esc(labeler(row))}</option>`).join('');
+    }
+    function filterValue(scope, key){ return filters[scope]?.[key] ?? ''; }
+    function normalized(value){ return String(value ?? '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+    function matchesQuery(text, query){
+      const q = normalized(query);
+      if (!q) return true;
+      return q.split(' ').every(part => normalized(text).includes(part));
+    }
+    function selectOptions(items, selected, allLabel = 'All'){
+      return `<option value="all">${esc(allLabel)}</option>` + items.map(item => `<option value="${esc(item.value)}" ${String(item.value) === String(selected) ? 'selected' : ''}>${esc(item.label)}</option>`).join('');
+    }
+    function filterInput(scope, key, label, placeholder){
+      return `<label>${esc(label)}<input data-filter-scope="${esc(scope)}" data-filter-key="${esc(key)}" value="${esc(filterValue(scope, key))}" placeholder="${esc(placeholder)}"></label>`;
+    }
+    function filterSelect(scope, key, label, optionsHtml){
+      return `<label>${esc(label)}<select data-filter-scope="${esc(scope)}" data-filter-key="${esc(key)}">${optionsHtml}</select></label>`;
+    }
+    function filterCard(scope, title, note, controls, total, shown, columns = ''){
+      return `<div class="card filter-card">
+        <div class="card-head"><div><h2>${esc(title)}</h2><p class="muted small">${esc(note)}</p></div><div class="actions"><span class="result-count">${shown} of ${total}</span><button class="btn ghost slim" data-action="reset-filters" data-scope="${esc(scope)}">Reset filters</button></div></div>
+        <div class="filter-grid ${esc(columns)}">${controls}</div>
+      </div>`;
+    }
+    function statusOptions(selected, label = 'All statuses'){
+      return selectOptions(STATUSES.map(s => ({ value: s, label: s.replaceAll('_',' ') })), selected, label);
+    }
+    function hubOptions(selected, label = 'All hubs'){
+      return selectOptions(state.hubs.map(h => ({ value: h.id, label: h.name })), selected, label);
+    }
+    function routeOptions(selected, rows = state.routes, label = 'All routes'){
+      return selectOptions(rows.map(r => ({ value: r.id, label: r.name })), selected, label);
+    }
+    function riderOptions(selected, rows = state.riders, label = 'All riders'){
+      return selectOptions(rows.map(r => ({ value: r.id, label: r.name })), selected, label);
+    }
+    function customerOptions(selected, rows = state.customers, label = 'All customers'){
+      return selectOptions(rows.map(c => ({ value: c.id, label: c.name })), selected, label);
+    }
+    function vehicleOptions(selected, rows = state.riders){
+      const vehicles = [...new Set(rows.map(r => r.vehicle).filter(Boolean))].sort();
+      return selectOptions(vehicles.map(v => ({ value: v, label: v })), selected, 'All vehicles');
+    }
+    function parcelSearchText(p){
+      return [
+        p.code, p.status, customerName(p.customerId), getCustomer(p.customerId)?.phone, getCustomer(p.customerId)?.email,
+        p.pickupAddress, p.dropoffAddress, flowLabel(p), hubName(p.currentHubId), hubName(p.pendingToHubId), hubName(p.pickupHubId), hubName(p.warehouseHubId), hubName(p.deliveryHubId),
+        routeName(p.routeId), riderName(p.riderId), p.weightKg, p.notes, p.cod ? 'cod cash collection' : 'prepaid no cod'
+      ].join(' ');
+    }
+    function routeSearchText(route){
+      return [route.name, route.type, route.status, route.areas, hubName(route.hubId), riderName(route.riderId), route.capacity].join(' ');
+    }
+    function riderSearchText(rider){
+      return [rider.name, rider.phone, rider.vehicle, rider.status, hubName(rider.hubId), rider.capacity, `${riderLoad(rider.id)} active rides`].join(' ');
+    }
+    function customerSearchText(customer){
+      return [customer.name, customer.phone, customer.email, customer.address, customer.status, `${state.parcels.filter(p => p.customerId === customer.id).length} parcels`].join(' ');
+    }
+    function eventSearchText(event){
+      const parcel = getParcel(event.parcelId);
+      return [event.type, event.note, hubName(event.hubId), parcel?.code, parcel ? customerName(parcel.customerId) : '', parcel?.pickupAddress, parcel?.dropoffAddress].join(' ');
+    }
+    function filterParcels(rows, scope = 'parcels'){
+      const f = filters[scope];
+      const status = f.status || 'all';
+      const routeId = f.routeId || 'all';
+      const riderId = f.riderId || 'all';
+      const customerId = f.customerId || 'all';
+      const cod = f.cod || 'all';
+      const hubId = f.hubId || 'all';
+      const flow = f.flow || 'all';
+      return rows.filter(p => {
+        if (!matchesQuery(parcelSearchText(p), f.q)) return false;
+        if (status !== 'all' && p.status !== status) return false;
+        if (flow !== 'all' && flowState(p) !== flow) return false;
+        if (routeId !== 'all' && p.routeId !== routeId) return false;
+        if (riderId !== 'all' && p.riderId !== riderId) return false;
+        if (customerId !== 'all' && p.customerId !== customerId) return false;
+        if (cod === 'cod' && !p.cod) return false;
+        if (cod === 'prepaid' && p.cod) return false;
+        if (hubId === 'current' && !hubTouchpoints(p).includes(state.currentHubId)) return false;
+        if (hubId && hubId !== 'all' && hubId !== 'current' && !hubTouchpoints(p).includes(hubId)) return false;
+        return true;
+      });
+    }
+    function filterRoutes(rows, scope = 'routes'){
+      const f = filters[scope];
+      const type = f.type || 'all';
+      const status = f.status || 'all';
+      const riderId = f.riderId || 'all';
+      const capacity = f.capacity || 'all';
+      return rows.filter(route => {
+        const load = routeLoad(route.id);
+        if (!matchesQuery(routeSearchText(route), f.q)) return false;
+        if (type !== 'all' && route.type !== type) return false;
+        if (status !== 'all' && route.status !== status) return false;
+        if (riderId !== 'all' && route.riderId !== riderId) return false;
+        if (capacity === 'available' && load >= Number(route.capacity || 0)) return false;
+        if (capacity === 'busy' && load < Math.max(1, Number(route.capacity || 0) * .7)) return false;
+        return true;
+      });
+    }
+    function filterRiders(rows, scope = 'riders'){
+      const f = filters[scope];
+      return rows.filter(rider => {
+        const load = riderLoad(rider.id);
+        if (!matchesQuery(riderSearchText(rider), f.q)) return false;
+        if (f.status !== 'all' && rider.status !== f.status) return false;
+        if (f.vehicle !== 'all' && rider.vehicle !== f.vehicle) return false;
+        if (f.load === 'free' && load !== 0) return false;
+        if (f.load === 'available' && load >= Number(rider.capacity || 0)) return false;
+        if (f.load === 'busy' && load < Math.max(1, Number(rider.capacity || 0) * .7)) return false;
+        return true;
+      });
+    }
+    function filterCustomers(rows, scope = 'customers'){
+      const f = filters[scope];
+      return rows.filter(customer => {
+        const count = state.parcels.filter(p => p.customerId === customer.id).length;
+        if (!matchesQuery(customerSearchText(customer), f.q)) return false;
+        if (f.status !== 'all' && customer.status !== f.status) return false;
+        if (f.parcel === 'with_parcels' && count === 0) return false;
+        if (f.parcel === 'no_parcels' && count > 0) return false;
+        if (f.parcel === 'cod' && !state.parcels.some(p => p.customerId === customer.id && p.cod)) return false;
+        return true;
+      });
+    }
+    function filterEvents(rows, scope = 'scan'){
+      const f = filters[scope];
+      const status = f.status || 'all';
+      const eventType = f.eventType || 'all';
+      return rows.filter(event => {
+        const parcel = getParcel(event.parcelId);
+        if (!matchesQuery(eventSearchText(event), f.q)) return false;
+        if (eventType !== 'all' && event.type !== eventType) return false;
+        if (status !== 'all' && parcel?.status !== status) return false;
+        return true;
+      });
+    }
+    function resetFilters(scope){
+      Object.keys(filters[scope]).forEach(key => { filters[scope][key] = key === 'hubId' ? 'current' : 'all'; });
+      if ('q' in filters[scope]) filters[scope].q = '';
+      if (scope === 'dashboard') filters.dashboard.status = 'all';
       render();
     }
-    function kpis(){
-      const requested = parcels.filter(p=>p.status==='requested').length;
-      const assigned = parcels.filter(p=>p.status==='assigned').length;
-      const inMotion = parcels.filter(p=>['picked_up','in_warehouse','out_for_delivery'].includes(p.status)).length;
-      const cod = parcels.filter(p=>p.cod).length;
+    function filterElement(scope, key){
+      return Array.from(document.querySelectorAll('[data-filter-scope][data-filter-key]')).find(el => el.dataset.filterScope === scope && el.dataset.filterKey === key);
+    }
+    function updateFilterFromElement(el, restoreFocus = false){
+      const scope = el.dataset.filterScope;
+      const key = el.dataset.filterKey;
+      if (!filters[scope] || !(key in filters[scope])) return;
+      const cursor = typeof el.selectionStart === 'number' ? el.selectionStart : null;
+      filters[scope][key] = el.value;
+      render();
+      if (restoreFocus) {
+        const next = filterElement(scope, key);
+        next?.focus();
+        if (next && cursor !== null && typeof next.setSelectionRange === 'function') {
+          next.setSelectionRange(cursor, cursor);
+        }
+      }
+    }
+
+    function setView(view){
+      currentView = view;
+      if (view === 'login') {
+        signedIn = false;
+        $('app').classList.add('hidden');
+        $('login').classList.remove('hidden');
+      } else {
+        $('login').classList.add('hidden');
+        $('app').classList.remove('hidden');
+      }
+      $('app').classList.toggle('public-layout', view === 'track');
+      document.querySelector('.topbar')?.classList.toggle('public-mode', view === 'track');
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+      render();
+    }
+
+    function render(){
+      updateChrome();
+      if (currentView === 'login') {
+        renderAccountCards();
+        return;
+      }
+      const views = {
+        dashboard: renderDashboard,
+        parcels: renderParcels,
+        routes: renderRoutes,
+        riders: renderRiders,
+        customers: renderCustomers,
+        scan: renderScan,
+        track: renderTracking
+      };
+      $('view').innerHTML = (views[currentView] || renderDashboard)();
+      enhanceSelects($('view'));
+    }
+
+    function accountSearchText(account){
+      const hub = getHub(account.hubId);
+      return [account.email, account.role, hub?.name, hub?.city, hub?.type].join(' ');
+    }
+    function renderAccountCards(){
+      const root = $('accountCards');
+      if (!root) return;
+      const query = $('accountSearch')?.value || '';
+      const accounts = DEMO_ACCOUNTS.filter(account => matchesQuery(accountSearchText(account), query));
+      root.innerHTML = accounts.map(account => {
+        const hub = getHub(account.hubId);
+        const counts = hubCounts(account.hubId);
+        const active = account.email === selectedAccountEmail;
+        return `<article class="account-card ${active ? 'active' : ''}">
+          <div><strong>${esc(hub?.name || account.email)}</strong><span class="muted small">${esc(account.role)} / ${esc(hub?.city || 'Bangladesh')}</span></div>
+          <p class="muted small">${counts.atHub} at hub / ${counts.incoming} incoming / ${counts.sent} sent</p>
+          <button class="btn ghost slim" data-action="use-account" data-email="${esc(account.email)}" type="button">${active ? 'Selected' : 'Use account'}</button>
+        </article>`;
+      }).join('') || '<div class="empty">No demo accounts match that search.</div>';
+    }
+    function chooseAccount(email){
+      const account = DEMO_ACCOUNTS.find(row => row.email === email);
+      if (!account) return;
+      selectedAccountEmail = account.email;
+      $('email').value = account.email;
+      $('password').value = account.password;
+      renderAccountCards();
+    }
+
+    function renderKpis(rows = visibleParcels()){
+      const parcels = rows;
+      const requested = parcels.filter(p => p.status === 'requested').length;
+      const assigned = parcels.filter(p => p.status === 'assigned').length;
+      const motion = parcels.filter(p => ['picked_up','in_transit','in_warehouse','out_for_delivery'].includes(p.status)).length;
+      const cod = parcels.filter(p => p.cod).length;
       return `<div class="grid four">
         <div class="kpi"><strong>${requested}</strong><span class="muted">requested</span></div>
         <div class="kpi"><strong>${assigned}</strong><span class="muted">assigned</span></div>
-        <div class="kpi"><strong>${inMotion}</strong><span class="muted">in motion</span></div>
+        <div class="kpi"><strong>${motion}</strong><span class="muted">in motion</span></div>
         <div class="kpi"><strong>${cod}</strong><span class="muted">COD parcels</span></div>
       </div>`;
     }
+
+    function renderHubNetwork(){
+      return `<div class="card">
+        <div class="card-head"><div><h2>Hub-and-spoke custody</h2><p class="muted small">Switch accounts to receive incoming parcels and send them onward through pickup, sortation, and delivery hubs.</p></div><button class="btn ghost slim" data-view-jump="login">Switch hub</button></div>
+        <div class="hub-network">
+          ${state.hubs.map(hub => {
+            const counts = hubCounts(hub.id);
+            return `<article class="hub-node-card ${hub.id === state.currentHubId ? 'active' : ''}">
+              <strong>${esc(hub.name)}</strong>
+              <span class="muted small">${esc(hub.city)} / ${esc(hub.type)}</span>
+              <div class="metric-row">
+                <div class="metric"><span>At hub</span><strong>${counts.atHub}</strong></div>
+                <div class="metric"><span>Incoming</span><strong>${counts.incoming}</strong></div>
+              </div>
+              <p class="flow-note">${counts.sent} outbound handoffs / ${counts.completed} closed</p>
+            </article>`;
+          }).join('')}
+        </div>
+      </div>`;
+    }
+
+    function canSend(parcel){
+      return parcel.currentHubId === state.currentHubId && !parcel.pendingToHubId && Boolean(nextHubFor(parcel));
+    }
+    function canReceive(parcel){
+      return parcel.pendingToHubId === state.currentHubId;
+    }
+    function renderParcelFlow(parcel){
+      const path = hubPath(parcel);
+      const currentIndex = pathIndex(parcel);
+      const labels = path.map((hubId, index) => {
+        let marker = 'future';
+        if (parcel.pendingToHubId === hubId) marker = 'incoming';
+        else if (index === currentIndex) marker = 'current';
+        else if (index < currentIndex) marker = 'done';
+        return `${index + 1}. ${hubName(hubId)} (${marker})`;
+      });
+      const pending = parcel.pendingToHubId ? `<span class="muted small">Pending receive: ${esc(hubName(parcel.pendingToHubId))}</span>` : '';
+      return `<div class="handoff-path">${flowPill(parcel)}<span class="muted small">${esc(labels.join(' -> '))}</span>${pending}</div>`;
+    }
+    function parcelActionButtons(parcel){
+      const buttons = [];
+      if (canReceive(parcel)) buttons.push(`<button class="btn primary slim" data-action="receive-parcel" data-id="${esc(parcel.id)}">Receive</button>`);
+      if (canSend(parcel)) buttons.push(`<button class="btn slim" data-action="send-parcel" data-id="${esc(parcel.id)}">Send</button>`);
+      buttons.push(`<button class="btn ghost slim" data-action="assign-parcel" data-id="${esc(parcel.id)}">Assign</button>`);
+      buttons.push(`<button class="btn ghost slim" data-action="edit-parcel" data-id="${esc(parcel.id)}">Edit</button>`);
+      buttons.push(`<button class="btn danger slim" data-action="delete-parcel" data-id="${esc(parcel.id)}">Delete</button>`);
+      return buttons.join('');
+    }
+
+    function renderDashboard(){
+      const q = filters.dashboard.q;
+      const status = filters.dashboard.status;
+      const dashboardParcels = visibleParcels().filter(p => matchesQuery(parcelSearchText(p), q) && (status === 'all' || p.status === status));
+      const hubRoutes = state.routes.filter(r => r.hubId === state.currentHubId && matchesQuery(routeSearchText(r), q));
+      const hubRiders = state.riders.filter(r => r.hubId === state.currentHubId && matchesQuery(riderSearchText(r), q));
+      const recent = state.events.filter(event => {
+        const parcel = getParcel(event.parcelId);
+        return matchesQuery(eventSearchText(event), q) && (status === 'all' || parcel?.status === status);
+      }).slice(0, 6);
+      return `
+        <div class="view-head">
+          <div><p class="eyebrow">Operations</p><h1>${esc(hubName(state.currentHubId))}</h1></div>
+          <div class="actions"><button class="btn primary" data-action="new-parcel">New parcel</button><button class="btn" data-action="new-route">New route</button></div>
+        </div>
+        ${filterCard('dashboard', 'Search operations', 'Search across parcel codes, Dhaka addresses, customers, riders, routes, and event notes.', [
+          filterInput('dashboard', 'q', 'Search all ops data', 'Banani, COD, Amina, HR2607...'),
+          filterSelect('dashboard', 'status', 'Parcel status', statusOptions(filters.dashboard.status))
+        ].join(''), visibleParcels().length, dashboardParcels.length, 'two')}
+        ${renderKpis(dashboardParcels)}
+        ${renderHubNetwork()}
+        <div class="grid two">
+          <div class="card">
+            <div class="card-head"><h2>Route capacity</h2><button class="btn ghost slim" data-view-jump="routes">Routes</button></div>
+            <div class="grid">
+              ${hubRoutes.map(route => `<div class="metric-row">
+                <div class="metric"><span>${esc(route.name)}</span><strong>${routeLoad(route.id)} / ${Number(route.capacity || 0)}</strong></div>
+                <div class="metric"><span>Rider</span><strong>${esc(riderName(route.riderId))}</strong></div>
+              </div>`).join('') || '<div class="empty">No routes at this hub.</div>'}
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-head"><h2>Rider workload</h2><button class="btn ghost slim" data-view-jump="riders">Riders</button></div>
+            <div class="grid">
+              ${hubRiders.map(rider => `<div class="metric-row">
+                <div class="metric"><span>${esc(rider.name)}</span><strong>${riderLoad(rider.id)} active rides</strong></div>
+                <div class="metric"><span>Vehicle</span><strong>${esc(rider.vehicle)}</strong></div>
+              </div>`).join('') || '<div class="empty">No riders at this hub.</div>'}
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><h2>Recent movement</h2><button class="btn ghost slim" data-view-jump="scan">Scan/Event</button></div>
+          ${renderEventList(recent)}
+        </div>`;
+    }
+
     function renderParcels(){
-      return `${kpis()}<div class="card"><h2>Hub parcel queue</h2><p class="muted">Assign visible parcels to a route and agent owned by this hub.</p></div>
-      <div class="table-wrap"><table><thead><tr><th>Tracking</th><th>Customer</th><th>Route</th><th>Agent</th><th>COD</th><th>Status</th><th></th></tr></thead><tbody>
-      ${parcels.map(p=>`<tr><td><strong>${p.code}</strong><br><span class="muted small">${p.pickup}</span></td><td>${p.customer}</td><td>${p.route || 'Unassigned'}</td><td>${p.agent || 'Unassigned'}</td><td>${money(p.amount)}</td><td>${pill(p.status)}</td><td><button class="btn ghost" onclick="assignParcel('${p.code}')">Assign</button></td></tr>`).join('')}
-      </tbody></table></div>`;
+      const baseParcels = visibleParcels();
+      const parcels = filterParcels(baseParcels, 'parcels');
+      const hubSelect = `<option value="current" ${filters.parcels.hubId === 'current' ? 'selected' : ''}>Current hub touchpoints</option><option value="all" ${filters.parcels.hubId === 'all' ? 'selected' : ''}>All hubs</option>` + state.hubs.map(h => `<option value="${esc(h.id)}" ${filters.parcels.hubId === h.id ? 'selected' : ''}>${esc(h.name)}</option>`).join('');
+      const flowSelect = selectOptions([
+        {value:'at_hub',label:'At current hub'},
+        {value:'incoming',label:'Incoming to current hub'},
+        {value:'sent',label:'Sent from current hub'},
+        {value:'in_transit',label:'In transit elsewhere'},
+        {value:'touchpoint',label:'Other network touchpoint'},
+        {value:'completed',label:'Completed or failed'}
+      ], filters.parcels.flow, 'All custody states');
+      return `
+        <div class="view-head">
+          <div><p class="eyebrow">Current hub queue</p><h1>Parcels</h1></div>
+          <div class="actions"><button class="btn primary" data-action="new-parcel">New parcel</button></div>
+        </div>
+        ${filterCard('parcels', 'Search and filter parcels', 'Filter by every operational field: tracking, customer, phone, address, hub, route, rider, COD, status, and notes.', [
+          filterInput('parcels', 'q', 'Search all parcel fields', 'Dhanmondi, +88017, COD, route, rider...'),
+          filterSelect('parcels', 'status', 'Status', statusOptions(filters.parcels.status)),
+          filterSelect('parcels', 'flow', 'Custody flow', flowSelect),
+          filterSelect('parcels', 'routeId', 'Route', routeOptions(filters.parcels.routeId, state.routes.filter(r => r.hubId === state.currentHubId), 'All current-hub routes')),
+          filterSelect('parcels', 'riderId', 'Rider', riderOptions(filters.parcels.riderId, state.riders.filter(r => r.hubId === state.currentHubId), 'All current-hub riders')),
+          filterSelect('parcels', 'customerId', 'Customer', customerOptions(filters.parcels.customerId)),
+          filterSelect('parcels', 'cod', 'Payment', selectOptions([{value:'cod',label:'COD only'},{value:'prepaid',label:'Prepaid only'}], filters.parcels.cod, 'All payments')),
+          filterSelect('parcels', 'hubId', 'Hub scope', hubSelect)
+        ].join(''), baseParcels.length, parcels.length)}
+        ${renderKpis(parcels)}
+        <div class="card">
+          <div class="toolbar">
+            <div><h2>Hub parcel queue</h2><p class="muted small">Visible from pickup, warehouse, delivery, current hub, route, or rider ownership.</p></div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tracking</th><th>Customer</th><th>Current hub</th><th>Flow</th><th>Route</th><th>Rider</th><th>COD</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${parcels.length ? parcels.map(p => `<tr>
+                <td><div class="row-title"><strong>${esc(p.code)}</strong><span class="muted small">${esc(p.pickupAddress)} to ${esc(p.dropoffAddress)}</span></div></td>
+                <td>${esc(customerName(p.customerId))}</td>
+                <td>${esc(hubName(p.currentHubId))}</td>
+                <td>${renderParcelFlow(p)}</td>
+                <td>${esc(routeName(p.routeId))}</td>
+                <td>${esc(riderName(p.riderId))}</td>
+                <td>${p.cod ? money(p.amountCents) : money(0)}</td>
+                <td>${pill(p.status)}</td>
+                <td><div class="actions">${parcelActionButtons(p)}</div></td>
+              </tr>`).join('') : '<tr><td colspan="9"><div class="empty">No parcels match these filters.</div></td></tr>'}
+            </tbody>
+          </table>
+        </div>`;
     }
-    function assignParcel(code){
-      const p = parcels.find(x=>x.code===code);
-      p.route = 'Northside Pickup Route';
-      p.agent = 'Amina (Pickup)';
-      p.status = 'assigned';
-      events.unshift({code:p.code,type:'assigned',hub:'North Pickup Hub',note:'Assigned by hub operator'});
-      toast(`${code} assigned to Amina`);
-      render();
-    }
+
     function renderRoutes(){
-      return `<div class="grid two"><div class="card"><h2>Northside Pickup Route</h2><p class="muted">Agent: Amina (Pickup)</p><p style="margin-top:10px">${parcels.filter(p=>p.route).length} parcels assigned</p></div><div class="card"><h2>Route manifest</h2><p class="muted">CSV export is available in the PHP source app. This demo keeps the manifest in-browser.</p></div></div>${renderParcels()}`;
+      const baseRoutes = state.routes.filter(r => r.hubId === state.currentHubId);
+      const routes = filterRoutes(baseRoutes, 'routes');
+      const routeTypes = [...new Set(baseRoutes.map(r => r.type))].map(type => ({ value: type, label: type }));
+      return `
+        <div class="view-head">
+          <div><p class="eyebrow">Current hub routes</p><h1>Routes</h1></div>
+          <div class="actions"><button class="btn primary" data-action="new-route">New route</button></div>
+        </div>
+        ${filterCard('routes', 'Search and filter routes', 'Find routes by service area, rider, type, status, capacity, and hub coverage.', [
+          filterInput('routes', 'q', 'Search route fields', 'Banani, Tejgaon, bulk, Karim...'),
+          filterSelect('routes', 'type', 'Type', selectOptions(routeTypes, filters.routes.type, 'All route types')),
+          filterSelect('routes', 'status', 'Status', selectOptions(['active','paused','inactive'].map(s => ({value:s,label:s})), filters.routes.status, 'All statuses')),
+          filterSelect('routes', 'riderId', 'Default rider', riderOptions(filters.routes.riderId, state.riders.filter(r => r.hubId === state.currentHubId), 'All current-hub riders')),
+          filterSelect('routes', 'capacity', 'Capacity', selectOptions([{value:'available',label:'Has capacity'},{value:'busy',label:'70%+ busy'}], filters.routes.capacity, 'All capacity'))
+        ].join(''), baseRoutes.length, routes.length)}
+        <div class="grid two">
+          ${routes.map(route => `<article class="card">
+            <div class="card-head"><h2>${esc(route.name)}</h2>${pill(route.status)}</div>
+            <p class="muted">${esc(route.areas || 'No service areas set')}</p>
+            <div class="metric-row">
+              <div class="metric"><span>Load</span><strong>${routeLoad(route.id)} / ${Number(route.capacity || 0)}</strong></div>
+              <div class="metric"><span>Assigned rider</span><strong>${esc(riderName(route.riderId))}</strong></div>
+              <div class="metric"><span>Route type</span><strong>${esc(route.type)}</strong></div>
+              <div class="metric"><span>Hub</span><strong>${esc(hubName(route.hubId))}</strong></div>
+            </div>
+            <div class="actions"><button class="btn ghost slim" data-action="edit-route" data-id="${esc(route.id)}">Edit</button><button class="btn danger slim" data-action="delete-route" data-id="${esc(route.id)}">Delete</button></div>
+          </article>`).join('') || '<div class="empty">No routes yet.</div>'}
+        </div>`;
     }
+
+    function renderRiders(){
+      const baseRiders = state.riders.filter(r => r.hubId === state.currentHubId);
+      const riders = filterRiders(baseRiders, 'riders');
+      return `
+        <div class="view-head">
+          <div><p class="eyebrow">Current hub riders</p><h1>Riders</h1></div>
+          <div class="actions"><button class="btn primary" data-action="new-rider">New rider</button></div>
+        </div>
+        ${filterCard('riders', 'Search and filter riders', 'Filter riders by name, +880 phone, vehicle, status, and active ride load.', [
+          filterInput('riders', 'q', 'Search rider fields', 'Amina, +88018, van, free...'),
+          filterSelect('riders', 'status', 'Status', selectOptions(['active','off_duty','inactive'].map(s => ({value:s,label:s.replaceAll('_',' ')})), filters.riders.status, 'All statuses')),
+          filterSelect('riders', 'vehicle', 'Vehicle', vehicleOptions(filters.riders.vehicle, baseRiders)),
+          filterSelect('riders', 'load', 'Ride load', selectOptions([{value:'free',label:'No active rides'},{value:'available',label:'Has capacity'},{value:'busy',label:'70%+ busy'}], filters.riders.load, 'All loads'))
+        ].join(''), baseRiders.length, riders.length, 'three')}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Phone</th><th>Vehicle</th><th>Capacity</th><th>Active rides</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${riders.length ? riders.map(r => `<tr>
+                <td><strong>${esc(r.name)}</strong><br><span class="muted small">${esc(hubName(r.hubId))}</span></td>
+                <td>${esc(r.phone)}</td>
+                <td>${esc(r.vehicle)}</td>
+                <td>${Number(r.capacity || 0)}</td>
+                <td>${riderLoad(r.id)}</td>
+                <td>${pill(r.status)}</td>
+                <td><div class="actions"><button class="btn ghost slim" data-action="edit-rider" data-id="${esc(r.id)}">Edit</button><button class="btn danger slim" data-action="delete-rider" data-id="${esc(r.id)}">Delete</button></div></td>
+              </tr>`).join('') : '<tr><td colspan="7"><div class="empty">No riders match these filters.</div></td></tr>'}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function renderCustomers(){
+      const customers = filterCustomers(state.customers, 'customers');
+      return `
+        <div class="view-head">
+          <div><p class="eyebrow">Customer directory</p><h1>Customers</h1></div>
+          <div class="actions"><button class="btn primary" data-action="new-customer">New customer</button></div>
+        </div>
+        ${filterCard('customers', 'Search and filter customers', 'Search merchant name, +880 phone, email, address, parcel count, COD history, and status.', [
+          filterInput('customers', 'q', 'Search customer fields', 'Gazipur, +88019, fashion, email...'),
+          filterSelect('customers', 'status', 'Status', selectOptions(['active','inactive'].map(s => ({value:s,label:s})), filters.customers.status, 'All statuses')),
+          filterSelect('customers', 'parcel', 'Parcel history', selectOptions([{value:'with_parcels',label:'Has parcels'},{value:'no_parcels',label:'No parcels'},{value:'cod',label:'Has COD parcels'}], filters.customers.parcel, 'All customers'))
+        ].join(''), state.customers.length, customers.length, 'three')}
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Name</th><th>Contact</th><th>Address</th><th>Parcels</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody>
+              ${customers.length ? customers.map(c => `<tr>
+                <td><strong>${esc(c.name)}</strong></td>
+                <td>${esc(c.phone)}<br><span class="muted small">${esc(c.email)}</span></td>
+                <td>${esc(c.address)}</td>
+                <td>${state.parcels.filter(p => p.customerId === c.id).length}</td>
+                <td>${pill(c.status)}</td>
+                <td><div class="actions"><button class="btn ghost slim" data-action="edit-customer" data-id="${esc(c.id)}">Edit</button><button class="btn danger slim" data-action="delete-customer" data-id="${esc(c.id)}">Delete</button></div></td>
+              </tr>`).join('') : '<tr><td colspan="6"><div class="empty">No customers match these filters.</div></td></tr>'}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
     function renderScan(){
-      const p = parcels.find(x=>x.code===selectedCode) || parcels[0];
-      return `<div class="card"><h2>Scan / Add Event</h2><p class="muted">Capture a hub or delivery event for a parcel.</p><label>Tracking code</label><select id="scanCode">${parcels.map(x=>`<option ${x.code===p.code?'selected':''}>${x.code}</option>`).join('')}</select><label>Event type</label><select id="scanType"><option>picked_up</option><option>in_warehouse</option><option>out_for_delivery</option><option>delivered</option><option>failed</option><option>payment_collected</option></select><div class="actions" style="margin-top:12px"><button class="btn primary" onclick="recordEvent()">Record event</button></div></div>
-      <div class="card"><h2>${p.code}</h2><p>${pill(p.status)}</p><p class="muted" style="margin-top:8px">${p.pickup} to ${p.dropoff}</p></div>${renderTimeline(p.code)}`;
+      const baseParcels = visibleParcels();
+      const parcels = filterParcels(baseParcels, 'scan');
+      const parcel = parcels.find(p => p.id === selectedParcelId) || parcels[0];
+      if (parcel) selectedParcelId = parcel.id;
+      const filteredEvents = filterEvents(state.events, 'scan').slice(0, 10);
+      return `
+        <div class="view-head">
+          <div><p class="eyebrow">Custody events</p><h1>Scan / Event</h1></div>
+        </div>
+        ${filterCard('scan', 'Search scan queue and events', 'Search by tracking code, Bangladesh address, hub, route, rider, customer, event type, and event note.', [
+          filterInput('scan', 'q', 'Search scan fields', 'Tejgaon, picked up, HR2607, Narayanganj...'),
+          filterSelect('scan', 'status', 'Parcel status', statusOptions(filters.scan.status)),
+          filterSelect('scan', 'eventType', 'Event type', selectOptions(EVENT_TYPES.map(type => ({value:type,label:type.replaceAll('_',' ')})), filters.scan.eventType, 'All event types'))
+        ].join(''), baseParcels.length, parcels.length, 'three')}
+        <div class="grid two">
+          <form id="scanForm" class="card">
+            <h2>Record event</h2>
+            <label>Tracking code<select name="parcelId">${options(parcels, parcel?.id, p => p.code + ' - ' + customerName(p.customerId))}</select></label>
+            <label>Event type<select name="type">${EVENT_TYPES.map(type => `<option value="${esc(type)}">${esc(type.replaceAll('_',' '))}</option>`).join('')}</select></label>
+            <label>Hub<select name="hubId">${options(state.hubs, state.currentHubId, h => h.name)}</select></label>
+            <label>Note<textarea name="note" placeholder="Optional event note"></textarea></label>
+            <div class="actions"><button class="btn primary" type="submit">Record event</button></div>
+          </form>
+          <div class="card">
+            <h2>${esc(parcel?.code || 'No parcels')}</h2>
+            ${parcel ? `<p>${pill(parcel.status)}</p><p class="muted">${esc(parcel.pickupAddress)} to ${esc(parcel.dropoffAddress)}</p>` : '<p class="muted">Create a parcel first.</p>'}
+          </div>
+        </div>
+        ${parcel ? renderTimeline(parcel.id) : ''}
+        <div class="card"><h2>Filtered recent events</h2>${renderEventList(filteredEvents)}</div>`;
     }
-    function recordEvent(){
-      const code = $('scanCode').value;
-      const type = $('scanType').value;
-      selectedCode = code;
-      const p = parcels.find(x=>x.code===code);
-      if(['picked_up','in_warehouse','out_for_delivery','delivered','failed'].includes(type)) p.status = type;
-      events.unshift({code,type,hub:'North Pickup Hub',note:'Recorded in Vercel demo'});
-      toast(`${type.replaceAll('_',' ')} recorded`);
-      render();
+
+    function publicProgressSteps(parcel){
+      const steps = [
+        {key:'requested', label:'Requested'},
+        {key:'picked_up', label:'Picked up'},
+        {key:'in_transit', label:'In transit'},
+        {key:'out_for_delivery', label:'Out for delivery'},
+        {key:'delivered', label:'Delivered'}
+      ];
+      const aliases = { assigned:'requested', in_warehouse:'in_transit', handoff_departed:'in_transit', handoff_received:'in_transit', failed:'out_for_delivery' };
+      const currentKey = aliases[parcel.status] || parcel.status;
+      const currentIndex = steps.findIndex(step => step.key === currentKey);
+      return `<div class="progress-line" aria-label="Parcel progress">
+        ${steps.map((step, index) => {
+          let stateClass = currentIndex > index ? 'done' : currentIndex === index ? 'current' : '';
+          if (parcel.status === 'failed' && index === Math.max(0, currentIndex)) stateClass = 'failed';
+          return `<div class="progress-step ${stateClass}">
+            <strong>${esc(step.label)}</strong>
+            <span class="muted small">${stateClass === 'done' ? 'Complete' : stateClass === 'current' ? (parcel.status === 'failed' ? 'Needs attention' : 'Current') : 'Pending'}</span>
+          </div>`;
+        }).join('')}
+      </div>`;
     }
+
+    function renderPublicParcel(parcel){
+      return `<div class="public-result">
+        <section class="surface">
+          <div class="status-strip">
+            <div>
+              <p class="eyebrow">Current status</p>
+              <h2>${esc(parcel.status.replaceAll('_',' '))}</h2>
+              <p class="muted small">Last updated from ${esc(hubName(parcel.currentHubId))}</p>
+            </div>
+            <div>
+              <p class="eyebrow">Tracking code</p>
+              <h2>${esc(parcel.code)}</h2>
+              <p>${pill(parcel.status)}</p>
+            </div>
+          </div>
+          ${publicProgressSteps(parcel)}
+          <div class="detail-list" aria-label="Parcel details">
+            <div class="detail-row"><span>Merchant</span><strong>${esc(customerName(parcel.customerId))}</strong></div>
+            <div class="detail-row"><span>Pickup area</span><strong>${esc(publicArea(parcel.pickupAddress))}</strong></div>
+            <div class="detail-row"><span>Dropoff area</span><strong>${esc(publicArea(parcel.dropoffAddress))}</strong></div>
+            <div class="detail-row"><span>Payment</span><strong>${parcel.cod ? `${money(parcel.amountCents)} COD` : 'Prepaid'}</strong></div>
+          </div>
+        </section>
+        ${renderTimeline(parcel.id, true, 'Public movement history')}
+      </div>`;
+    }
+
     function renderTracking(){
-      const p = parcels.find(x=>x.code===selectedCode) || parcels[0];
-      return `<div class="card"><h2>Public tracking</h2><p class="muted">Addresses are partially redacted in the public view.</p><label>Tracking code</label><select id="trackCode" onchange="selectedCode=this.value;render()">${parcels.map(x=>`<option ${x.code===p.code?'selected':''}>${x.code}</option>`).join('')}</select></div>
-      <div class="card"><h2>${p.code}</h2><p>${pill(p.status)}</p><p class="muted" style="margin-top:8px">Pickup: ${p.pickup.replace(/[0-9]/g,'*')}<br>Dropoff: ${p.dropoff.replace(/[0-9]/g,'*')}</p></div>${renderTimeline(p.code)}`;
+      const parcel = findParcelByCode(trackingLookup);
+      const samples = state.parcels.slice(0, 4);
+      return `
+        <div class="view-head">
+          <div><p class="eyebrow">Public tracking</p><h1>Track a parcel</h1></div>
+        </div>
+        <form id="trackingForm" class="tracking-lookup">
+          <label>Tracking number<input name="trackingCode" value="${esc(trackingLookup)}" placeholder="HR260703DHK1A2" autocomplete="off" spellcheck="false"></label>
+          <button class="btn primary" type="submit">Track</button>
+        </form>
+        <p class="muted small">For senders and receivers: enter the tracking number from your SMS, receipt, or merchant confirmation.</p>
+        ${trackingLookup && !parcel ? `<div class="empty">No parcel found for ${esc(trackingLookup)}. Check the code and try again.</div>` : ''}
+        ${parcel ? renderPublicParcel(parcel) : `<section class="surface">
+          <div><h2>Try a sample parcel</h2><p class="muted small">These sample codes demonstrate the public sender/receiver view without exposing internal hub controls.</p></div>
+          <div class="sample-codes">
+            ${samples.map(p => `<button class="btn ghost slim" data-action="sample-track" data-code="${esc(p.code)}" type="button">${esc(p.code)}</button>`).join('')}
+          </div>
+        </section>`}`;
     }
-    function renderTimeline(code){
-      const rows = events.filter(e=>e.code===code);
-      return `<div class="card"><h2>Event timeline</h2><div class="timeline">${rows.length ? rows.map(e=>`<div class="event"><strong>${e.type.replaceAll('_',' ')}</strong><br><span class="muted small">${e.hub} / ${e.note}</span></div>`).join('') : '<p class="muted">No events yet.</p>'}</div></div>`;
+
+    function renderEventList(events){
+      if (!events.length) return '<div class="empty">No events yet.</div>';
+      return `<div class="timeline">${events.map(event => {
+        const parcel = getParcel(event.parcelId);
+        return `<div class="event"><strong>${esc(event.type.replaceAll('_',' '))}${parcel ? ' / ' + esc(parcel.code) : ''}</strong><span class="muted small">${esc(hubName(event.hubId))} / ${esc(event.note || 'No note')} / ${fmtDate(event.at)}</span></div>`;
+      }).join('')}</div>`;
     }
-    function render(){
-      const views = {parcels:renderParcels, routes:renderRoutes, scan:renderScan, track:renderTracking};
-      $('view').innerHTML = views[currentView]();
+
+    function renderTimeline(parcelId, publicOnly = false, title = 'Event timeline'){
+      const rows = state.events.filter(e => e.parcelId === parcelId);
+      return `<section class="surface"><h2>${esc(title)}</h2>${renderEventList(publicOnly ? rows.filter(e => e.type !== 'note') : rows)}</section>`;
     }
-    $('signIn').addEventListener('click', () => setView('parcels'));
-    $('tryTracking').addEventListener('click', () => setView('track'));
-    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setView(t.dataset.view)));
-    setView('login');
+
+    function closeSelectSearches(except = null){
+      document.querySelectorAll('.select-search.open').forEach(combo => {
+        if (combo !== except) combo.classList.remove('open');
+      });
+    }
+    function selectedText(select){
+      return select.options[select.selectedIndex]?.text || '';
+    }
+    function renderSelectSearchOptions(combo, query = ''){
+      const select = combo.querySelector('select');
+      const list = combo.querySelector('.select-search-list');
+      const visible = Array.from(select.options).filter(option => matchesQuery(option.text, query) || matchesQuery(option.value, query));
+      list.innerHTML = '';
+      visible.forEach((option) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'select-search-option';
+        button.dataset.value = option.value;
+        button.textContent = option.text;
+        if (option.selected) button.classList.add('active');
+        list.appendChild(button);
+      });
+      if (!visible.length) {
+        const empty = document.createElement('span');
+        empty.className = 'select-search-option muted';
+        empty.textContent = 'No matching options';
+        list.appendChild(empty);
+      }
+    }
+    function enhanceSelects(root = document){
+      root.querySelectorAll('select:not([data-enhanced])').forEach(select => {
+        select.dataset.enhanced = 'true';
+        select.classList.add('select-search-native');
+        const combo = document.createElement('span');
+        combo.className = 'select-search';
+        const input = document.createElement('input');
+        input.type = 'search';
+        input.className = 'select-search-input';
+        input.autocomplete = 'off';
+        input.value = selectedText(select);
+        input.setAttribute('aria-label', select.closest('label')?.textContent?.trim() || 'Search dropdown options');
+        const list = document.createElement('span');
+        list.className = 'select-search-list';
+        select.parentNode.insertBefore(combo, select);
+        combo.appendChild(input);
+        combo.appendChild(list);
+        combo.appendChild(select);
+        renderSelectSearchOptions(combo);
+        input.addEventListener('focus', () => {
+          closeSelectSearches(combo);
+          combo.classList.add('open');
+          renderSelectSearchOptions(combo, input.value);
+        });
+        input.addEventListener('input', () => {
+          combo.classList.add('open');
+          renderSelectSearchOptions(combo, input.value);
+        });
+        input.addEventListener('keydown', (event) => {
+          if (event.key === 'Escape') {
+            combo.classList.remove('open');
+            input.value = selectedText(select);
+          }
+          if (event.key === 'Enter') {
+            const first = combo.querySelector('.select-search-option[data-value]');
+            if (first) {
+              event.preventDefault();
+              first.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+            }
+          }
+        });
+        list.addEventListener('mousedown', (event) => {
+          const option = event.target.closest('.select-search-option[data-value]');
+          if (!option) return;
+          event.preventDefault();
+          select.value = option.dataset.value;
+          input.value = selectedText(select);
+          combo.classList.remove('open');
+          select.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+        select.addEventListener('change', () => {
+          input.value = selectedText(select);
+          renderSelectSearchOptions(combo, input.value);
+        });
+      });
+    }
+
+    function openModal(title, body, footer = ''){
+      const root = $('modalRoot');
+      root.innerHTML = `<div class="modal">
+        <div class="modal-header"><div><p class="eyebrow">HubRoute demo</p><h2>${esc(title)}</h2></div><button class="btn ghost slim" data-action="close-modal" type="button">Close</button></div>
+        <div class="modal-body">${body}</div>
+        ${footer}
+      </div>`;
+      root.classList.add('show');
+      enhanceSelects(root);
+      const first = root.querySelector('input,select,textarea,button');
+      first?.focus();
+    }
+    function closeModal(){
+      $('modalRoot').classList.remove('show');
+      $('modalRoot').innerHTML = '';
+    }
+
+    function openParcelForm(id = ''){
+      const p = id ? getParcel(id) : {
+        id:'', code:newTrackingCode(), customerId:state.customers.find(c => c.status === 'active')?.id || state.customers[0]?.id || '',
+        pickupAddress:'', dropoffAddress:'', amountCents:0, cod:false, status:'requested',
+        currentHubId:state.currentHubId, pickupHubId:state.currentHubId, warehouseHubId:'hub-central', deliveryHubId:'hub-east',
+        pendingToHubId:'', pathIndex:0, routeId:'', riderId:'', weightKg:'1.0', notes:''
+      };
+      openModal(id ? 'Edit parcel' : 'New parcel', `
+        <form id="parcelForm" class="stack">
+          <input type="hidden" name="id" value="${esc(p.id)}">
+          <div class="form-grid">
+            <label>Tracking code<input name="code" required value="${esc(p.code)}"></label>
+            <label>Customer<select name="customerId" required>${options(state.customers.filter(c => c.status !== 'inactive' || c.id === p.customerId), p.customerId, c => c.name)}</select></label>
+            <label>Status<select name="status">${STATUSES.map(s => `<option value="${esc(s)}" ${s === p.status ? 'selected' : ''}>${esc(s.replaceAll('_',' '))}</option>`).join('')}</select></label>
+            <label>Weight kg<input name="weightKg" value="${esc(p.weightKg)}"></label>
+            <label>Current hub<select name="currentHubId">${options(state.hubs, p.currentHubId, h => h.name)}</select></label>
+            <label>Pickup hub<select name="pickupHubId">${options(state.hubs, p.pickupHubId, h => h.name)}</select></label>
+            <label>Warehouse hub<select name="warehouseHubId">${options(state.hubs, p.warehouseHubId, h => h.name)}</select></label>
+            <label>Delivery hub<select name="deliveryHubId">${options(state.hubs, p.deliveryHubId, h => h.name)}</select></label>
+            <label>Route<select name="routeId">${options(state.routes.filter(r => r.hubId === state.currentHubId || r.id === p.routeId), p.routeId, r => r.name, 'Unassigned')}</select></label>
+            <label>Rider<select name="riderId">${options(state.riders.filter(r => r.hubId === state.currentHubId || r.id === p.riderId), p.riderId, r => r.name, 'Unassigned')}</select></label>
+            <label>COD amount (BDT)<input name="amount" type="number" min="0" step="1" value="${Math.round(Number(p.amountCents || 0) / 100)}"></label>
+            <label class="checkline"><input name="cod" type="checkbox" ${p.cod ? 'checked' : ''}> COD required</label>
+            <label class="wide">Pickup address<textarea name="pickupAddress" required>${esc(p.pickupAddress)}</textarea></label>
+            <label class="wide">Dropoff address<textarea name="dropoffAddress" required>${esc(p.dropoffAddress)}</textarea></label>
+            <label class="wide">Notes<textarea name="notes">${esc(p.notes)}</textarea></label>
+          </div>
+        </form>`,
+        `<div class="modal-actions"><button class="btn ghost" data-action="close-modal" type="button">Cancel</button><button class="btn primary" form="parcelForm" type="submit">Save parcel</button></div>`);
+    }
+
+    function saveParcel(form){
+      const data = Object.fromEntries(new FormData(form).entries());
+      const duplicate = state.parcels.find(p => p.code === data.code && p.id !== data.id);
+      if (duplicate) return toast('Tracking code already exists');
+      const existing = data.id ? getParcel(data.id) : null;
+      const route = data.routeId ? getRoute(data.routeId) : null;
+      const rider = data.riderId ? getRider(data.riderId) : null;
+      if (route && route.hubId !== data.currentHubId) return toast('Route must belong to the parcel current hub');
+      if (rider && rider.hubId !== data.currentHubId) return toast('Rider must belong to the parcel current hub');
+      const newPath = [data.pickupHubId, data.warehouseHubId, data.deliveryHubId].filter(Boolean).filter((hubId, index, rows) => index === 0 || hubId !== rows[index - 1]);
+      let nextPathIndex = Number(existing?.pathIndex || 0);
+      const matchedPathIndex = newPath.findIndex((hubId, index) => hubId === data.currentHubId && index >= nextPathIndex);
+      if (matchedPathIndex >= 0) nextPathIndex = matchedPathIndex;
+      const payload = {
+        id: data.id || uid('parcel'),
+        code: data.code.trim(),
+        customerId: data.customerId,
+        pickupAddress: data.pickupAddress.trim(),
+        dropoffAddress: data.dropoffAddress.trim(),
+        amountCents: Math.round(Number(data.amount || 0) * 100),
+        cod: form.elements.cod.checked,
+        status: data.status,
+        currentHubId: data.currentHubId,
+        pendingToHubId: existing?.pendingToHubId || '',
+        pickupHubId: data.pickupHubId,
+        warehouseHubId: data.warehouseHubId,
+        deliveryHubId: data.deliveryHubId,
+        pathIndex: nextPathIndex,
+        routeId: data.routeId,
+        riderId: data.riderId,
+        weightKg: data.weightKg.trim(),
+        notes: data.notes.trim()
+      };
+      const existingIndex = state.parcels.findIndex(p => p.id === payload.id);
+      if (existingIndex >= 0) {
+        const before = state.parcels[existingIndex];
+        state.parcels[existingIndex] = payload;
+        if (before.routeId !== payload.routeId || before.riderId !== payload.riderId) {
+          addEvent(payload.id, 'assigned', state.currentHubId, `Assignment updated to ${routeName(payload.routeId)} / ${riderName(payload.riderId)}`);
+        }
+      } else {
+        state.parcels.unshift(payload);
+        addEvent(payload.id, 'requested', payload.currentHubId, 'Parcel created in demo');
+      }
+      selectedParcelId = payload.id;
+      saveState();
+      closeModal();
+      render();
+      toast('Parcel saved');
+    }
+
+    function openRouteForm(id = ''){
+      const route = id ? getRoute(id) : {id:'', name:'', hubId:state.currentHubId, type:'pickup', areas:'', capacity:12, riderId:'', status:'active'};
+      const hubRiders = state.riders.filter(r => r.hubId === route.hubId || r.id === route.riderId);
+      openModal(id ? 'Edit route' : 'New route', `
+        <form id="routeForm" class="stack">
+          <input type="hidden" name="id" value="${esc(route.id)}">
+          <div class="form-grid">
+            <label>Name<input name="name" required value="${esc(route.name)}"></label>
+            <label>Hub<select name="hubId">${options(state.hubs, route.hubId, h => h.name)}</select></label>
+            <label>Type<select name="type">${['pickup','warehouse','delivery','return'].map(t => `<option value="${t}" ${route.type === t ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+            <label>Capacity<input name="capacity" type="number" min="1" value="${esc(route.capacity)}"></label>
+            <label>Default rider<select name="riderId">${options(hubRiders, route.riderId, r => r.name, 'No default rider')}</select></label>
+            <label>Status<select name="status">${['active','paused','inactive'].map(s => `<option value="${s}" ${route.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
+            <label class="wide">Service areas<textarea name="areas">${esc(route.areas)}</textarea></label>
+          </div>
+        </form>`,
+        `<div class="modal-actions"><button class="btn ghost" data-action="close-modal" type="button">Cancel</button><button class="btn primary" form="routeForm" type="submit">Save route</button></div>`);
+    }
+
+    function saveRoute(form){
+      const data = Object.fromEntries(new FormData(form).entries());
+      const route = {
+        id: data.id || uid('route'),
+        name: data.name.trim(),
+        hubId: data.hubId,
+        type: data.type,
+        areas: data.areas.trim(),
+        capacity: Math.max(1, Number(data.capacity || 1)),
+        riderId: data.riderId,
+        status: data.status
+      };
+      const rider = route.riderId ? getRider(route.riderId) : null;
+      if (rider && rider.hubId !== route.hubId) return toast('Default rider must belong to the route hub');
+      const idx = state.routes.findIndex(r => r.id === route.id);
+      if (idx >= 0) state.routes[idx] = route;
+      else state.routes.unshift(route);
+      saveState();
+      closeModal();
+      render();
+      toast('Route saved');
+    }
+
+    function openRiderForm(id = ''){
+      const rider = id ? getRider(id) : {id:'', name:'', hubId:state.currentHubId, phone:'', vehicle:'Motorbike', capacity:12, status:'active'};
+      openModal(id ? 'Edit rider' : 'New rider', `
+        <form id="riderForm" class="stack">
+          <input type="hidden" name="id" value="${esc(rider.id)}">
+          <div class="form-grid">
+            <label>Name<input name="name" required value="${esc(rider.name)}"></label>
+            <label>Hub<select name="hubId">${options(state.hubs, rider.hubId, h => h.name)}</select></label>
+            <label>Phone<input name="phone" value="${esc(rider.phone)}"></label>
+            <label>Vehicle<input name="vehicle" value="${esc(rider.vehicle)}"></label>
+            <label>Capacity<input name="capacity" type="number" min="1" value="${esc(rider.capacity)}"></label>
+            <label>Status<select name="status">${['active','off_duty','inactive'].map(s => `<option value="${s}" ${rider.status === s ? 'selected' : ''}>${s.replaceAll('_',' ')}</option>`).join('')}</select></label>
+          </div>
+        </form>`,
+        `<div class="modal-actions"><button class="btn ghost" data-action="close-modal" type="button">Cancel</button><button class="btn primary" form="riderForm" type="submit">Save rider</button></div>`);
+    }
+
+    function saveRider(form){
+      const data = Object.fromEntries(new FormData(form).entries());
+      const rider = {
+        id: data.id || uid('rider'),
+        name: data.name.trim(),
+        hubId: data.hubId,
+        phone: data.phone.trim(),
+        vehicle: data.vehicle.trim(),
+        capacity: Math.max(1, Number(data.capacity || 1)),
+        status: data.status
+      };
+      const idx = state.riders.findIndex(r => r.id === rider.id);
+      if (idx >= 0) state.riders[idx] = rider;
+      else state.riders.unshift(rider);
+      saveState();
+      closeModal();
+      render();
+      toast('Rider saved');
+    }
+
+    function openCustomerForm(id = ''){
+      const customer = id ? getCustomer(id) : {id:'', name:'', phone:'', email:'', address:'', status:'active'};
+      openModal(id ? 'Edit customer' : 'New customer', `
+        <form id="customerForm" class="stack">
+          <input type="hidden" name="id" value="${esc(customer.id)}">
+          <div class="form-grid">
+            <label>Name<input name="name" required value="${esc(customer.name)}"></label>
+            <label>Phone<input name="phone" value="${esc(customer.phone)}"></label>
+            <label>Email<input name="email" type="email" value="${esc(customer.email)}"></label>
+            <label>Status<select name="status">${['active','inactive'].map(s => `<option value="${s}" ${customer.status === s ? 'selected' : ''}>${s}</option>`).join('')}</select></label>
+            <label class="wide">Address<textarea name="address">${esc(customer.address)}</textarea></label>
+          </div>
+        </form>`,
+        `<div class="modal-actions"><button class="btn ghost" data-action="close-modal" type="button">Cancel</button><button class="btn primary" form="customerForm" type="submit">Save customer</button></div>`);
+    }
+
+    function saveCustomer(form){
+      const data = Object.fromEntries(new FormData(form).entries());
+      const customer = {
+        id: data.id || uid('cust'),
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        email: data.email.trim(),
+        address: data.address.trim(),
+        status: data.status
+      };
+      const idx = state.customers.findIndex(c => c.id === customer.id);
+      if (idx >= 0) state.customers[idx] = customer;
+      else state.customers.unshift(customer);
+      saveState();
+      closeModal();
+      render();
+      toast('Customer saved');
+    }
+
+    function openAssignFlow(parcelId){
+      const parcel = getParcel(parcelId);
+      if (!parcel) return toast('Parcel not found');
+      if (parcel.currentHubId !== state.currentHubId || parcel.pendingToHubId) return toast('Receive the parcel at this hub before assigning local route and rider');
+      const routes = state.routes.filter(r => r.hubId === state.currentHubId && r.status === 'active');
+      const riders = state.riders.filter(r => r.hubId === state.currentHubId && r.status === 'active');
+      openModal('Assign parcel', `
+        <form id="assignForm" class="stack">
+          <input type="hidden" name="parcelId" value="${esc(parcel.id)}">
+          <div class="assignment-summary">
+            <h3>${esc(parcel.code)}</h3>
+            <p class="muted small">${esc(customerName(parcel.customerId))} / ${esc(parcel.pickupAddress)} to ${esc(parcel.dropoffAddress)}</p>
+            <p>${pill(parcel.status)}</p>
+          </div>
+          <div class="grid two">
+            <section class="stack">
+              <div><h3>Routes at ${esc(hubName(state.currentHubId))}</h3><p class="muted small">Capacity reflects active, undelivered parcels.</p></div>
+              <div class="choice-list">
+                ${routes.map((route, index) => {
+                  const load = routeLoad(route.id, parcel.id);
+                  const full = load >= Number(route.capacity || 0);
+                  return `<label class="choice-card">
+                    <input type="radio" name="routeId" value="${esc(route.id)}" ${route.id === parcel.routeId || (!parcel.routeId && index === 0) ? 'checked' : ''} ${full ? 'disabled' : ''}>
+                    <span class="choice-main">
+                      <span class="choice-title"><span>${esc(route.name)}</span><span>${load} / ${Number(route.capacity || 0)}</span></span>
+                      <span class="muted small">${esc(route.areas)} / default rider: ${esc(riderName(route.riderId))}${full ? ' / full' : ''}</span>
+                    </span>
+                  </label>`;
+                }).join('') || '<div class="empty">No active routes at the current hub.</div>'}
+              </div>
+            </section>
+            <section class="stack">
+              <div><h3>Riders at ${esc(hubName(state.currentHubId))}</h3><p class="muted small">Workload is counted from active rides.</p></div>
+              <div class="choice-list">
+                ${riders.map((rider, index) => {
+                  const load = riderLoad(rider.id, parcel.id);
+                  const full = load >= Number(rider.capacity || 0);
+                  return `<label class="choice-card">
+                    <input type="radio" name="riderId" value="${esc(rider.id)}" ${rider.id === parcel.riderId || (!parcel.riderId && index === 0) ? 'checked' : ''} ${full ? 'disabled' : ''}>
+                    <span class="choice-main">
+                      <span class="choice-title"><span>${esc(rider.name)}</span><span>${load} active</span></span>
+                      <span class="muted small">${esc(rider.vehicle)} / capacity ${Number(rider.capacity || 0)}${full ? ' / full' : ''}</span>
+                    </span>
+                  </label>`;
+                }).join('') || '<div class="empty">No active riders at the current hub.</div>'}
+              </div>
+            </section>
+          </div>
+          <label>Assignment note<textarea name="note">Assigned from ${esc(hubName(state.currentHubId))}</textarea></label>
+        </form>`,
+        `<div class="modal-actions"><button class="btn ghost" data-action="close-modal" type="button">Cancel</button><button class="btn primary" form="assignForm" type="submit">Save assignment</button></div>`);
+    }
+
+    function saveAssignment(form){
+      const data = Object.fromEntries(new FormData(form).entries());
+      const parcel = getParcel(data.parcelId);
+      const route = getRoute(data.routeId);
+      const rider = getRider(data.riderId);
+      if (!parcel) return toast('Parcel not found');
+      if (parcel.currentHubId !== state.currentHubId || parcel.pendingToHubId) return toast('Receive the parcel at this hub before assigning local route and rider');
+      if (!route || route.hubId !== state.currentHubId || route.status !== 'active') return toast('Choose an active route at the current hub');
+      if (!rider || rider.hubId !== state.currentHubId || rider.status !== 'active') return toast('Choose an active rider at the current hub');
+      if (routeLoad(route.id, parcel.id) >= Number(route.capacity || 0)) return toast('Route is at capacity');
+      if (riderLoad(rider.id, parcel.id) >= Number(rider.capacity || 0)) return toast('Rider is at capacity');
+      parcel.routeId = route.id;
+      parcel.riderId = rider.id;
+      parcel.currentHubId = state.currentHubId;
+      if (parcel.status === 'requested') parcel.status = 'assigned';
+      addEvent(parcel.id, 'assigned', state.currentHubId, data.note?.trim() || `Assigned to ${route.name} and ${rider.name}`);
+      saveState();
+      closeModal();
+      render();
+      toast(`${parcel.code} assigned`);
+    }
+
+    function sendParcel(parcelId){
+      const parcel = getParcel(parcelId);
+      if (!parcel) return toast('Parcel not found');
+      if (!canSend(parcel)) return toast('This parcel is not ready for outbound handoff from this hub');
+      const targetHubId = nextHubFor(parcel);
+      parcel.pendingToHubId = targetHubId;
+      parcel.status = 'in_transit';
+      addEvent(parcel.id, 'handoff_departed', state.currentHubId, `Departed ${hubName(state.currentHubId)} for ${hubName(targetHubId)}`);
+      selectedParcelId = parcel.id;
+      saveState();
+      render();
+      toast(`${parcel.code} sent to ${hubName(targetHubId)}`);
+    }
+
+    function receiveParcel(parcelId){
+      const parcel = getParcel(parcelId);
+      if (!parcel) return toast('Parcel not found');
+      if (!canReceive(parcel)) return toast('Switch to the destination hub to receive this parcel');
+      const path = hubPath(parcel);
+      const receivedIndex = path.findIndex((hubId, index) => hubId === state.currentHubId && index >= pathIndex(parcel));
+      parcel.currentHubId = state.currentHubId;
+      parcel.pendingToHubId = '';
+      if (receivedIndex >= 0) parcel.pathIndex = receivedIndex;
+      const hub = getHub(state.currentHubId);
+      if (hub?.type === 'warehouse') parcel.status = 'in_warehouse';
+      else if (hub?.type === 'delivery') parcel.status = 'out_for_delivery';
+      else if (hub?.type === 'return') parcel.status = parcel.status === 'failed' ? 'failed' : 'picked_up';
+      else parcel.status = 'picked_up';
+      if (parcel.routeId && getRoute(parcel.routeId)?.hubId !== state.currentHubId) parcel.routeId = '';
+      if (parcel.riderId && getRider(parcel.riderId)?.hubId !== state.currentHubId) parcel.riderId = '';
+      addEvent(parcel.id, 'handoff_received', state.currentHubId, `Received at ${hubName(state.currentHubId)}`);
+      selectedParcelId = parcel.id;
+      saveState();
+      render();
+      toast(`${parcel.code} received at ${hubName(state.currentHubId)}`);
+    }
+
+    function deleteParcel(id){
+      const parcel = getParcel(id);
+      if (!parcel || !confirm(`Delete parcel ${parcel.code}?`)) return;
+      state.parcels = state.parcels.filter(p => p.id !== id);
+      state.events = state.events.filter(e => e.parcelId !== id);
+      selectedParcelId = state.parcels[0]?.id || '';
+      saveState();
+      render();
+      toast('Parcel deleted');
+    }
+    function deleteRoute(id){
+      const route = getRoute(id);
+      if (!route) return;
+      const assigned = state.parcels.filter(p => p.routeId === id);
+      const message = assigned.length ? `Delete ${route.name} and clear it from ${assigned.length} parcels?` : `Delete route ${route.name}?`;
+      if (!confirm(message)) return;
+      assigned.forEach(p => {
+        p.routeId = '';
+        if (p.status === 'assigned') p.status = 'requested';
+        addEvent(p.id, 'note', state.currentHubId, `Route ${route.name} removed from parcel`);
+      });
+      state.routes = state.routes.filter(r => r.id !== id);
+      saveState();
+      render();
+      toast('Route deleted');
+    }
+    function deleteRider(id){
+      const rider = getRider(id);
+      if (!rider) return;
+      const assigned = state.parcels.filter(p => p.riderId === id);
+      const message = assigned.length ? `Delete ${rider.name} and clear rider from ${assigned.length} parcels?` : `Delete rider ${rider.name}?`;
+      if (!confirm(message)) return;
+      assigned.forEach(p => {
+        p.riderId = '';
+        addEvent(p.id, 'note', state.currentHubId, `Rider ${rider.name} removed from parcel`);
+      });
+      state.routes.filter(r => r.riderId === id).forEach(r => { r.riderId = ''; });
+      state.riders = state.riders.filter(r => r.id !== id);
+      saveState();
+      render();
+      toast('Rider deleted');
+    }
+    function deleteCustomer(id){
+      const customer = getCustomer(id);
+      if (!customer) return;
+      const used = state.parcels.some(p => p.customerId === id);
+      if (used) {
+        if (!confirm(`${customer.name} has parcel history. Mark customer inactive instead?`)) return;
+        customer.status = 'inactive';
+        saveState();
+        render();
+        return toast('Customer archived');
+      }
+      if (!confirm(`Delete customer ${customer.name}?`)) return;
+      state.customers = state.customers.filter(c => c.id !== id);
+      saveState();
+      render();
+      toast('Customer deleted');
+    }
+    function resetDemo(){
+      if (!confirm('Reset all demo data in this browser?')) return;
+      state = seedState();
+      selectedParcelId = state.parcels[0]?.id || '';
+      saveState();
+      render();
+      toast('Demo data reset');
+    }
+
+    document.querySelectorAll('.tab').forEach(tab => tab.addEventListener('click', () => setView(tab.dataset.view)));
+    $('accountSearch').addEventListener('input', renderAccountCards);
+    $('signIn').addEventListener('click', () => {
+      const account = DEMO_ACCOUNTS.find(row => row.email === $('email').value.trim() && row.password === $('password').value);
+      if (!account) return toast('Use one of the seeded demo accounts');
+      signedIn = true;
+      selectedAccountEmail = account.email;
+      state.currentHubId = account.hubId;
+      saveState();
+      setView('dashboard');
+    });
+    $('tryTracking').addEventListener('click', () => {
+      setView('track');
+      setTrackingLookup('');
+      render();
+    });
+
+    document.addEventListener('click', (event) => {
+      if (!event.target.closest('.select-search')) closeSelectSearches();
+      const jump = event.target.closest('[data-view-jump]');
+      if (jump) return setView(jump.dataset.viewJump);
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      const action = button.dataset.action;
+      const id = button.dataset.id || '';
+      const handlers = {
+        'close-modal': closeModal,
+        'use-account': () => chooseAccount(button.dataset.email),
+        'sample-track': () => {
+          setView('track');
+          setTrackingLookup(button.dataset.code);
+          render();
+        },
+        'reset-demo': resetDemo,
+        'reset-filters': () => resetFilters(button.dataset.scope),
+        'new-parcel': () => openParcelForm(),
+        'edit-parcel': () => openParcelForm(id),
+        'delete-parcel': () => deleteParcel(id),
+        'assign-parcel': () => openAssignFlow(id),
+        'send-parcel': () => sendParcel(id),
+        'receive-parcel': () => receiveParcel(id),
+        'new-route': () => openRouteForm(),
+        'edit-route': () => openRouteForm(id),
+        'delete-route': () => deleteRoute(id),
+        'new-rider': () => openRiderForm(),
+        'edit-rider': () => openRiderForm(id),
+        'delete-rider': () => deleteRider(id),
+        'new-customer': () => openCustomerForm(),
+        'edit-customer': () => openCustomerForm(id),
+        'delete-customer': () => deleteCustomer(id)
+      };
+      handlers[action]?.();
+    });
+
+    document.addEventListener('input', (event) => {
+      const filter = event.target.closest('[data-filter-scope][data-filter-key]');
+      if (!filter || filter.tagName === 'SELECT') return;
+      updateFilterFromElement(filter, true);
+    });
+
+    document.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const form = event.target;
+      if (form.id === 'parcelForm') saveParcel(form);
+      if (form.id === 'routeForm') saveRoute(form);
+      if (form.id === 'riderForm') saveRider(form);
+      if (form.id === 'customerForm') saveCustomer(form);
+      if (form.id === 'assignForm') saveAssignment(form);
+      if (form.id === 'trackingForm') {
+        const data = Object.fromEntries(new FormData(form).entries());
+        setTrackingLookup(data.trackingCode);
+        render();
+      }
+      if (form.id === 'scanForm') {
+        const data = Object.fromEntries(new FormData(form).entries());
+        const parcel = getParcel(data.parcelId);
+        if (!parcel) return toast('Parcel not found');
+        if (STATUSES.includes(data.type)) parcel.status = data.type;
+        if (data.hubId) parcel.currentHubId = data.hubId;
+        addEvent(parcel.id, data.type, data.hubId, data.note.trim() || 'Recorded in demo');
+        selectedParcelId = parcel.id;
+        saveState();
+        render();
+        toast('Event recorded');
+      }
+    });
+
+    document.addEventListener('change', (event) => {
+      const filter = event.target.closest('[data-filter-scope][data-filter-key]');
+      if (filter) {
+        updateFilterFromElement(filter);
+        return;
+      }
+      if (event.target.name === 'parcelId' && event.target.closest('#scanForm')) {
+        selectedParcelId = event.target.value;
+        render();
+      }
+    });
+
+    $('modalRoot').addEventListener('click', (event) => {
+      if (event.target === $('modalRoot')) closeModal();
+    });
+
+    setView(currentView);
   </script>
 </body>
 </html>
