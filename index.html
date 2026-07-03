@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HubRoute / Bangladesh parcel routing demo</title>
   <meta name="description" content="HubRoute is a compact parcel operations demo for Bangladesh hub routing, searchable dispatch, custody handoff, and public tracking.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>HR</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 34'%3E%3Crect width='34' height='34' rx='8' fill='%23090a0c'/%3E%3Cpath d='M16 12.4 9.2 8.4 10.5 6.2 17.3 10.2z' fill='%23225f9f'/%3E%3Cpath d='M17.8 10.4 24.5 6.2 25.8 8.4 19.1 12.6z' fill='%239a6108'/%3E%3Cpath d='M18.5 15.4 24.8 21.2 23.1 23 16.8 17.2z' fill='%23176f45'/%3E%3Ccircle cx='17' cy='14' r='4' fill='%23fff'/%3E%3Ccircle cx='8.8' cy='7.7' r='3' fill='%23225f9f'/%3E%3Ccircle cx='25.2' cy='7.7' r='3' fill='%239a6108'/%3E%3Ccircle cx='24' cy='22.2' r='3' fill='%23176f45'/%3E%3Ctext x='17' y='29' font-family='Arial,sans-serif' font-size='5.8' font-weight='900' text-anchor='middle' fill='%23fff'%3EHR%3C/text%3E%3C/svg%3E">
   <style>
     :root{
       --bg:#fbfbfa;
@@ -26,8 +26,18 @@
     a:focus-visible,.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
     .shell{max-width:1060px;margin:0 auto;padding:0 20px}
     .nav{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line)}
-    .brand{display:flex;align-items:center;gap:9px;font-weight:780;letter-spacing:0}
-    .mark{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--ink);border-radius:6px;background:#fff;font-size:11px;font-weight:850}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:780;letter-spacing:0}
+    .logo-mark{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;flex:0 0 34px;border:0;border-radius:8px;background:transparent}
+    .logo-mark svg{display:block;width:34px;height:34px}
+    .logo-bg{fill:var(--ink)}
+    .logo-route.blue{fill:var(--blue)}
+    .logo-route.amber{fill:var(--amber)}
+    .logo-route.green{fill:var(--green)}
+    .logo-node{fill:#fff}
+    .logo-node.blue{fill:var(--blue)}
+    .logo-node.amber{fill:var(--amber)}
+    .logo-node.green{fill:var(--green)}
+    .logo-text{font-size:5.8px;font-weight:900;letter-spacing:.2px;fill:#fff}
     .links{display:flex;gap:14px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
     .links a:hover{color:var(--text)}
     .hero{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,.82fr);gap:30px;padding:36px 0 24px;align-items:center}
@@ -109,7 +119,19 @@
 <body>
   <div class="shell">
     <nav class="nav" aria-label="Main navigation">
-      <a class="brand" href="index.html"><span class="mark">HR</span><span>HubRoute</span></a>
+      <a class="brand" href="index.html"><span class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 34 34" focusable="false">
+          <rect class="logo-bg" width="34" height="34" rx="8"></rect>
+          <path class="logo-route blue" d="M16 12.4 9.2 8.4 10.5 6.2 17.3 10.2z"></path>
+          <path class="logo-route amber" d="M17.8 10.4 24.5 6.2 25.8 8.4 19.1 12.6z"></path>
+          <path class="logo-route green" d="M18.5 15.4 24.8 21.2 23.1 23 16.8 17.2z"></path>
+          <circle class="logo-node" cx="17" cy="14" r="4"></circle>
+          <circle class="logo-node blue" cx="8.8" cy="7.7" r="3"></circle>
+          <circle class="logo-node amber" cx="25.2" cy="7.7" r="3"></circle>
+          <circle class="logo-node green" cx="24" cy="22.2" r="3"></circle>
+          <text class="logo-text" x="17" y="29" text-anchor="middle">HR</text>
+        </svg>
+      </span><span>HubRoute</span></a>
       <div class="links">
         <a href="#demo">Demo</a>
         <a href="docs.html">Docs</a>
