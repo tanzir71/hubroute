@@ -3,156 +3,278 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HubRoute / Secure routing for parcel hubs</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📦</text></svg>">
+  <title>HubRoute / Shared-hosting parcel routing</title>
+  <meta name="description" content="HubRoute is a compact PHP 8 and SQLite parcel operations console for cPanel and shared hosting.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>HR</text></svg>">
   <style>
-    :root{--bg:#fff;--text:#080808;--muted:#666;--line:#d8d8d8;--soft:#f5f5f5}
+    :root{
+      --bg:#fbfbfa;
+      --text:#101114;
+      --muted:#62666f;
+      --line:#d9dce2;
+      --soft:#f0f2f4;
+      --ink:#090a0c;
+      --blue:#225f9f;
+      --green:#176f45;
+      --amber:#a35f00;
+      --red:#9d2f2f;
+    }
     *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
     body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
     a{color:inherit;text-decoration:none}
-    .shell{max-width:1180px;margin:0 auto;padding:0 22px}
-    .nav{height:72px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
-    .brand{font-weight:760}
-    .links{display:flex;gap:22px;align-items:center;font-size:14px;color:var(--muted)}
+    a:focus-visible,.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+    .shell{max-width:1120px;margin:0 auto;padding:0 20px}
+    .nav{min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line)}
+    .brand{display:flex;align-items:center;gap:9px;font-weight:780;letter-spacing:0}
+    .mark{display:inline-grid;place-items:center;width:28px;height:28px;border:1px solid var(--ink);border-radius:6px;background:#fff;font-size:11px;font-weight:850}
+    .links{display:flex;gap:18px;align-items:center;flex-wrap:wrap;color:var(--muted);font-size:13px}
     .links a:hover{color:var(--text)}
-    .hero{padding:76px 0 42px;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,520px);gap:54px;align-items:center}
-    .kicker{font-size:14px;color:var(--muted);margin-bottom:18px}
-    h1{font-size:clamp(44px,7vw,92px);line-height:.94;letter-spacing:0;margin:0 0 24px;max-width:780px}
-    .lead{font-size:20px;line-height:1.55;color:#333;max-width:720px;margin:0 0 28px}
-    .actions{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px}
-    .btn{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--text);border-radius:6px;padding:12px 16px;font-weight:650}
-    .btn.primary{background:var(--text);color:#fff}
-    .bullets{display:flex;gap:16px;flex-wrap:wrap;color:#333;font-size:14px}
-    .bullets span{border-left:1px solid var(--line);padding-left:14px}
-    .surface-label{font-size:13px;color:var(--muted);margin-bottom:10px}
-    .mockup{border:1px solid var(--text);border-radius:8px;background:#fff;padding:14px;box-shadow:10px 10px 0 #111}
-    .mockbar{display:flex;justify-content:space-between;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:12px;font-size:12px;color:var(--muted)}
-    .map{height:190px;border:1px solid var(--line);border-radius:6px;background:linear-gradient(90deg,#fff,#f7f7f7);position:relative;overflow:hidden}
-    .route{position:absolute;left:12%;top:48%;width:74%;height:2px;background:#111}
-    .pin{position:absolute;width:14px;height:14px;border-radius:50%;background:#111;top:calc(48% - 6px)}
-    .pin.a{left:10%}.pin.b{left:48%}.pin.c{right:10%}
-    .rows{display:grid;gap:8px;margin-top:12px}
-    .row{display:grid;grid-template-columns:72px 1fr 74px;gap:10px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:9px;font-size:13px}
-    .pill{border:1px solid var(--line);border-radius:999px;padding:3px 7px;text-align:center;font-size:12px;color:#333}
-    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:28px 0 54px}
-    .metric{border-top:1px solid var(--line);padding-top:16px}
-    .metric strong{display:block;font-size:16px;margin-bottom:4px}
-    section{padding:64px 0;border-top:1px solid var(--line)}
-    .section-head{display:grid;grid-template-columns:240px 1fr;gap:36px;margin-bottom:34px}
-    .eyebrow{color:var(--muted);font-size:14px}
-    h2{font-size:clamp(30px,4vw,56px);line-height:1.02;letter-spacing:0;margin:0}
-    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-    .card{border-top:1px solid var(--text);padding-top:18px}
-    .num{font-size:14px;color:var(--muted);margin-bottom:22px}
-    h3{font-size:21px;line-height:1.15;margin:0 0 12px}
-    p{color:#444;margin:0}
-    .flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-    .step{border:1px solid var(--line);border-radius:8px;padding:18px;min-height:210px}
-    .quick{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
-    pre{margin:0;background:#0b0b0b;color:#fff;border-radius:8px;padding:18px;overflow:auto;font-size:13px}
-    footer{padding:42px 0 60px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;color:var(--muted);font-size:14px}
+    .hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(310px,.95fr);gap:36px;padding:54px 0 28px;align-items:center}
+    .kicker{color:var(--muted);font-size:13px;margin-bottom:12px}
+    h1{font-size:46px;line-height:1.02;letter-spacing:0;margin:0 0 18px;max-width:690px}
+    .lead{font-size:17px;line-height:1.6;color:#30343b;max-width:670px;margin:0 0 22px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 18px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;border:1px solid var(--ink);border-radius:6px;padding:9px 13px;font-weight:700;background:#fff}
+    .btn.primary{background:var(--ink);color:#fff}
+    .btn.download{border-color:var(--blue);color:var(--blue)}
+    .runtime-note{color:var(--muted);font-size:12px;margin:-6px 0 18px}
+    .proof{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:22px 0 0}
+    .proof-item{border-top:1px solid var(--line);padding-top:11px}
+    .proof-item strong{display:block;font-size:17px;line-height:1.1;margin-bottom:3px}
+    .proof-item span{display:block;color:var(--muted);font-size:12px}
+    .demo-card{border:1px solid var(--ink);border-radius:8px;background:#fff;box-shadow:8px 8px 0 var(--ink);overflow:hidden}
+    .demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:12px 14px;font-size:12px;color:var(--muted)}
+    .status-dot{width:8px;height:8px;border-radius:999px;background:var(--green);box-shadow:16px 0 0 var(--amber),32px 0 0 var(--red)}
+    .route-board{padding:14px;display:grid;gap:12px}
+    .mini-map{height:152px;border:1px solid var(--line);border-radius:6px;background:linear-gradient(135deg,#fff 0%,#f6f7f9 58%,#eef6f1 100%);position:relative;overflow:hidden}
+    .mini-map:before{content:"";position:absolute;left:9%;right:9%;top:51%;height:2px;background:var(--ink)}
+    .node{position:absolute;width:15px;height:15px;border-radius:999px;background:#fff;border:3px solid var(--ink);top:calc(51% - 7px)}
+    .node.a{left:8%}.node.b{left:46%;border-color:var(--blue)}.node.c{right:8%;border-color:var(--green)}
+    .node-label{position:absolute;font-size:11px;font-weight:750;background:#fff;border:1px solid var(--line);border-radius:6px;padding:3px 6px}
+    .node-label.a{left:7%;top:20%}.node-label.b{left:39%;bottom:18%}.node-label.c{right:6%;top:22%}
+    .queue{display:grid;gap:7px}
+    .queue-row{display:grid;grid-template-columns:82px 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:8px 9px;font-size:12px}
+    .tag{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;padding:2px 7px;font-size:11px;color:#333;background:#fff;white-space:nowrap}
+    .tag.blue{border-color:#a9c5de;color:var(--blue);background:#f4f8fb}.tag.green{border-color:#a9d0ba;color:var(--green);background:#f2f8f5}.tag.amber{border-color:#dfc498;color:var(--amber);background:#fbf7ef}
+    section{padding:46px 0;border-top:1px solid var(--line)}
+    .section-head{display:grid;grid-template-columns:180px 1fr;gap:28px;align-items:start;margin-bottom:24px}
+    .eyebrow{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    h2{font-size:31px;line-height:1.12;letter-spacing:0;margin:0;max-width:760px}
+    h3{font-size:17px;line-height:1.22;letter-spacing:0;margin:0 0 8px}
+    p{color:#41464f;margin:0}
+    .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+    .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .panel{border:1px solid var(--line);border-radius:8px;background:#fff;padding:16px}
+    .panel.top{border-top:3px solid var(--ink)}
+    .num{color:var(--muted);font-size:12px;margin-bottom:18px}
+    .demo-grid{display:grid;grid-template-columns:minmax(0,.9fr) minmax(320px,1.1fr);gap:18px;align-items:start}
+    .credential{display:grid;grid-template-columns:96px 1fr;gap:8px 12px;margin:14px 0 12px;font-size:14px}
+    .credential dt{color:var(--muted)}
+    .credential dd{margin:0;font-weight:720;word-break:break-word}
+    .warn{border-left:3px solid var(--amber);padding:8px 10px;background:#fff8eb;color:#4d3a14;font-size:13px}
+    .sheet{border:1px solid var(--ink);border-radius:8px;background:#101114;color:#f7f7f4;padding:15px;overflow:hidden}
+    .sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .sheet-cell{min-height:92px;border:1px solid #383b42;border-radius:6px;padding:10px;background:#171a1f}
+    .sheet-cell b{display:block;color:#fff;font-size:12px;margin-bottom:8px}
+    .sheet-cell span{display:block;color:#b9bec7;font-size:12px}
+    .code{margin:0;background:#101114;color:#f8f8f2;border-radius:8px;padding:15px;overflow:auto;font-size:13px;line-height:1.5}
+    .setup{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+    .checks{display:grid;gap:9px;margin:0;padding:0;list-style:none}
+    .checks li{border-left:3px solid var(--green);background:#fff;padding:10px 12px;border-radius:0 6px 6px 0;color:#30343b}
+    footer{padding:32px 0 46px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}
     footer a{text-decoration:underline;text-underline-offset:3px}
-    @media(max-width:860px){.nav{height:auto;padding:18px 0;align-items:flex-start}.links{gap:12px;flex-wrap:wrap}.hero,.section-head,.quick{grid-template-columns:1fr}.hero{padding-top:46px}.metrics,.cards,.flow{grid-template-columns:1fr}.mockup{box-shadow:6px 6px 0 #111}footer{flex-direction:column}}
+    @media(max-width:920px){
+      h1{font-size:39px}
+      h2{font-size:27px}
+      .hero,.demo-grid,.setup{grid-template-columns:1fr}
+      .proof,.grid4{grid-template-columns:repeat(2,1fr)}
+      .grid3{grid-template-columns:1fr}
+      .demo-card{box-shadow:6px 6px 0 var(--ink)}
+    }
+    @media(max-width:640px){
+      .shell{padding:0 16px}
+      .nav{align-items:flex-start;flex-direction:column;padding:14px 0}
+      .links{gap:12px}
+      .hero{padding:34px 0 24px}
+      h1{font-size:32px}
+      h2{font-size:24px}
+      .lead{font-size:16px}
+      .section-head,.proof,.grid4,.sheet-grid{grid-template-columns:1fr}
+      .queue-row{grid-template-columns:1fr}
+      .credential{grid-template-columns:1fr}
+    }
   </style>
 </head>
 <body>
   <div class="shell">
     <nav class="nav" aria-label="Main navigation">
-      <a class="brand" href="hubroute.php">HubRoute</a>
+      <a class="brand" href="index.html"><span class="mark">HR</span><span>HubRoute</span></a>
       <div class="links">
-        <a href="#overview">Overview</a>
-        <a href="#outcomes">Outcomes</a>
-        <a href="#workflow">Workflow</a>
+        <a href="#demo">Demo</a>
+        <a href="#system">System</a>
         <a href="#setup">Setup</a>
+        <a href="#security">Security</a>
         <a href="README.md">README</a>
-        <a href="SECURITY.md">Security</a>
-        <a href="https://github.com/tanzir71/hubroute">github.com</a>
+        <a href="https://github.com/tanzir71/hubroute">GitHub</a>
       </div>
     </nav>
 
     <main>
       <section class="hero" id="overview">
         <div>
-          <div class="kicker">Secure parcel routing for shared hosting</div>
-          <h1>Find the parcel path worth trusting.</h1>
-          <p class="lead">HubRoute is a PHP 8 and SQLite operations console for pickup hubs, warehouse handoffs, last-mile agents, customer tracking, route assignment, and COD settlement.</p>
-          <div class="actions">
-            <a class="btn primary" href="hubroute.php">Open HubRoute</a>
-            <a class="btn" href="SETUP.md">See Quick Start</a>
+          <div class="kicker">PHP 8 + SQLite · built for cPanel and shared hosting</div>
+          <h1>Parcel routing without a heavyweight logistics stack.</h1>
+          <p class="lead">HubRoute gives small delivery teams a hardened operations console for pickup hubs, warehouse handoffs, last-mile agents, public tracking, COD settlement, and CSV route manifests.</p>
+          <div class="actions" aria-label="Primary actions">
+            <a class="btn primary" href="hubroute.php?r=login&amp;demo=hub">Open demo login</a>
+            <a class="btn download" href="hubroute-namecheap.zip">Download Namecheap ZIP</a>
+            <a class="btn" href="hubroute.php?r=track">Track sample parcel</a>
           </div>
-          <div class="bullets">
-            <span>PHP 8 + SQLite</span>
-            <span>Role-based access</span>
-            <span>CSRF-protected operations</span>
+          <p class="runtime-note">GitHub Pages serves the landing page and ZIP; the PHP demo opens after deployment on Namecheap or another PHP host.</p>
+          <div class="proof" aria-label="Product facts">
+            <div class="proof-item"><strong>1 file</strong><span>PHP app entry</span></div>
+            <div class="proof-item"><strong>4 roles</strong><span>admin, hub, agent, customer</span></div>
+            <div class="proof-item"><strong>SQLite</strong><span>no managed DB required</span></div>
+            <div class="proof-item"><strong>CSRF</strong><span>protected POST actions</span></div>
           </div>
         </div>
-        <div>
-          <div class="surface-label">Operations Surface</div>
-          <div class="mockup" aria-label="HubRoute operations interface preview">
-            <div class="mockbar"><span>Hub Operations</span><span>Live parcel chain</span></div>
-            <div class="map"><div class="route"></div><div class="pin a"></div><div class="pin b"></div><div class="pin c"></div></div>
-            <div class="rows">
-              <div class="row"><strong>HR260514</strong><span>North Pickup to Central Warehouse</span><span class="pill">assigned</span></div>
-              <div class="row"><strong>HR260515</strong><span>Warehouse to East Last-Mile</span><span class="pill">in hub</span></div>
-              <div class="row"><strong>HR260516</strong><span>Out for delivery with COD</span><span class="pill">out</span></div>
+
+        <div class="demo-card" aria-label="HubRoute operations preview">
+          <div class="demo-head"><span>HUB OPS / live parcel chain</span><span class="status-dot" aria-hidden="true"></span></div>
+          <div class="route-board">
+            <div class="mini-map">
+              <span class="node a" aria-hidden="true"></span>
+              <span class="node b" aria-hidden="true"></span>
+              <span class="node c" aria-hidden="true"></span>
+              <span class="node-label a">pickup hub</span>
+              <span class="node-label b">warehouse</span>
+              <span class="node-label c">last mile</span>
+            </div>
+            <div class="queue">
+              <div class="queue-row"><strong>HR260703</strong><span>North Pickup to Central Warehouse</span><span class="tag blue">assigned</span></div>
+              <div class="queue-row"><strong>HR260704</strong><span>Warehouse scan with hub path visible</span><span class="tag amber">in warehouse</span></div>
+              <div class="queue-row"><strong>HR260705</strong><span>Out for delivery, COD pending</span><span class="tag green">out</span></div>
             </div>
           </div>
         </div>
       </section>
 
-      <div class="metrics" aria-label="Security and operations highlights">
-        <div class="metric"><strong>Prepared SQL</strong><span>No user input is concatenated into queries.</span></div>
-        <div class="metric"><strong>Session controls</strong><span>Regeneration, idle timeout, and secure cookies.</span></div>
-        <div class="metric"><strong>Audit-ready</strong><span>Server-side logging, CSP, and repeatable checks.</span></div>
-      </div>
-
-      <section id="outcomes">
+      <section id="demo">
         <div class="section-head">
-          <div class="eyebrow">Built for the real bottleneck</div>
-          <h2>The job is to keep hub movement explainable, not hide it.</h2>
+          <div class="eyebrow">Demo</div>
+          <h2>Start as the hub operator who assigns parcels and keeps movement explainable.</h2>
         </div>
-        <div class="cards">
-          <article class="card"><div class="num">01</div><h3>Route parcels with context</h3><p>Keyword and postcode matching helps pickup hubs assign parcels while preserving the route, agent, and match reasons.</p></article>
-          <article class="card"><div class="num">02</div><h3>Keep custody visible</h3><p>Hub arrival, departure, warehouse, delivery, and payment events form a readable timeline for operators.</p></article>
-          <article class="card"><div class="num">03</div><h3>Give customers a safe view</h3><p>Public tracking uses opaque tracking codes and redacted addresses while authenticated views enforce ownership.</p></article>
+        <div class="demo-grid">
+          <div class="panel top">
+            <h3>Demo account</h3>
+            <p>The seeded data includes hubs, agents, routes, customers, and sample parcels. Use the hub account first to see the operational workflow.</p>
+            <dl class="credential">
+              <dt>Email</dt><dd>pickuphub@hubroute.local</dd>
+              <dt>Password</dt><dd>hub1234</dd>
+              <dt>Role</dt><dd>North Pickup Hub operator</dd>
+            </dl>
+            <div class="actions">
+              <a class="btn primary" href="hubroute.php?r=login&amp;demo=hub">Open demo login</a>
+              <a class="btn" href="hubroute.php?r=track">Public tracking</a>
+            </div>
+            <p class="warn">These are seeded demo credentials. Rotate or disable them immediately after a production deployment.</p>
+          </div>
+          <div class="grid3">
+            <article class="panel">
+              <div class="num">01 / QUEUE</div>
+              <h3>Review visible parcels</h3>
+              <p>Hub staff only see parcels that touch their pickup, warehouse, delivery, or current hub.</p>
+            </article>
+            <article class="panel">
+              <div class="num">02 / ASSIGN</div>
+              <h3>Pick route and agent</h3>
+              <p>Assignments validate that routes and agents belong to the current hub before saving.</p>
+            </article>
+            <article class="panel">
+              <div class="num">03 / RECORD</div>
+              <h3>Scan events</h3>
+              <p>Hub arrivals, departures, warehouse handoffs, delivery attempts, and COD events become the timeline.</p>
+            </article>
+          </div>
         </div>
       </section>
 
-      <section id="workflow">
+      <section id="system">
         <div class="section-head">
-          <div class="eyebrow">How it flows</div>
-          <h2>One path from pickup request to settled delivery.</h2>
+          <div class="eyebrow">System</div>
+          <h2>The whole parcel chain on one sheet.</h2>
         </div>
-        <div class="flow">
-          <div class="step"><div class="num">1</div><h3>Customer request</h3><p>A customer submits pickup, dropoff, COD amount, and notes through a CSRF-protected form.</p></div>
-          <div class="step"><div class="num">2</div><h3>Hub assignment</h3><p>Hub staff filter visible parcels and assign only routes and agents owned by their hub.</p></div>
-          <div class="step"><div class="num">3</div><h3>Agent run</h3><p>Agents can update only parcels assigned to them, following allowed status transitions.</p></div>
-          <div class="step"><div class="num">4</div><h3>Settlement</h3><p>COD parcels stay visible to authorized hubs until marked settled and logged as an event.</p></div>
+        <div class="sheet" aria-label="HubRoute system overview">
+          <div class="sheet-grid">
+            <div class="sheet-cell"><b>01 / REQUEST</b><span>Customer creates pickup, dropoff, COD amount, and note.</span></div>
+            <div class="sheet-cell"><b>02 / ROUTE</b><span>Keyword and postcode matching suggest hub route and agent.</span></div>
+            <div class="sheet-cell"><b>03 / HANDOFF</b><span>Hub and agent events preserve custody across pickup, warehouse, and last mile.</span></div>
+            <div class="sheet-cell"><b>04 / TRACK</b><span>Public tracking shows status and redacted movement without exposing full addresses.</span></div>
+          </div>
         </div>
       </section>
 
       <section id="setup">
-        <div class="quick">
-          <div>
-            <div class="eyebrow">Quick start</div>
-            <h2>Upload, create data storage, open the app.</h2>
-            <p>Namecheap/cPanel deployment steps, file permissions, SQLite setup, and hardening notes live in SETUP.md and SECURITY.md.</p>
-            <div class="actions" style="margin-top:24px">
-              <a class="btn primary" href="SETUP.md">Open Setup</a>
-              <a class="btn" href="SECURITY.md">Review Security</a>
+        <div class="section-head">
+          <div class="eyebrow">Setup</div>
+          <h2>Upload the ZIP, create the data folder, then open the app.</h2>
+        </div>
+        <div class="setup">
+          <div class="panel top">
+            <h3>Namecheap/cPanel path</h3>
+            <p>Use the deployment ZIP for shared hosting. It includes the app, landing page, docs, env template, security scan, and data-folder denial files.</p>
+            <div class="actions" style="margin-top:16px">
+              <a class="btn primary" href="hubroute-namecheap.zip">Download ZIP</a>
+              <a class="btn" href="SETUP.md">Open setup notes</a>
             </div>
           </div>
-          <pre><code>cp .env.example .env
-mkdir data
-chmod 750 data
-php -S localhost:8080 hubroute.php</code></pre>
+          <pre class="code"><code>Upload hubroute-namecheap.zip to public_html
+Extract it in cPanel File Manager
+Copy .env.example to .env
+Confirm PHP 8.1+, pdo_sqlite, sqlite3
+Visit /hubroute.php?r=login&amp;demo=hub</code></pre>
         </div>
+      </section>
+
+      <section id="security">
+        <div class="section-head">
+          <div class="eyebrow">Security</div>
+          <h2>Small enough to audit, strict enough to run on a real host.</h2>
+        </div>
+        <div class="grid3">
+          <article class="panel">
+            <h3>Hardened runtime</h3>
+            <p>Security headers, secure session settings, idle and absolute timeouts, generic error output, and server-side logging.</p>
+          </article>
+          <article class="panel">
+            <h3>Safer data access</h3>
+            <p>PDO prepared statements, whitelisted status filters, escaped output, and authorization checks around parcels, routes, hubs, agents, and CSV export.</p>
+          </article>
+          <article class="panel">
+            <h3>Shared-hosting guardrails</h3>
+            <p>The data directory receives Apache denial files, and setup notes recommend moving SQLite storage outside the web root whenever possible.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="deploy">
+        <div class="section-head">
+          <div class="eyebrow">Checklist</div>
+          <h2>Before this becomes a production parcel console.</h2>
+        </div>
+        <ul class="checks">
+          <li>Rotate every seeded password, especially the demo hub login shown on this page.</li>
+          <li>Keep `.env` private and move `DATA_DIR` outside `public_html` if your hosting plan allows it.</li>
+          <li>Confirm `data/hubroute.sqlite` is not downloadable after first run.</li>
+          <li>Enable HTTPS at the host or CDN and keep PHP on a supported 8.x release.</li>
+        </ul>
       </section>
     </main>
 
     <footer>
-      <span>HubRoute / hardened PHP 8 + SQLite operations console</span>
-      <span><a href="https://github.com/tanzir71/hubroute">GitHub</a> / <a href="README.md">README</a> / <a href="SECURITY.md">Security</a></span>
+      <span>HubRoute / PHP 8 + SQLite parcel operations console</span>
+      <span><a href="README.md">README</a> / <a href="SETUP.md">Setup</a> / <a href="SECURITY.md">Security</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
     </footer>
   </div>
 </body>

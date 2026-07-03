@@ -1097,12 +1097,20 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
 
 function pageLogin(PDO $pdo): void
 {
+    $demoEmail = getText('demo', 20) === 'hub' ? 'pickuphub@hubroute.local' : '';
     $content = '<div class="card" style="max-width:520px;margin:40px auto"><div class="h1">Sign in</div>';
     $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="login">';
-    $content .= '<div><label>Email</label><input name="email" type="email" required></div>';
+    $content .= '<div><label>Email</label><input name="email" type="email" value="' . e($demoEmail) . '" required></div>';
     $content .= '<div><label>Password</label><input name="password" type="password" required></div>';
     $content .= '<button class="btn primary" type="submit">Sign in</button>';
-    $content .= '</form><div class="muted" style="margin-top:10px">Public tracking: <a href="?r=track">Track a parcel</a></div></div>';
+    $content .= '</form>';
+    $content .= '<div class="card" style="padding:10px;margin-top:12px;background:#fafafa">'
+        . '<div class="h1" style="font-size:15px;margin-bottom:6px">Demo hub account</div>'
+        . '<div class="muted">Email: <strong>pickuphub@hubroute.local</strong></div>'
+        . '<div class="muted">Password: <strong>hub1234</strong></div>'
+        . '<div class="muted" style="margin-top:6px">Use for the seeded North Pickup Hub workflow. Rotate seeded credentials before production use.</div>'
+        . '</div>';
+    $content .= '<div class="muted" style="margin-top:10px">Public tracking: <a href="?r=track">Track a parcel</a></div></div>';
     renderLayout('Login', null, $content);
 }
 
@@ -2558,4 +2566,3 @@ if ($route === 'route_export') {
 
 http_response_code(404);
 echo 'Not found';
-

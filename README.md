@@ -5,6 +5,7 @@ HubRoute is a compact PHP 8 + SQLite parcel operations console for shared hostin
 Landing page: `index.html`  
 App entry: `hubroute.php`  
 Repository: <https://github.com/tanzir71/hubroute>
+Namecheap package: `hubroute-namecheap.zip`
 
 ## Security Posture
 
@@ -18,6 +19,17 @@ Repository: <https://github.com/tanzir71/hubroute>
 - Authorization checks for parcel, route, hub, agent, settlement, and CSV access.
 
 See [SECURITY.md](SECURITY.md) for the full security notes and [SETUP.md](SETUP.md) for cPanel deployment.
+
+## Demo Account
+
+The landing page and login screen highlight the seeded hub operator demo:
+
+- Demo URL: `hubroute.php?r=login&demo=hub`
+- Email: `pickuphub@hubroute.local`
+- Password: `hub1234`
+- Role: North Pickup Hub operator
+
+Use it to inspect parcel queues, route assignment, scan/event capture, and settlement workflows. Change or disable all seeded credentials before production use.
 
 ## Default Seed Accounts
 
@@ -37,6 +49,10 @@ php -S 127.0.0.1:8080 hubroute.php
 ```
 
 Open `http://127.0.0.1:8080/hubroute.php`.
+
+## Namecheap Deployment ZIP
+
+`hubroute-namecheap.zip` is the cPanel upload bundle. It includes the PHP app, static landing page, docs, `.env.example`, the PowerShell security scan, and staged `data/.htaccess` plus `data/index.html` denial files. It excludes private/runtime state such as `.env`, SQLite databases, logs, `.git`, and design-source notes.
 
 ## Static Security Scan
 
