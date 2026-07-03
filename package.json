@@ -4,6 +4,7 @@
   "private": true,
   "description": "HubRoute parcel operations demo and static site",
   "scripts": {
+    "build": "npm run sync:demo",
     "build:demo": "node scripts/build-demo.mjs",
     "sync:demo": "node scripts/build-demo.mjs && node scripts/sync-demo.mjs",
     "check:demo": "node scripts/build-demo.mjs --check && node scripts/sync-demo.mjs --check",
