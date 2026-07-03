@@ -20,13 +20,13 @@
 ## Rotate Keys and Credentials
 
 1. Copy `.env.example` to `.env` and keep `.env` private.
-2. Change all seeded account passwords after first deployment, including public demo accounts such as `pickuphub@hubroute.local`, `sortation@hubroute.local`, `ctghub@hubroute.local`, and `savarhub@hubroute.local`.
+2. Change all seeded PHP app passwords after first deployment: `admin@hubroute.local`, `pickuphub@hubroute.local`, `warehouse@hubroute.local`, `eastmile@hubroute.local`, agent accounts, and customer accounts.
 3. If `.env` is exposed, replace it, rotate all account passwords, and move `DATA_DIR` outside `public_html`.
 4. If the SQLite database is exposed, treat all parcel/customer data as compromised and rotate user passwords.
 
 ## Demo Account Exposure
 
-The landing page and browser demo deliberately show demo hub operator accounts for first-run evaluation. Treat them as non-production scaffolding: rotate them, disable them, or replace seeded users before handling real parcel/customer data.
+The landing page and browser demo deliberately show browser-only hub operator accounts for first-run evaluation. Treat all seeded users as non-production scaffolding: rotate them, disable them, or replace them before handling real parcel/customer data.
 
 ## Logging
 

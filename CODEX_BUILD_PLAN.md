@@ -1,6 +1,6 @@
 # HubRoute — Codex Build Plan
 
-**Goal:** take HubRoute from a polished demo to a production‑ready parcel operations platform that a **nationwide logistics operation** can run on — *minimal in surface area, rich in capability*. This document is the single source of truth for Codex. Work top to bottom by milestone; do not skip the guardrails.
+**Goal:** take HubRoute from a browser walkthrough to a production-ready parcel operations platform that a **nationwide logistics operation** can run on — *minimal in surface area, rich in capability*. This document is the single source of truth for Codex. Work top to bottom by milestone; do not skip the guardrails.
 
 > Owner: Tanzir · Status: Draft v1 · Design refresh: complete (see §5) · Backend decision: PHP 8 + SQLite
 
@@ -31,7 +31,7 @@ HubRoute today is three separate artifacts sharing a brand:
 
 **What already exists (concept‑complete, demo‑grade):** role model (admin / hub / agent / customer / public), dashboard, parcels CRUD + search/filter, routes, riders/agents, customers, scan/event capture, hub‑and‑spoke custody handoff, public tracking by code, COD notion, CSV export, CSRF/prepared‑SQL/session hardening on the PHP side.
 
-**What's missing for real end users:** deeper SQLite schema coverage, auth polish, server-side RBAC tests, nationwide network model (zones/districts/coverage), SLA/ETA, exceptions/RTO/reattempts, COD reconciliation + merchant remittance, merchant self‑service + bulk import, rider mobile run‑sheet with proof‑of‑delivery, notifications (SMS/email/webhooks), reporting/analytics, waybill/label printing, observability, backups, and restore drills.
+**What's still product backlog beyond first operations:** deeper SQLite schema coverage, password reset/OTP, more server-side RBAC tests, nationwide network model (zones/districts/coverage), SLA/ETA, exceptions/RTO/reattempts, COD reconciliation + merchant remittance, merchant self-service + bulk import, rider mobile run-sheet with proof-of-delivery, notifications (SMS/email/webhooks), reporting/analytics, waybill/label printing, observability, backups, and restore drills.
 
 ---
 
@@ -175,7 +175,7 @@ Make the current surfaces feel finished and safe to show real prospects.
 - **[M3‑06][Should]** **Waybill/label printing:** barcode/QR, thermal‑printer‑friendly PDF; bulk label sheet.
 - **DoD:** a merchant can bulk‑import 100 parcels, get labels, track them, and receive a COD remittance statement.
 
-### M4 — Analytics, admin depth, production polish
+### M4 — Analytics, admin depth, and reliability
 - **[M4‑01][Must]** **Reporting/analytics:** on‑time %, first‑attempt success, aging buckets, exceptions, COD outstanding & remitted, volume by hub/zone/merchant/agent; date filters; CSV/Excel export.
 - **[M4‑02][Must]** **Admin console:** users/roles, hubs, zones/coverage, SLA policies, rate card, status/event reference data, audit review.
 - **[M4‑03][Should]** **Saved views / advanced filters** across parcel, event, route lists; global search.

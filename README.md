@@ -7,8 +7,8 @@ Docs page: `docs.html` on GitHub Pages
 Hosted demo: <https://hubroute.vercel.app/>
 Vercel demo source: `public/index.html`
 Source app entry: `hubroute.php`
+Production PHP files: `hubroute.php`, `index.php`, `health.php`, `.htaccess`, `.env.example`
 Repository: <https://github.com/tanzir71/hubroute>
-Legacy PHP demo package: `hubroute-demo.zip`
 
 ## Demo Source Workflow
 
@@ -40,7 +40,7 @@ The smoke test also boots the console with an empty valid dataset to verify empt
 - CSP and standard browser security headers.
 - Authorization checks for parcel, route, hub, agent, settlement, and CSV access.
 
-See [docs.html](docs.html) for the product walkthrough, [SECURITY.md](SECURITY.md) for the full security notes, and [SETUP.md](SETUP.md) for optional PHP deployment notes.
+See [docs.html](docs.html) for the product walkthrough, [SECURITY.md](SECURITY.md) for the full security notes, and [SETUP.md](SETUP.md) for the step-by-step PHP + SQLite deployment runbook.
 The M1 SQLite/PHP backend contract lives at [docs/m1-backend-contract.md](docs/m1-backend-contract.md).
 The executable status-transition, authorization, idempotency, and audit-log rules for that contract live in [src/domain/status-rules.mjs](src/domain/status-rules.mjs), [src/domain/authorization-rules.mjs](src/domain/authorization-rules.mjs), [src/domain/idempotency-rules.mjs](src/domain/idempotency-rules.mjs), and [src/domain/audit-rules.mjs](src/domain/audit-rules.mjs).
 
@@ -68,16 +68,17 @@ Change these immediately after first deployment.
 ## Local Run
 
 ```bash
-cp .env.example .env
 mkdir -p data
-php -S 127.0.0.1:8080 hubroute.php
+php -S 127.0.0.1:8080
 ```
 
-Open `http://127.0.0.1:8080/hubroute.php`.
+Open `http://127.0.0.1:8080/`. Copy `.env.example` to `.env` first only when you need custom runtime paths, timezone, or rate limits.
 
-## PHP Deployment ZIP
+## PHP Deployment Files
 
-`hubroute-demo.zip` is the older PHP demo-runtime bundle. The primary public demo now runs at Vercel from `public/index.html`; the real landing page and docs stay in the GitHub repo/GitHub Pages. Any PHP bundle should exclude private/runtime state such as `.env`, SQLite databases, logs, `.git`, and design-source notes.
+The production PHP + SQLite app needs only `hubroute.php`, `index.php`, `health.php`, `.htaccess`, and `.env.example`. Do not upload the landing page, GitHub docs, Node source, Vercel output, `.env`, SQLite databases, logs, `.git`, or generated runtime state to the PHP host.
+
+First startup creates the SQLite database and runtime denial files. See [SETUP.md](SETUP.md) for the exact shared-hosting sequence.
 
 ## Static Security Scan
 

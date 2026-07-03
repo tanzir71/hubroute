@@ -2,6 +2,7 @@
 
 ## 2026-07-04
 
+- Fixed the PHP + SQLite handoff path by aligning `index.php`, `health.php`, `.env.example`, setup docs, and seeded-account docs with `hubroute.php`.
 - Resolved the backend direction to simple PHP 8 + SQLite and updated the build plan/M1 contract accordingly.
 - Added SQLite-backed idempotency and audit tables to the PHP backend, idempotency keys on mutating forms, and an admin audit-log view.
 - Added provider-neutral audit-log rules and validation tests for privileged `[M1-06]` mutations.
@@ -17,7 +18,7 @@
 
 ## 2026-07-03
 
-- Added `docs.html` for GitHub Pages with demo accounts, hub-and-spoke workflow, deployment notes, security posture, and polish/scalability roadmap.
+- Added `docs.html` for GitHub Pages with demo accounts, hub-and-spoke workflow, deployment notes, and security posture.
 - Tightened the GitHub Pages landing/docs typography and replaced README/SETUP/SECURITY landing links with navigable `docs.html` sections.
 - Expanded the Vercel browser demo with multi-hub account switching, explicit parcel send/receive handoffs, custody-flow filters, searchable dropdowns, and a favicon.
 - Polished the Vercel demo layout by flattening nested metric/choice panels and rebuilding public tracking around a tracking-number lookup for senders and receivers.
@@ -25,7 +26,7 @@
 - Added a visible seeded hub-operator demo path at `hubroute.php?r=login&demo=hub` that prefills the email only.
 - Made the login GET route render before SQLite startup so shared-hosting runtime issues do not blank the demo login page.
 - Split hosting responsibilities: GitHub Pages serves the landing page and docs, while Vercel hosts the interactive browser demo.
-- Added a demo front door (`index.php`), packaged `demo.php`, and root `.htaccess` so the cPanel demo works from the domain root after extraction.
+- Added the initial cPanel front door, health check, and root `.htaccess` so the PHP app can work from the domain root.
 - Guarded disabled env/config functions and added `health.php` for shared-hosting diagnostics.
 
 ## 2026-05-14

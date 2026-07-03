@@ -82,7 +82,7 @@ loadEnvFile(__DIR__ . DIRECTORY_SEPARATOR . '.env');
 define('APP_NAME', envString('APP_NAME', 'HubRoute'));
 define('DATA_DIR', appPath(envString('DATA_DIR', 'data')));
 define('DB_PATH', appPath(envString('DB_PATH', DATA_DIR . DIRECTORY_SEPARATOR . 'hubroute.sqlite')));
-define('APP_TIMEZONE', envString('APP_TIMEZONE', 'UTC'));
+define('APP_TIMEZONE', envString('APP_TIMEZONE', 'Asia/Dhaka'));
 define('SESSION_IDLE_TIMEOUT_SECONDS', envInt('SESSION_IDLE_TIMEOUT_SECONDS', 1800));
 define('SESSION_ABSOLUTE_TIMEOUT_SECONDS', envInt('SESSION_ABSOLUTE_TIMEOUT_SECONDS', 28800));
 define('RATE_LIMIT_LOGIN_ATTEMPTS', envInt('RATE_LIMIT_LOGIN_ATTEMPTS', 5));
@@ -93,6 +93,10 @@ define('ENABLE_EXTRA_LOGGING', envBool('ENABLE_EXTRA_LOGGING', false));
 
 if (!is_dir(DATA_DIR)) {
     @mkdir(DATA_DIR, 0775, true);
+}
+$dbDir = dirname(DB_PATH);
+if (!is_dir($dbDir)) {
+    @mkdir($dbDir, 0775, true);
 }
 
 safeIniSet('display_errors', '0');
@@ -219,7 +223,7 @@ function postText(string $key, int $maxLength = 255): string
     return boundedText((string)($_POST[$key] ?? ''), $maxLength);
 }
 
-function getText(string $key, int $maxLength = 255): string
+function queryText(string $key, int $maxLength = 255): string
 {
     return boundedText((string)($_GET[$key] ?? ''), $maxLength);
 }
@@ -414,6 +418,10 @@ function db(): PDO
     if (!is_dir(DATA_DIR)) {
         @mkdir(DATA_DIR, 0775, true);
     }
+    $dbDir = dirname(DB_PATH);
+    if (!is_dir($dbDir)) {
+        @mkdir($dbDir, 0775, true);
+    }
     installDataDirectoryDenyFiles();
 
     if (!in_array('sqlite', PDO::getAvailableDrivers(), true)) {
@@ -442,7 +450,7 @@ function renderFatal(string $title, string $message): void
         . '<title>' . $safeTitle . '</title>'
         . '<style>body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Arial,sans-serif;background:#fff;color:#080808;margin:0;padding:24px}.card{max-width:820px;margin:0 auto;background:#fff;border:1px solid #d8d8d8;border-radius:8px;padding:18px}.h1{font-size:20px;font-weight:700;margin:0 0 10px}.muted{color:#666}</style>'
         . '</head><body><div class="card"><div class="h1">' . $safeTitle . '</div><div>' . $safeMsg . '</div>'
-        . '<div class="muted" style="margin-top:12px">Check server error log: <code>data/php-error.log</code></div>'
+        . '<div class="muted" style="margin-top:12px">Check server error log: <code>' . e(DATA_DIR . DIRECTORY_SEPARATOR . 'php-error.log') . '</code></div>'
         . '</div></body></html>';
 }
 
@@ -1238,7 +1246,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
         $flashHtml .= '<div class="flash ' . e((string)$t) . '">' . e((string)$msg) . '</div>';
     }
 
-    $footer = '<footer class="footer"><span>' . e(APP_NAME) . '</span><a href="SECURITY.md">Security</a><a href="SETUP.md">Docs</a><a href="README.md">README</a></footer>';
+    $footer = '<footer class="footer"><span>' . e(APP_NAME) . '</span><a href="?r=track">Public Tracking</a></footer>';
 
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' . $refreshTag . '<title>' . e($title) . ' / ' . e(APP_NAME) . '</title>';
     echo '<style>
@@ -1290,7 +1298,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
 
 function pageLogin(): void
 {
-    $demoEmail = getText('demo', 20) === 'hub' ? 'pickuphub@hubroute.local' : '';
+    $demoEmail = queryText('demo', 20) === 'hub' ? 'pickuphub@hubroute.local' : '';
     $content = '<div class="card" style="max-width:520px;margin:40px auto"><div class="h1">Sign in</div>';
     $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="login">';
     $content .= '<div><label>Email</label><input name="email" type="email" value="' . e($demoEmail) . '" required></div>';
@@ -1347,7 +1355,7 @@ function actionLogout(): void
 
 function pagePublicTrack(PDO $pdo): void
 {
-    $code = preg_replace('/[^A-Za-z0-9_-]/', '', getText('code', 64)) ?? '';
+    $code = preg_replace('/[^A-Za-z0-9_-]/', '', queryText('code', 64)) ?? '';
     $hasCode = $code !== '';
     $content = '<div class="grid cols2">';
     $content .= '<div class="card"><div class="h1">Track a Parcel</div><div class="muted">Enter a tracking code to see current status and hub-to-hub movement.</div>';
@@ -1467,7 +1475,7 @@ function pageCustomerParcels(PDO $pdo, array $u): void
 {
     requireRole($u, ['customer']);
     $cid = (int)$u['customer_id'];
-    $status = cleanStatusFilter(getText('status', 40));
+    $status = cleanStatusFilter(queryText('status', 40));
     $sql = "SELECT p.*, a.name AS agent_name FROM parcels p LEFT JOIN agents a ON a.id=p.assigned_agent_id WHERE p.customer_id=?";
     $params = [$cid];
     if ($status !== '') {
@@ -1624,8 +1632,8 @@ function pageHubParcels(PDO $pdo, array $u): void
 {
     requireRole($u, ['hub']);
     $hubId = (int)$u['hub_id'];
-    $status = cleanStatusFilter(getText('status', 40));
-    $q = getText('q', 80);
+    $status = cleanStatusFilter(queryText('status', 40));
+    $q = queryText('q', 80);
 
     $sql = "SELECT p.*, c.name AS customer_name, a.name AS agent_name, r.name AS route_name
         FROM parcels p
@@ -1993,7 +2001,7 @@ function actionHubCreateRoute(PDO $pdo, array $u): void
 function pageScan(PDO $pdo, array $u): void
 {
     requireRole($u, ['hub', 'agent', 'admin']);
-    $tracking = preg_replace('/[^A-Za-z0-9_-]/', '', getText('code', 64)) ?? '';
+    $tracking = preg_replace('/[^A-Za-z0-9_-]/', '', queryText('code', 64)) ?? '';
     $parcel = null;
     if ($tracking !== '') {
         $st = $pdo->prepare("SELECT p.*, a.name AS agent_name, h.name AS hub_name FROM parcels p LEFT JOIN agents a ON a.id=p.assigned_agent_id LEFT JOIN hubs h ON h.id=p.current_hub_id WHERE p.tracking_code=?");
@@ -2557,7 +2565,7 @@ function actionSettle(PDO $pdo, array $u): void
 function pageAdmin(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
-    $tab = getText('tab', 20);
+    $tab = queryText('tab', 20);
     if (!in_array($tab, ['overview','hubs','agents','customers','audit'], true)) {
         $tab = 'overview';
     }

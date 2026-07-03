@@ -20,26 +20,26 @@ Demo accounts use password `hub1234`:
 The PHP app is the simple production backend path for HubRoute. SQLite is the source of truth for users, parcels, events, idempotency keys, audit logs, and operational configuration.
 
 1. In cPanel, set the domain or subdomain PHP version to PHP 8.1 or newer and enable `pdo_sqlite` and `sqlite3`.
-2. Upload `hubroute-demo.zip` to the demo domain folder, usually `public_html/` or the subdomain document root, and extract it there with overwrite enabled.
-3. Visit your demo domain. If using the single-file source directly, visit `/hubroute.php?r=login&demo=hub`.
-4. First app startup creates `data/hubroute.sqlite`, `data/php-error.log`, and runtime denial files inside `data/`.
-5. Confirm `/data/hubroute.sqlite` is not downloadable. If it is reachable, move `DATA_DIR` outside `public_html` in `.env`.
-6. For a public demo, rotate or disable seeded credentials before using real parcel/customer data.
-7. Back up `data/hubroute.sqlite` on a schedule and test restores before handling live operations.
+2. Upload only these runtime files to the app directory: `hubroute.php`, `index.php`, `health.php`, `.htaccess`, and `.env.example`.
+3. Optional: copy `.env.example` to `.env` if you need custom paths, timezone, or rate-limit/session settings.
+4. If your host allows private folders, set `DATA_DIR` in `.env` to a writable path outside `public_html`. Leave `DB_PATH` commented unless the SQLite file needs a different path from `DATA_DIR/hubroute.sqlite`.
+5. Visit `/health.php` and confirm PHP version, PDO SQLite, SQLite3, data-directory writability, database-directory writability, and SQLite write all pass.
+6. Visit the app domain root, or `/hubroute.php?r=login&demo=hub`, to create `hubroute.sqlite`, `php-error.log`, and runtime denial files.
+7. Confirm `/data/hubroute.sqlite` is not downloadable if you kept `DATA_DIR=data`. If it is reachable, move `DATA_DIR` outside `public_html` immediately.
+8. Rotate or disable seeded credentials before using real parcel/customer data.
+9. Back up the SQLite database on a schedule and test restores before handling live operations.
 
-The ZIP is intentionally demo-only: it does not need the GitHub landing page or docs. It should include denial files for `data/` and exclude `.env`, SQLite databases, logs, `.git`, and generated runtime state.
+If you package the PHP app as a ZIP yourself, include only the runtime files above and exclude `.env`, SQLite databases, logs, `.git`, Node/Vercel demo files, and generated runtime state.
 
-No `.env` file is required for the default demo. Copy `.env.example` to `.env` only if you need to change paths, timezone, or rate-limit/session settings.
+## First Login
 
-## Demo Login
-
-The PHP source includes a seeded hub operator demo account:
+The PHP source seeds a hub operator account so you can confirm the app is running:
 
 - URL: `/hubroute.php?r=login&demo=hub`
 - Email: `pickuphub@hubroute.local`
 - Password: `hub1234`
 
-The demo URL prefills only the email field. The password is shown in the login helper text and must be typed manually.
+The URL prefills only the email field. The password is shown in the login helper text and must be typed manually. Rotate or disable this account before live use.
 
 If the login page loads but sign-in or public tracking fails with a startup error, recheck that `pdo_sqlite` and `sqlite3` are enabled and that `data/` is writable by PHP.
 
@@ -50,12 +50,11 @@ If the app still fails and `health.php` is deployed, open `/health.php`. It chec
 If PHP is installed locally:
 
 ```bash
-cp .env.example .env
 mkdir -p data
-php -S 127.0.0.1:8080 hubroute.php
+php -S 127.0.0.1:8080
 ```
 
-Then open `http://127.0.0.1:8080/hubroute.php`.
+Then open `http://127.0.0.1:8080/`. Copy `.env.example` to `.env` first only if you want to test a custom `DATA_DIR`, timezone, or rate limit.
 
 ## Cron
 
@@ -71,7 +70,7 @@ Replace `CPANEL_USER` with your hosting username and adjust the path if `DATA_DI
 
 ## Permissions
 
-- `demo.php`: `644`
+- `hubroute.php`: `644`
 - `health.php`: `644`
 - `index.php`: `644`
 - `.htaccess`: `644`

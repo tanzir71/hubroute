@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>HubRoute Operator Docs</title>
-  <meta name="description" content="HubRoute operator walkthrough for courier hubs, hub-and-spoke custody, searchable dispatch, public tracking, deployment notes, and production roadmap.">
+  <meta name="description" content="Step-by-step HubRoute setup guide for the PHP 8 + SQLite production backend, hosted browser demo, GitHub landing page, and operator first-run checklist.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%232f56d9'/%3E%3Cpath%20d='M6.5%2025.5%20L20.5%2011.5'%20fill='none'%20stroke='%23fff'%20stroke-width='3.4'/%3E%3Cpath%20d='M24%208%20L23.1%2015.7%20L15.9%2014.4%20Z'%20fill='%23fff'/%3E%3Crect%20x='9.3'%20y='19.1'%20width='3.8'%20height='3.8'%20fill='%232f56d9'%20stroke='%23fff'%20stroke-width='1.5'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles/tokens.css">
   <style>
@@ -83,7 +83,7 @@
       <div class="links">
         <a href="index.html">Landing</a>
         <a href="https://hubroute.vercel.app/">Demo</a>
-        <a href="#deployment">Setup</a>
+        <a href="#hosting">Setup</a>
         <a href="#security">Security</a>
         <a href="https://github.com/tanzir71/hubroute">GitHub</a>
       </div>
@@ -91,8 +91,8 @@
 
     <header class="hero">
       <div class="kicker">Documentation</div>
-      <h1>Operator guide for the HubRoute parcel console.</h1>
-      <p class="lead">Run the hosted walkthrough as pickup, sortation, delivery, and return hubs; inspect Bangladesh hub-and-spoke custody; and review how the demo hardens into a production courier platform.</p>
+      <h1>Step-by-step setup for HubRoute.</h1>
+      <p class="lead">HubRoute production runs on the simple PHP 8 + SQLite backend. The Vercel site is only the browser demo, and the landing/docs stay on GitHub Pages.</p>
       <div class="actions">
         <a class="btn primary" href="https://hubroute.vercel.app/">Open demo</a>
         <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Public tracking</a>
@@ -103,54 +103,112 @@
     <main class="layout">
       <aside class="toc" aria-label="Docs sections">
         <strong>On This Page</strong>
-        <a href="#quick-start">Quick Start</a>
-        <a href="#accounts">Demo Accounts</a>
+        <a href="#quick-start">Overview</a>
+        <a href="#local-run">Local Run</a>
+        <a href="#hosting">Shared Hosting</a>
+        <a href="#first-run">First Run</a>
+        <a href="#accounts">Seed Accounts</a>
         <a href="#workflow">How It Works</a>
-        <a href="#screens">Screens</a>
-        <a href="#deployment">Deployment</a>
+        <a href="#static-demo">Vercel Demo</a>
         <a href="#security">Security</a>
-        <a href="#roadmap">Polish Plan</a>
+        <a href="#operations">Operations</a>
         <a href="#troubleshooting">Troubleshooting</a>
       </aside>
 
       <div class="docs">
         <section id="quick-start">
           <div>
-            <div class="eyebrow">Quick Start</div>
-            <h2>Use the Vercel demo as an operator walkthrough.</h2>
+            <div class="eyebrow">Overview</div>
+            <h2>There are three surfaces. Only one is the production backend.</h2>
           </div>
           <div class="grid">
             <div class="card top">
-              <h3>1. Sign in as Dhaka North</h3>
-              <p>Open <a href="https://hubroute.vercel.app/">hubroute.vercel.app</a>, choose <code>pickuphub@hubroute.local</code>, and use <code>hub1234</code>.</p>
+              <h3>1. PHP + SQLite app</h3>
+              <p>Run <code>hubroute.php</code> on PHP 8.1+ with PDO SQLite enabled. This is the production backend and source of truth.</p>
             </div>
             <div class="card top">
-              <h3>2. Send a parcel onward</h3>
-              <p>Open Parcels, use custody-flow filters, and send an eligible Dhaka parcel to Tejgaon Sortation Hub.</p>
+              <h3>2. Vercel browser demo</h3>
+              <p>Serves generated files from <code>public/</code>. It is a localStorage walkthrough for prospects, not the production database.</p>
             </div>
             <div class="card top">
-              <h3>3. Switch hubs</h3>
-              <p>Use Switch account, sign in as <code>sortation@hubroute.local</code>, then receive the incoming parcel.</p>
+              <h3>3. GitHub Pages</h3>
+              <p>Serves the landing page and these docs from <code>index.html</code> and <code>docs.html</code>. It does not run PHP.</p>
             </div>
             <div class="card top">
-              <h3>4. Continue the path</h3>
-              <p>Assign local sortation route/rider, record scan events, send to delivery, then inspect the redacted public tracker.</p>
+              <h3>4. SQLite data</h3>
+              <p>The live app stores users, parcels, events, idempotency keys, audit logs, and configuration in <code>data/hubroute.sqlite</code>.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="local-run">
+          <div>
+            <div class="eyebrow">Local Run</div>
+            <h2>Run the production backend on your machine.</h2>
+          </div>
+          <div class="flow">
+            <div class="step"><b>1. Check PHP</b><p>Install PHP 8.1+ with <code>pdo_sqlite</code> and <code>sqlite3</code> enabled.</p></div>
+            <div class="step"><b>2. Create config</b><p>Use defaults for a quick run, or copy <code>.env.example</code> to <code>.env</code> for custom paths, timezone, or timeouts.</p></div>
+            <div class="step"><b>3. Start server</b><p>Run the built-in PHP server from the repository root.</p></div>
+          </div>
+          <pre><code>mkdir -p data
+php -S 127.0.0.1:8080</code></pre>
+          <p>Open <code>http://127.0.0.1:8080/</code>. First load creates the SQLite database, seeded users, runtime denial files, and log file.</p>
+        </section>
+
+        <section id="hosting">
+          <div>
+            <div class="eyebrow">Shared Hosting</div>
+            <h2>Deploy the PHP + SQLite backend.</h2>
+          </div>
+          <ul class="checks">
+            <li>Set the domain or subdomain to PHP 8.1+ and enable <code>pdo_sqlite</code> plus <code>sqlite3</code>.</li>
+            <li>Upload only <code>hubroute.php</code>, <code>health.php</code>, <code>index.php</code>, <code>.htaccess</code>, and <code>.env.example</code> to the app directory.</li>
+            <li>Create a writable <code>data/</code> directory, or copy <code>.env.example</code> to <code>.env</code> and set <code>DATA_DIR</code> to a private path outside <code>public_html</code>.</li>
+            <li>Leave <code>DB_PATH</code> commented unless the SQLite file needs a different path from <code>DATA_DIR/hubroute.sqlite</code>.</li>
+            <li>Visit <code>/health.php</code> and confirm PHP version, PDO SQLite, SQLite3, directory writability, database writability, and SQLite write all pass.</li>
+            <li>Visit the app domain root or <code>/hubroute.php?r=login&amp;demo=hub</code> to create the database and seed accounts.</li>
+            <li>Confirm <code>/data/hubroute.sqlite</code> is not downloadable. If it is reachable, move <code>DATA_DIR</code> outside the web root immediately.</li>
+          </ul>
+        </section>
+
+        <section id="first-run">
+          <div>
+            <div class="eyebrow">First Run</div>
+            <h2>Lock down the SQLite app before real operations.</h2>
+          </div>
+          <div class="grid">
+            <div class="card top">
+              <h3>1. Rotate seeded passwords</h3>
+              <p>Change or disable all seeded admin, hub, rider, and customer users before entering real parcel data.</p>
+            </div>
+            <div class="card top">
+              <h3>2. Protect runtime files</h3>
+              <p>Keep <code>.env</code>, <code>data/hubroute.sqlite</code>, logs, and backups private. Use the strictest permissions your host supports.</p>
+            </div>
+            <div class="card top">
+              <h3>3. Back up SQLite</h3>
+              <p>Schedule backups for <code>data/hubroute.sqlite</code> and test a restore before live courier use.</p>
+            </div>
+            <div class="card top">
+              <h3>4. Review audit logs</h3>
+              <p>Admin users can inspect privileged and custody-affecting changes under <code>Admin -> Audit</code>.</p>
             </div>
           </div>
         </section>
 
         <section id="accounts">
           <div>
-            <div class="eyebrow">Demo Accounts</div>
-            <h2>Four hub operators demonstrate network handoff.</h2>
+            <div class="eyebrow">PHP Seed Accounts</div>
+            <h2>These accounts exist after first startup.</h2>
           </div>
           <div class="grid">
-            <div class="card"><span class="tag">Pickup</span><h3>Dhaka North Pickup Hub</h3><p><code>pickuphub@hubroute.local</code></p></div>
-            <div class="card"><span class="tag">Sortation</span><h3>Tejgaon Sortation Hub</h3><p><code>sortation@hubroute.local</code></p></div>
-            <div class="card"><span class="tag">Delivery</span><h3>Chattogram Delivery Hub</h3><p><code>ctghub@hubroute.local</code></p></div>
-            <div class="card"><span class="tag">Return</span><h3>Savar Return Hub</h3><p><code>savarhub@hubroute.local</code></p></div>
+            <div class="card"><span class="tag">Admin</span><h3>Admin console</h3><p><code>admin@hubroute.local</code> / <code>admin1234</code></p></div>
+            <div class="card"><span class="tag">Hubs</span><h3>Hub operators</h3><p><code>pickuphub@hubroute.local</code>, <code>warehouse@hubroute.local</code>, <code>eastmile@hubroute.local</code> / <code>hub1234</code></p></div>
+            <div class="card"><span class="tag">Agents</span><h3>Rider/agent users</h3><p><code>amina</code>, <code>noah</code>, <code>liam</code>, <code>maya</code>, <code>sofia</code>, <code>owen</code> at <code>@hubroute.local</code> / <code>agent1234</code></p></div>
+            <div class="card"><span class="tag">Customers</span><h3>Customer users</h3><p><code>alice@example.com</code>, <code>bob@example.com</code> / <code>customer1234</code></p></div>
           </div>
-          <p class="warn">All demo accounts use <code>hub1234</code>. Rotate or disable seeded credentials before any real deployment.</p>
+          <p class="warn">Rotate or disable every seeded account before entering real parcel, merchant, or customer data.</p>
         </section>
 
         <section id="workflow">
@@ -168,44 +226,34 @@ Dhaka North Pickup -> Tejgaon Sortation -> Chattogram Delivery
 Savar Pickup/Return -> Tejgaon Sortation -> Dhaka North Delivery</code></pre>
         </section>
 
-        <section id="screens">
+        <section id="static-demo">
           <div>
-            <div class="eyebrow">Screenshots</div>
-            <h2>Every operational screen is built for fast repeated hub work.</h2>
-          </div>
-          <div class="grid three">
-            <div class="card"><span class="tag">Dashboard</span><h3>Control room</h3><p>Search all operations data, inspect hub network counts, route capacity, rider workload, and recent movement.</p></div>
-            <div class="card"><span class="tag">Parcels</span><h3>Hub queue</h3><p>Create, edit, assign, send, receive, and filter by status, custody flow, route, rider, customer, hub, and payment.</p></div>
-            <div class="card"><span class="tag">Routes</span><h3>Dispatch capacity</h3><p>Create and filter route coverage by service area, type, status, rider, and capacity pressure.</p></div>
-            <div class="card"><span class="tag">Riders</span><h3>Last-mile workload</h3><p>Filter by phone, vehicle, status, free capacity, and current ride load before assigning parcels.</p></div>
-            <div class="card"><span class="tag">Customers</span><h3>Merchant directory</h3><p>Create, edit, archive, and search by merchant, phone, email, address, parcel count, COD history, and status.</p></div>
-            <div class="card"><span class="tag">Tracking</span><h3>Public timeline</h3><p>Record custody events internally, then let senders and receivers enter a tracking number for redacted status history.</p></div>
-          </div>
-        </section>
-
-        <section id="deployment">
-          <div>
-            <div class="eyebrow">Deployment</div>
-            <h2>Landing and demo are intentionally split.</h2>
+            <div class="eyebrow">Vercel Demo</div>
+            <h2>Deploy only the browser demo to Vercel.</h2>
           </div>
           <div class="grid">
             <div class="card top">
-              <h3>GitHub Pages</h3>
-              <p>Serves <code>index.html</code>, <code>docs.html</code>, and repository documentation. It does not execute PHP.</p>
+              <h3>1. Edit demo source</h3>
+              <p>Make browser-demo changes under <code>src/demo/</code> and shared visual token changes under <code>styles/tokens.css</code>.</p>
             </div>
             <div class="card top">
-              <h3>Vercel demo</h3>
-              <p>Serves the generated browser-only console from <code>public/index.html</code>. Data is local to each visitor's browser.</p>
+              <h3>2. Build generated files</h3>
+              <p>Run <code>npm run sync:demo</code>. This regenerates <code>public/index.html</code> and mirrors <code>vercel-demo/index.html</code>.</p>
             </div>
             <div class="card top">
-              <h3>PHP source</h3>
-              <p><code>hubroute.php</code> remains the PHP 8 + SQLite app source for hosts that run PHP with PDO SQLite enabled.</p>
+              <h3>3. Verify before deploy</h3>
+              <p>Run <code>npm test</code>. It checks domain rules, generated demo drift, and demo smoke rendering.</p>
             </div>
             <div class="card top">
-              <h3>Static bundle</h3>
-              <p>Console source lives in <code>src/demo/</code>. Run <code>npm run sync:demo</code> to rebuild <code>public/index.html</code> and mirror <code>vercel-demo/</code>.</p>
+              <h3>4. Push demo to Vercel</h3>
+              <p>Run <code>vercel deploy --prod --yes</code>. Vercel serves the <code>public/</code> output directory and aliases <code>hubroute.vercel.app</code>.</p>
             </div>
           </div>
+          <pre><code>npm run sync:demo
+npm test
+vercel deploy --prod --yes</code></pre>
+          <p>The browser demo accounts are <code>pickuphub@hubroute.local</code>, <code>sortation@hubroute.local</code>, <code>ctghub@hubroute.local</code>, and <code>savarhub@hubroute.local</code> with password <code>hub1234</code>. They live only in localStorage.</p>
+          <p class="warn">Do not point Vercel at the root landing page. The landing page and docs belong on GitHub Pages; Vercel is for the generated browser demo.</p>
         </section>
 
         <section id="security">
@@ -214,42 +262,31 @@ Savar Pickup/Return -> Tejgaon Sortation -> Dhaka North Delivery</code></pre>
             <h2>Demo convenience and production credentials are separate concerns.</h2>
           </div>
           <ul class="checks">
-            <li>Do not reuse seeded demo emails or passwords in production.</li>
+            <li>Do not reuse seeded emails or passwords in production.</li>
             <li>Keep environment files and SQLite data outside public web paths when possible.</li>
             <li>Use HTTPS, secure session settings, CSRF protection, prepared SQL, and escaped output for the PHP app.</li>
             <li>Use role-based checks for parcel, route, rider, hub, and export operations.</li>
           </ul>
         </section>
 
-        <section id="roadmap">
+        <section id="operations">
           <div>
-            <div class="eyebrow">Production Roadmap</div>
-            <h2>Next steps after the browser walkthrough.</h2>
+            <div class="eyebrow">Operations</div>
+            <h2>Keep the SQLite backend healthy.</h2>
           </div>
-          <div class="grid">
-            <div class="card top">
-              <h3>Product polish</h3>
-              <p>Add mobile scanner ergonomics, batch assignment, printable labels, manifest export, SLA aging, exception queues, keyboard shortcuts, and denser table column controls.</p>
-            </div>
-            <div class="card top">
-              <h3>Operational depth</h3>
-              <p>Add service-area suggestions, COD settlement reconciliation, rider shift calendars, hub cut-off windows, route manifests, and delivery attempt reason taxonomy.</p>
-            </div>
-            <div class="card top">
-              <h3>Scale architecture</h3>
-              <p>Move from browser demo state to a server-backed API, indexed parcel/event storage, tenant-aware hub access, background jobs, audit logs, and observability.</p>
-            </div>
-            <div class="card top">
-              <h3>Data evolution</h3>
-              <p>Keep the custody event log append-only, add idempotent scan/event writes, model inter-hub bags/manifests, and harden the SQLite backup/restore path for larger operations.</p>
-            </div>
-          </div>
+          <ul class="checks">
+            <li>Back up <code>data/hubroute.sqlite</code> daily, or more often if parcel volume is high.</li>
+            <li>Test restore by copying the backup into a separate staging folder and opening <code>/health.php</code>.</li>
+            <li>Review <code>data/php-error.log</code> after deployments and keep <code>ENABLE_EXTRA_LOGGING=false</code> outside troubleshooting windows.</li>
+            <li>Keep write operations short; the app already enables SQLite WAL mode and a busy timeout on startup.</li>
+            <li>Use <code>Admin -> Audit</code> to review assignment, scan, settlement, hub, and user changes.</li>
+          </ul>
         </section>
 
         <section id="troubleshooting">
           <div>
             <div class="eyebrow">Troubleshooting</div>
-            <h2>Common demo and deployment checks.</h2>
+            <h2>Common setup and deployment checks.</h2>
           </div>
           <ul class="checks">
             <li>If demo data looks stale, use Reset seed data in the sidebar or clear localStorage for <code>hubroute.vercel.app</code>.</li>
