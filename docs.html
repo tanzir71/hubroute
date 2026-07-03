@@ -132,12 +132,11 @@
           <div class="grid">
             <div class="card top">
               <h3>1. Shared-host zip</h3>
-              <p>Run one command, upload <code>dist/hubroute-php-sqlite.zip</code>, extract it, and open <code>/health.php</code>.</p>
-              <pre><code>npm run deploy:shared</code></pre>
+              <p>Get <code>hubroute-php-sqlite.zip</code>, upload it in cPanel/File Manager, extract it into <code>public_html</code>, and open <code>/health.php</code>.</p>
             </div>
             <div class="card top">
               <h3>2. One-command SSH</h3>
-              <p>Package and sync the runtime folder in one command with <code>npm run deploy:shared &amp;&amp; rsync ...</code>.</p>
+              <p>Extract the zip locally, then sync the extracted runtime folder with <code>rsync</code>.</p>
             </div>
             <div class="card top">
               <h3>3. LLM-assisted deploy</h3>
@@ -159,14 +158,13 @@
             <div class="card top">
               <span class="tag">Production</span>
               <h3>Shared hosting / cPanel</h3>
-              <p>Use the generated PHP + SQLite zip. Upload, extract, open <code>/health.php</code>, then schedule <code>php maintenance.php run --apply</code>.</p>
-              <pre><code>npm run deploy:shared</code></pre>
+              <p>Use the PHP + SQLite zip. No terminal is required if you already have the zip: upload it, extract it, open <code>/health.php</code>, then schedule <code>php maintenance.php run --apply</code>.</p>
             </div>
             <div class="card top">
               <span class="tag">Production</span>
               <h3>VPS / SSH host</h3>
-              <p>Package locally and sync the runtime folder to Apache, Nginx, or PHP-FPM. Keep the SQLite data directory writable and private.</p>
-              <pre><code>npm run deploy:shared &amp;&amp; rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/</code></pre>
+              <p>Extract the zip locally and sync the runtime folder to Apache, Nginx, or PHP-FPM. Keep the SQLite data directory writable and private.</p>
+              <pre><code>rsync -az --delete hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/</code></pre>
             </div>
             <div class="card top">
               <span class="tag">Port Required</span>
@@ -224,18 +222,28 @@ vercel deploy --prebuilt --prod</code></pre>
             <h2>Shared hosting can be a zip extraction.</h2>
           </div>
           <div class="flow">
-            <div class="step"><b>1. Build zip</b><p>Create a fresh package from the current PHP runtime files.</p></div>
-            <div class="step"><b>2. Extract</b><p>Upload the zip to <code>public_html</code> or the subdomain folder and extract it.</p></div>
+            <div class="step"><b>1. Upload</b><p>Upload <code>hubroute-php-sqlite.zip</code> to <code>public_html</code> or the subdomain folder.</p></div>
+            <div class="step"><b>2. Extract</b><p>Extract the zip and make sure <code>index.php</code>, <code>hubroute.php</code>, and <code>health.php</code> are directly in the website folder.</p></div>
             <div class="step"><b>3. Open</b><p>Visit <code>/health.php</code>, then <code>/</code>. First load creates SQLite.</p></div>
           </div>
-          <pre><code>npm run deploy:shared</code></pre>
-          <p>The package is written to <code>dist/hubroute-php-sqlite.zip</code> and contains the PHP app, CLI maintenance command, health check, environment example, root denial rules, empty protected <code>data/</code> folder, and a tiny <code>README.txt</code>. If you received a prebuilt zip, skip the command and upload/extract that file.</p>
+          <ul class="checks">
+            <li>Log in to cPanel or your host panel and open File Manager.</li>
+            <li>Turn on hidden files if your panel has that option; <code>.htaccess</code> and <code>.env.example</code> are supposed to be visible after extraction.</li>
+            <li>Open <code>public_html</code> or the folder for your subdomain.</li>
+            <li>Upload <code>hubroute-php-sqlite.zip</code>.</li>
+            <li>Click Extract.</li>
+            <li>If extraction creates a <code>hubroute-php-sqlite</code> folder, move the files inside it up into <code>public_html</code> unless you want the app at that folder path.</li>
+            <li>Delete the zip after extraction.</li>
+            <li>Set PHP to 8.1+ and enable <code>pdo_sqlite</code> plus <code>sqlite3</code>.</li>
+            <li>Open <code>https://YOUR-DOMAIN/health.php</code>, then <code>https://YOUR-DOMAIN/</code>.</li>
+          </ul>
+          <p>The zip contains the PHP app, CLI maintenance command, health check, environment example, root denial rules, empty protected <code>data/</code> folder, and a tiny <code>README.txt</code>.</p>
         </section>
 
         <section id="single-command">
           <div>
-            <div class="eyebrow">Single Command</div>
-            <h2>Run locally or sync to an SSH host.</h2>
+            <div class="eyebrow">SSH</div>
+            <h2>Sync an extracted zip to a VPS.</h2>
           </div>
           <div class="grid">
             <div class="card top">
@@ -246,7 +254,7 @@ vercel deploy --prebuilt --prod</code></pre>
             <div class="card top">
               <h3>SSH deploy</h3>
               <p>Replace <code>USER</code>, <code>HOST</code>, and the host path.</p>
-              <pre><code>npm run deploy:shared &amp;&amp; rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/</code></pre>
+              <pre><code>rsync -az --delete hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/</code></pre>
             </div>
           </div>
           <p class="warn">Use the built-in PHP server for local smoke tests only. For production traffic, run through your shared host, Apache, Nginx, or PHP-FPM setup.</p>
@@ -259,7 +267,9 @@ vercel deploy --prebuilt --prod</code></pre>
           </div>
           <ul class="checks">
             <li>Set the domain or subdomain to PHP 8.1+ and enable <code>pdo_sqlite</code> plus <code>sqlite3</code>.</li>
-            <li>Upload only <code>hubroute.php</code>, <code>maintenance.php</code>, <code>health.php</code>, <code>index.php</code>, <code>.htaccess</code>, and <code>.env.example</code> to the app directory.</li>
+            <li>Upload and extract <code>hubroute-php-sqlite.zip</code> into the app directory.</li>
+            <li>Make sure <code>hubroute.php</code>, <code>maintenance.php</code>, <code>health.php</code>, <code>index.php</code>, <code>.htaccess</code>, <code>.env.example</code>, and <code>data/</code> are directly in that app directory.</li>
+            <li>If <code>.htaccess</code> or <code>.env.example</code> is missing, enable hidden files in the host file manager and check again.</li>
             <li>Create a writable <code>data/</code> directory, or copy <code>.env.example</code> to <code>.env</code> and set <code>DATA_DIR</code> to a private path outside <code>public_html</code>.</li>
             <li>Leave <code>DB_PATH</code> commented unless the SQLite file needs a different path from <code>DATA_DIR/hubroute.sqlite</code>.</li>
             <li>Visit <code>/health.php</code> and confirm PHP version, PDO SQLite, SQLite3, directory writability, database writability, and SQLite write all pass.</li>
@@ -331,7 +341,7 @@ vercel deploy --prebuilt --prod</code></pre>
             <h2>Custody is explicit from booking to delivery attempt.</h2>
           </div>
           <div class="flow">
-            <div class="step"><b>Intake</b><p>Create parcels with merchant, address, payment, weight, and service notes; route them into a pickup hub queue.</p></div>
+            <div class="step"><b>Intake</b><p>Create parcels with merchant, address, payment, weight, and service notes; the system assigns the tracking number and routes each parcel into a pickup hub queue.</p></div>
             <div class="step"><b>Sort and dispatch</b><p>Receive incoming parcels, clear old local assignment, sort by destination, and send onward through line-haul or last-mile runs.</p></div>
             <div class="step"><b>Track and reconcile</b><p>Record events, delivery attempts, COD collection, and public tracking updates without exposing full PII.</p></div>
           </div>

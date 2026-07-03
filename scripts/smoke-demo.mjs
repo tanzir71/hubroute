@@ -47,6 +47,13 @@ assert.equal(document.querySelector("#login").classList.contains("hidden"), true
 assert.equal(document.querySelector("#app").classList.contains("hidden"), false, "shows app after sign-in");
 assert.match(document.querySelector("#view").textContent, /Hub-and-spoke custody/, "renders dashboard content");
 
+document.querySelector('[data-action="new-parcel"]').click();
+await waitFrame(dom.window);
+assert.match(document.querySelector("#modalRoot").textContent, /Auto-generated on save/, "new parcel form shows system-generated tracking number");
+assert.equal(document.querySelector('#parcelForm input[name="code"]'), null, "new parcel form does not allow manual tracking number entry");
+document.querySelector('[data-action="close-modal"]').click();
+await waitFrame(dom.window);
+
 document.querySelector('[data-view="track"]').click();
 await waitFrame(dom.window);
 assert.match(document.querySelector("#view").textContent, /Public tracking/, "renders public tracking view");

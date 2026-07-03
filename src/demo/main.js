@@ -194,11 +194,21 @@ function toast(msg){
   toast.timer = setTimeout(() => el.classList.remove('show'), 2400);
 }
 function newTrackingCode(){
+  const existingCodes = new Set(state.parcels.map(p => p.code));
   const d = new Date();
   const y = String(d.getFullYear()).slice(2);
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return 'HR' + y + m + day + Math.random().toString(36).slice(2, 8).toUpperCase();
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  for (let attempt = 0; attempt < 20; attempt++) {
+    let suffix = '';
+    for (let i = 0; i < 8; i++) {
+      suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    const code = 'HR' + y + m + day + suffix;
+    if (!existingCodes.has(code)) return code;
+  }
+  return 'HR' + y + m + day + uid('trk').replace(/[^A-Z0-9]/gi, '').slice(0, 8).toUpperCase();
 }
 function addEvent(parcelId, type, hubId, note){
   state.events.unshift({ id: uid('evt'), parcelId, type, hubId, note, at: new Date().toISOString() });
@@ -935,7 +945,7 @@ function closeModal(){
 
 function openParcelForm(id = ''){
   const p = id ? getParcel(id) : {
-    id:'', code:newTrackingCode(), customerId:state.customers.find(c => c.status === 'active')?.id || state.customers[0]?.id || '',
+    id:'', code:'', customerId:state.customers.find(c => c.status === 'active')?.id || state.customers[0]?.id || '',
     pickupAddress:'', dropoffAddress:'', amountCents:0, cod:false, status:'requested',
     currentHubId:state.currentHubId, pickupHubId:state.currentHubId, warehouseHubId:'hub-central', deliveryHubId:'hub-east',
     pendingToHubId:'', pathIndex:0, routeId:'', riderId:'', weightKg:'1.0', notes:''
@@ -944,7 +954,7 @@ function openParcelForm(id = ''){
     <form id="parcelForm" class="stack">
       <input type="hidden" name="id" value="${esc(p.id)}">
       <div class="form-grid">
-        <label>Tracking code<input name="code" required value="${esc(p.code)}"></label>
+        <div class="readonly-field"><span>Tracking number</span><strong>${p.code ? esc(p.code) : 'Auto-generated on save'}</strong></div>
         <label>Customer<select name="customerId" required>${options(state.customers.filter(c => c.status !== 'inactive' || c.id === p.customerId), p.customerId, c => c.name)}</select></label>
         <label>Status<select name="status">${STATUSES.map(s => `<option value="${esc(s)}" ${s === p.status ? 'selected' : ''}>${esc(s.replaceAll('_',' '))}</option>`).join('')}</select></label>
         <label>Weight kg<input name="weightKg" value="${esc(p.weightKg)}"></label>
@@ -966,9 +976,10 @@ function openParcelForm(id = ''){
 
 function saveParcel(form){
   const data = Object.fromEntries(new FormData(form).entries());
-  const duplicate = state.parcels.find(p => p.code === data.code && p.id !== data.id);
-  if (duplicate) return toast('Tracking code already exists');
   const existing = data.id ? getParcel(data.id) : null;
+  const trackingCode = existing?.code || newTrackingCode();
+  const duplicate = state.parcels.find(p => p.code === trackingCode && p.id !== data.id);
+  if (duplicate) return toast('Could not generate a unique tracking number');
   const route = data.routeId ? getRoute(data.routeId) : null;
   const rider = data.riderId ? getRider(data.riderId) : null;
   if (route && route.hubId !== data.currentHubId) return toast('Route must belong to the parcel current hub');
@@ -979,7 +990,7 @@ function saveParcel(form){
   if (matchedPathIndex >= 0) nextPathIndex = matchedPathIndex;
   const payload = {
     id: data.id || uid('parcel'),
-    code: data.code.trim(),
+    code: trackingCode,
     customerId: data.customerId,
     pickupAddress: data.pickupAddress.trim(),
     dropoffAddress: data.dropoffAddress.trim(),

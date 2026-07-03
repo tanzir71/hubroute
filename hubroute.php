@@ -725,7 +725,7 @@ function migrateAndSeed(PDO $pdo): void
             $agentId = $match['agent_id'] ?? null;
             $autoAssign = (int)($match['auto_assign'] ?? 0);
 
-            $tracking = generateTrackingCode();
+            $tracking = generateUniqueTrackingCode($pdo);
             $status = ($autoAssign === 1 && $agentId !== null) ? 'assigned' : 'requested';
             $meta = json_encode(['note' => $note, 'match_reasons' => $match['reasons'] ?? []], JSON_UNESCAPED_UNICODE);
             $pdo->prepare("INSERT INTO parcels (customer_id,hub_pickup_id,hub_warehouse_id,hub_delivery_id,current_hub_id,pickup_address,pickup_lat,pickup_lng,dropoff_address,dropoff_lat,dropoff_lng,amount_cents,status,assigned_agent_id,route_id,tracking_code,metadata,cod_settled,created_at,updated_at)
@@ -778,6 +778,19 @@ function generateTrackingCode(): string
         $rand .= $alphabet[random_int(0, strlen($alphabet) - 1)];
     }
     return 'HR' . gmdate('ymd') . $rand;
+}
+
+function generateUniqueTrackingCode(PDO $pdo): string
+{
+    $stmt = $pdo->prepare("SELECT COUNT(*) FROM parcels WHERE tracking_code=?");
+    for ($i = 0; $i < 20; $i++) {
+        $code = generateTrackingCode();
+        $stmt->execute([$code]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            return $code;
+        }
+    }
+    throw new RuntimeException('Unable to generate a unique tracking code');
 }
 
 function jsonArray(string $json): array
@@ -1581,7 +1594,7 @@ function actionCustomerCreate(PDO $pdo, array $u): void
     $autoAssign = (int)($match['auto_assign'] ?? 0);
 
     $status = ($autoAssign === 1 && $agentId !== null) ? 'assigned' : 'requested';
-    $tracking = generateTrackingCode();
+    $tracking = generateUniqueTrackingCode($pdo);
     $now = nowIso();
     $meta = json_encode([
         'preferred_pickup_window' => $pickupWindow,

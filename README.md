@@ -1,6 +1,6 @@
 # HubRoute MVP
 
-HubRoute is a compact parcel operations product with a simple PHP 8 + SQLite backend for shared hosting or a small VPS. It supports customer pickup requests, hub assignment, rider delivery runs, public tracking, COD settlement, audit logging, idempotent mutations, and route CSV export.
+HubRoute is a compact parcel operations product with a simple PHP 8 + SQLite backend for shared hosting or a small VPS. It supports customer pickup requests, system-generated tracking numbers, hub assignment, rider delivery runs, public tracking, COD settlement, audit logging, idempotent mutations, and route CSV export.
 
 Production app entry: `hubroute.php`
 Production PHP files: `hubroute.php`, `maintenance.php`, `index.php`, `health.php`, `.htaccess`, `.env.example`
@@ -10,33 +10,22 @@ Repository: <https://github.com/tanzir71/hubroute>
 
 ## Get Running Fast
 
-Shared-hosting production zip:
+Shared-hosting production zip, no terminal required:
 
-```bash
-npm run deploy:shared
-```
+1. Get `hubroute-php-sqlite.zip`.
+2. Log in to cPanel or your host control panel.
+3. Open File Manager.
+4. Turn on “Show Hidden Files” if your panel has that option.
+5. Open `public_html` or the folder for your subdomain.
+6. Upload `hubroute-php-sqlite.zip`.
+7. Click Extract.
+8. Make sure `index.php`, `hubroute.php`, `health.php`, `maintenance.php`, `.htaccess`, `.env.example`, and `data/` are directly inside the web folder.
+9. Delete the zip after extraction.
+10. Set PHP to 8.1+ and enable `pdo_sqlite` plus `sqlite3`.
+11. Open `https://YOUR-DOMAIN/health.php`.
+12. Open `https://YOUR-DOMAIN/`.
 
-The shared-host command creates `dist/hubroute-php-sqlite.zip` for upload/extraction on a PHP 8 + SQLite host.
-
-Local smoke run:
-
-```bash
-php -S 127.0.0.1:8080
-```
-
-Direct shared-hosting package command:
-
-```bash
-npm run package:php
-```
-
-Upload and extract `dist/hubroute-php-sqlite.zip`, open `/health.php`, then open `/`.
-
-One-command SSH deploy:
-
-```bash
-npm run deploy:shared && rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/
-```
+If extraction creates a folder named `hubroute-php-sqlite`, move the files inside that folder up into `public_html` unless you intentionally want the app at `/hubroute-php-sqlite/`.
 
 LLM-assisted deploy: point an LLM or deployment agent at this repo and use the prompt in [SETUP.md](SETUP.md#option-3-ask-an-llm-or-deployment-agent).
 
@@ -50,7 +39,7 @@ The command backs up SQLite first, then prunes old terminal parcels, old audit r
 
 ## Deployment Targets
 
-Shared hosting and small VPS deployments are the supported production path today: build `dist/hubroute-php-sqlite.zip`, upload/extract it or sync it over SSH, then run the PHP 8 + SQLite app.
+Shared hosting and small VPS deployments are the supported production path today: upload/extract `hubroute-php-sqlite.zip` or sync the extracted PHP runtime files over SSH, then run the PHP 8 + SQLite app.
 
 The Vercel browser demo is maintainer-only and is not a user deployment path. A production Vercel app should be a separate Vercel-native port using Next.js/Node functions and hosted SQLite-compatible storage such as libSQL/Turso if the product must remain SQLite-based. The PHP + local SQLite production bundle is intentionally kept simple for shared hosts.
 
@@ -97,9 +86,23 @@ Production rotation flow: log in as the seeded admin, create a real production a
 The M1 SQLite/PHP backend contract lives at [docs/m1-backend-contract.md](docs/m1-backend-contract.md).
 The executable status-transition, authorization, idempotency, and audit-log rules live in [src/domain/status-rules.mjs](src/domain/status-rules.mjs), [src/domain/authorization-rules.mjs](src/domain/authorization-rules.mjs), [src/domain/idempotency-rules.mjs](src/domain/idempotency-rules.mjs), and [src/domain/audit-rules.mjs](src/domain/audit-rules.mjs).
 
-## Maintainer Browser Walkthrough
+## Maintainer / Source Commands
+
+These commands are for maintainers or developers working from the source repo. They run on your computer, CI, or a deployment agent. They do not run on cPanel/shared hosting.
+
+Build the shared-hosting zip from source:
+
+```bash
+npm run deploy:shared
+```
 
 The browser walkthrough is separate from production and is maintainer-only. It is generated from `src/demo/` into `public/index.html` and stores changes in localStorage.
+
+Local smoke run:
+
+```bash
+php -S 127.0.0.1:8080
+```
 
 ```bash
 npm run sync:demo

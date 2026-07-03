@@ -23,7 +23,7 @@ Existing tables use SQLite integer primary keys. New tables should keep `created
 | `hub` | `id`, `name`, `type`, `zone_id`, `address`, `geo`, `active` | Types: `pickup`, `sortation`, `warehouse`, `delivery`, `return`. |
 | `zone` | `id`, `parent_id`, `level`, `name`, `code` | Hierarchy: division, district, thana/upazila, area/postcode. |
 | `coverage_area` | `id`, `area_id`, `hub_id`, `service_level`, `active` | Powers serviceability and default routing. |
-| `parcel` | `id`, `tracking_code`, `merchant_id`, `sender`, `recipient`, `weight`, `dimensions`, `item_value`, `cod_amount`, `service_level`, `status`, `current_hub_id`, `assigned_agent_id`, `origin_hub_id`, `dest_area_id`, `sla_due_at` | `tracking_code` must be unique. Status changes are event validated. |
+| `parcel` | `id`, `tracking_code`, `merchant_id`, `sender`, `recipient`, `weight`, `dimensions`, `item_value`, `cod_amount`, `service_level`, `status`, `current_hub_id`, `assigned_agent_id`, `origin_hub_id`, `dest_area_id`, `sla_due_at` | `tracking_code` is system-generated and must be unique. Create forms/APIs must not accept user-supplied tracking codes. Status changes are event validated. |
 | `parcel_event` / `events` | `id`, `parcel_id`, `event_key`/`event_type`, `hub_id`, `agent_id`, `actor_id`/`user_id`, `note`, `geo`, `photo_url`, `idempotency_key`, `created_at`/`ts` | Append-only. Existing table is `events`; evolve without breaking current data. |
 | `run` | `id`, `hub_id`, `agent_id`, `type`, `run_date`, `status`, `stops` | Types: `linehaul`, `last_mile`, `pickup`; status: `planned`, `dispatched`, `closed`. |
 | `cod_ledger` | `id`, `parcel_id`, `collected_amount`, `collected_by`, `collected_at`, `remittance_id` | Created from delivery/COD collection event. |

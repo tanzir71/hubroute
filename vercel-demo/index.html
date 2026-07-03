@@ -159,6 +159,8 @@
     @media(prefers-reduced-motion:reduce){.loading-bar{animation:none}}
     .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
     .form-grid .wide{grid-column:1/-1}
+    .readonly-field{display:grid;gap:6px;color:var(--muted);font-size:11.5px;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
+    .readonly-field strong{min-height:39px;display:flex;align-items:center;border:1px solid var(--line);background:var(--panel-2);padding:9px 10px;color:var(--text);font:13px/1.4 var(--mono);letter-spacing:0;text-transform:none}
     .checkline{display:flex;align-items:center;gap:8px;color:var(--text);font-size:13px;text-transform:none;letter-spacing:0}
     .filter-card{background:#fff;border-top:2px solid var(--brand)}
     .filter-grid{display:grid;grid-template-columns:minmax(240px,1.4fr) repeat(4,minmax(150px,1fr));gap:12px;align-items:end}
@@ -716,11 +718,21 @@
         toast.timer = setTimeout(() => el.classList.remove("show"), 2400);
       }
       function newTrackingCode() {
+        const existingCodes = new Set(state.parcels.map((p) => p.code));
         const d = /* @__PURE__ */ new Date();
         const y = String(d.getFullYear()).slice(2);
         const m = String(d.getMonth() + 1).padStart(2, "0");
         const day = String(d.getDate()).padStart(2, "0");
-        return "HR" + y + m + day + Math.random().toString(36).slice(2, 8).toUpperCase();
+        const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        for (let attempt = 0; attempt < 20; attempt++) {
+          let suffix = "";
+          for (let i = 0; i < 8; i++) {
+            suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
+          }
+          const code = "HR" + y + m + day + suffix;
+          if (!existingCodes.has(code)) return code;
+        }
+        return "HR" + y + m + day + uid("trk").replace(/[^A-Z0-9]/gi, "").slice(0, 8).toUpperCase();
       }
       function addEvent(parcelId, type, hubId, note) {
         state.events.unshift({ id: uid("evt"), parcelId, type, hubId, note, at: (/* @__PURE__ */ new Date()).toISOString() });
@@ -1452,7 +1464,7 @@
       function openParcelForm(id = "") {
         const p = id ? getParcel(id) : {
           id: "",
-          code: newTrackingCode(),
+          code: "",
           customerId: state.customers.find((c) => c.status === "active")?.id || state.customers[0]?.id || "",
           pickupAddress: "",
           dropoffAddress: "",
@@ -1476,7 +1488,7 @@
         <form id="parcelForm" class="stack">
           <input type="hidden" name="id" value="${esc(p.id)}">
           <div class="form-grid">
-            <label>Tracking code<input name="code" required value="${esc(p.code)}"></label>
+            <div class="readonly-field"><span>Tracking number</span><strong>${p.code ? esc(p.code) : "Auto-generated on save"}</strong></div>
             <label>Customer<select name="customerId" required>${options(state.customers.filter((c) => c.status !== "inactive" || c.id === p.customerId), p.customerId, (c) => c.name)}</select></label>
             <label>Status<select name="status">${STATUSES.map((s) => `<option value="${esc(s)}" ${s === p.status ? "selected" : ""}>${esc(s.replaceAll("_", " "))}</option>`).join("")}</select></label>
             <label>Weight kg<input name="weightKg" value="${esc(p.weightKg)}"></label>
@@ -1498,9 +1510,10 @@
       }
       function saveParcel(form) {
         const data = Object.fromEntries(new FormData(form).entries());
-        const duplicate = state.parcels.find((p) => p.code === data.code && p.id !== data.id);
-        if (duplicate) return toast("Tracking code already exists");
         const existing = data.id ? getParcel(data.id) : null;
+        const trackingCode = existing?.code || newTrackingCode();
+        const duplicate = state.parcels.find((p) => p.code === trackingCode && p.id !== data.id);
+        if (duplicate) return toast("Could not generate a unique tracking number");
         const route = data.routeId ? getRoute(data.routeId) : null;
         const rider = data.riderId ? getRider(data.riderId) : null;
         if (route && route.hubId !== data.currentHubId) return toast("Route must belong to the parcel current hub");
@@ -1511,7 +1524,7 @@
         if (matchedPathIndex >= 0) nextPathIndex = matchedPathIndex;
         const payload = {
           id: data.id || uid("parcel"),
-          code: data.code.trim(),
+          code: trackingCode,
           customerId: data.customerId,
           pickupAddress: data.pickupAddress.trim(),
           dropoffAddress: data.dropoffAddress.trim(),

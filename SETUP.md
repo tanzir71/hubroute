@@ -6,8 +6,8 @@ HubRoute production is the PHP 8 + SQLite app. No external database is required.
 
 | Target | Status | Best path | Notes |
 | --- | --- | --- | --- |
-| Shared hosting / cPanel | Supported production | `npm run deploy:shared` | PHP 8.1+, `pdo_sqlite`, `sqlite3`, writable private data directory, and cron for maintenance. |
-| VPS / SSH host | Supported production | `npm run deploy:shared && rsync ...` | Use Apache, Nginx, or PHP-FPM for traffic. The built-in PHP server is only for smoke tests. |
+| Shared hosting / cPanel | Supported production | Upload and extract `hubroute-php-sqlite.zip` | PHP 8.1+, `pdo_sqlite`, `sqlite3`, writable private data directory, and cron for maintenance. No terminal is required if you already have the zip. |
+| VPS / SSH host | Supported production | Upload/extract the zip or sync the extracted files | Use Apache, Nginx, or PHP-FPM for traffic. The built-in PHP server is only for smoke tests. |
 | Vercel production app | Requires a Vercel-native port | Next.js/Node functions plus hosted storage | The current PHP + local SQLite bundle is for PHP hosts. A production Vercel version should preserve the product rules while moving server code to Vercel-supported runtimes and using hosted SQLite-compatible storage such as libSQL/Turso if SQLite semantics must remain. |
 
 ## Why PHP + SQLite
@@ -26,14 +26,35 @@ Advantages:
 
 ## Fastest Paths
 
-### Option 1: Shared-hosting production zip
+### Option 1: Shared-hosting production zip, no terminal needed
 
-```bash
-npm run deploy:shared
-```
+Use this path if you have cPanel, DirectAdmin, Plesk, a host file manager, FTP, or SFTP.
 
-Upload `dist/hubroute-php-sqlite.zip` to the hosting folder, extract it, open `/health.php`, then open `/`.
-If someone gave you a prebuilt `hubroute-php-sqlite.zip`, skip the command and just upload/extract that file.
+What you need before starting:
+
+- `hubroute-php-sqlite.zip`
+- A domain or subdomain pointed at your hosting account
+- PHP 8.1 or newer
+- PHP extensions: `pdo_sqlite` and `sqlite3`
+
+Steps:
+
+1. Log in to your hosting control panel.
+2. Open File Manager.
+3. Turn on “Show Hidden Files” if your panel has that option. Files like `.htaccess` and `.env.example` are supposed to be there.
+4. Open your website folder. This is usually `public_html`; for a subdomain, it may be a folder named after the subdomain.
+5. Upload `hubroute-php-sqlite.zip` into that folder.
+6. Select the zip and click Extract.
+7. After extraction, confirm these files are visible directly in the website folder: `index.php`, `hubroute.php`, `health.php`, `maintenance.php`, `.htaccess`, `.env.example`, and `data/`.
+8. If the files are inside a new folder named `hubroute-php-sqlite`, move the files from inside that folder up into `public_html` unless you intentionally want the app to live at `/hubroute-php-sqlite/`.
+9. Delete `hubroute-php-sqlite.zip` from the hosting folder after extraction.
+10. In your host panel, set the site to PHP 8.1 or newer.
+11. Enable `pdo_sqlite` and `sqlite3` if your host exposes PHP extensions.
+12. Open `https://YOUR-DOMAIN/health.php`.
+13. If every check passes, open `https://YOUR-DOMAIN/`.
+14. Log in as the seeded admin, create your production admin, then rotate or disable seeded accounts before real use.
+
+This zip deployment does not require build tools, Composer, Git, or a separate database service on the shared host.
 
 The package contains a small `README.txt` plus these runtime files:
 
@@ -46,18 +67,15 @@ The package contains a small `README.txt` plus these runtime files:
 - `data/.htaccess`
 - `data/index.html`
 
-`npm run deploy:shared` is an easy name for `npm run package:php`.
-
 ### Option 2: One-command SSH deploy
 
-From a checked-out repo, replace the host path and run:
+Use this only if you are comfortable with SSH. Extract `hubroute-php-sqlite.zip` locally, replace the host path, and run:
 
 ```bash
-npm run deploy:shared && rsync -az --delete dist/hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/
+rsync -az --delete hubroute-php-sqlite/ USER@HOST:/home/USER/public_html/
 ```
 
 Then open `/health.php` and `/`.
-If someone gave you a prebuilt zip, extract it locally and sync the extracted folder instead.
 
 ### Option 3: Ask an LLM or deployment agent
 
@@ -104,17 +122,19 @@ Deploy with vercel deploy --prod or vercel build --prod followed by vercel deplo
 
 ## Shared-Hosting Checklist
 
-1. In cPanel or the host panel, set the domain or subdomain to PHP 8.1 or newer.
-2. Enable `pdo_sqlite` and `sqlite3`.
-3. Upload the generated zip or the runtime files listed above.
-4. Optional: copy `.env.example` to `.env` for custom paths, timezone, or rate limits.
-5. If possible, set `DATA_DIR` in `.env` to a writable private folder outside `public_html`.
-6. Leave `DB_PATH` commented unless the database file must live somewhere other than `DATA_DIR/hubroute.sqlite`.
-7. Open `/health.php` and confirm every check passes.
-8. Open `/` or `/hubroute.php?r=login&demo=hub`.
-9. Confirm `/data/hubroute.sqlite` is not downloadable if `DATA_DIR=data`.
-10. Use `Admin -> Users` to create a production admin, then rotate or disable seeded credentials before entering real parcel/customer data.
-11. Add the maintenance cron below for automated backups and old-data cleanup.
+1. PHP version is 8.1 or newer.
+2. `pdo_sqlite` is enabled.
+3. `sqlite3` is enabled.
+4. The extracted app files are directly in the website folder, not accidentally nested one folder too deep.
+5. Hidden files are present: `.htaccess` and `.env.example`.
+6. `health.php` opens in the browser and shows passing checks.
+7. `/` opens the app.
+8. Optional but recommended: copy `.env.example` to `.env` for custom paths, timezone, or rate limits.
+9. If possible, set `DATA_DIR` in `.env` to a writable private folder outside `public_html`.
+10. Leave `DB_PATH` commented unless the database file must live somewhere other than `DATA_DIR/hubroute.sqlite`.
+11. If using the default `data/` folder, confirm `/data/hubroute.sqlite` is not downloadable.
+12. Use `Admin -> Users` to create a production admin, then rotate or disable seeded credentials before entering real parcel/customer data.
+13. Add the maintenance cron below for automated backups and old-data cleanup.
 
 ## First Login
 
