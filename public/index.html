@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HubRoute Demo</title>
+  <meta name="description" content="Interactive HubRoute demo for parcel hub routing, event capture, and public tracking.">
+  <style>
+    :root{
+      --bg:#f6f7f8;--panel:#fff;--text:#101114;--muted:#626872;--line:#d9dde3;--soft:#eef1f4;
+      --ink:#090a0c;--blue:#225f9f;--green:#176f45;--amber:#9a6108;--red:#9d2f2f;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    button,input,select{font:inherit}
+    a{color:inherit}
+    .shell{max-width:1180px;margin:0 auto;padding:0 18px}
+    .topbar{min-height:60px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:14px}
+    .brand{display:flex;align-items:center;gap:9px;font-weight:800}
+    .mark{display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--ink);border-radius:6px;background:#fff;font-size:11px;font-weight:900}
+    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .tab{border:0;background:transparent;border-radius:6px;padding:8px 10px;color:var(--muted);cursor:pointer}
+    .tab.active,.tab:hover{background:#fff;color:var(--text)}
+    .layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:16px;padding:18px 0}
+    .side{display:grid;gap:12px;align-content:start}
+    .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px}
+    .login{max-width:520px;margin:54px auto}
+    h1,h2,h3,p{margin:0}
+    h1{font-size:30px;line-height:1.1;margin-bottom:12px}
+    h2{font-size:20px;line-height:1.2;margin-bottom:10px}
+    h3{font-size:15px;line-height:1.2;margin-bottom:8px}
+    .muted{color:var(--muted)}
+    .small{font-size:12px}
+    .actions{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:38px;border:1px solid var(--ink);border-radius:6px;background:#fff;color:var(--text);padding:8px 12px;font-weight:720;cursor:pointer;text-decoration:none}
+    .btn.primary{background:var(--ink);color:#fff}.btn.ghost{border-color:var(--line)}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    label{display:block;color:var(--muted);font-size:12px;margin:10px 0 5px}
+    input,select{width:100%;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--text);padding:9px 10px}
+    .grid{display:grid;gap:12px}.grid.two{grid-template-columns:1fr 1fr}.grid.three{grid-template-columns:repeat(3,1fr)}.grid.four{grid-template-columns:repeat(4,1fr)}
+    .kpi{background:#fff;border:1px solid var(--line);border-radius:8px;padding:12px}
+    .kpi strong{display:block;font-size:22px;line-height:1;margin-bottom:5px}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:8px;background:#fff}
+    table{width:100%;border-collapse:collapse;min-width:760px}
+    th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+    th{font-size:12px;color:var(--muted);background:#fafafa}
+    tr:last-child td{border-bottom:0}
+    .pill{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:999px;padding:3px 8px;font-size:12px;background:#fff;white-space:nowrap}
+    .pill.blue{background:#f4f8fb;border-color:#a9c5de;color:var(--blue)}.pill.green{background:#f2f8f5;border-color:#a9d0ba;color:var(--green)}
+    .pill.amber{background:#fbf7ef;border-color:#dfc498;color:var(--amber)}.pill.red{background:#fff3f3;border-color:#e5b2b2;color:var(--red)}
+    .notice{border-left:3px solid var(--amber);background:#fff8eb;padding:9px 10px;border-radius:0 6px 6px 0;color:#4c3710}
+    .route-map{height:150px;border:1px solid var(--line);border-radius:8px;background:linear-gradient(135deg,#fff,#eef6f1);position:relative;overflow:hidden}
+    .route-map:before{content:"";position:absolute;left:10%;right:10%;top:50%;height:2px;background:#111}
+    .node{position:absolute;top:calc(50% - 8px);width:16px;height:16px;border-radius:50%;border:3px solid var(--ink);background:#fff}
+    .node.a{left:9%}.node.b{left:48%;border-color:var(--blue)}.node.c{right:9%;border-color:var(--green)}
+    .timeline{display:grid;gap:8px}
+    .event{border-left:3px solid var(--line);padding:4px 0 4px 10px}
+    .toast{position:fixed;right:18px;bottom:18px;background:#111;color:#fff;padding:10px 12px;border-radius:8px;box-shadow:0 10px 28px rgba(0,0,0,.18);display:none}
+    .toast.show{display:block}
+    .hidden{display:none!important}
+    @media(max-width:840px){.layout{grid-template-columns:1fr}.grid.two,.grid.three,.grid.four{grid-template-columns:1fr}.topbar{align-items:flex-start;flex-direction:column;padding:12px 0}}
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="topbar">
+      <div class="brand"><span class="mark">HR</span><span>HubRoute Demo</span></div>
+      <div class="nav" id="nav" aria-label="Demo navigation">
+        <button class="tab active" data-view="parcels">Parcels</button>
+        <button class="tab" data-view="routes">Routes</button>
+        <button class="tab" data-view="scan">Scan/Event</button>
+        <button class="tab" data-view="track">Public Tracking</button>
+        <button class="tab" data-view="login">Switch account</button>
+      </div>
+    </div>
+
+    <section id="login" class="login card">
+      <p class="muted small">Seeded hub operator demo</p>
+      <h1>Open the North Pickup Hub console.</h1>
+      <p class="muted">This Vercel demo is browser-only and mirrors the HubRoute workflow: queue review, route assignment, scan events, and public tracking.</p>
+      <label>Email</label>
+      <input id="email" type="email" value="pickuphub@hubroute.local">
+      <label>Password</label>
+      <input id="password" type="password" value="hub1234">
+      <div class="actions" style="margin-top:14px">
+        <button id="signIn" class="btn primary">Sign in</button>
+        <button id="tryTracking" class="btn">Public tracking</button>
+      </div>
+      <p class="notice small" style="margin-top:14px">Demo credentials only. The PHP/SQLite source remains in the repo for shared-hosting deployment.</p>
+    </section>
+
+    <main id="app" class="layout hidden">
+      <aside class="side">
+        <div class="card">
+          <h3>Signed in</h3>
+          <p><strong>pickuphub@hubroute.local</strong></p>
+          <p class="muted small">North Pickup Hub operator</p>
+        </div>
+        <div class="card">
+          <h3>Hub path</h3>
+          <div class="route-map"><span class="node a"></span><span class="node b"></span><span class="node c"></span></div>
+        </div>
+        <div class="card">
+          <h3>Demo account</h3>
+          <p class="muted small">Email: pickuphub@hubroute.local<br>Password: hub1234</p>
+        </div>
+      </aside>
+      <section class="grid">
+        <div id="view"></div>
+      </section>
+    </main>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const baseParcels = [
+      {code:'HR260703N8Q2ZK', customer:'Alice Shop', pickup:'19 Northside St, Metro City 1000', dropoff:'55 Riverside Rd, Metro City 2000', amount:1299, status:'assigned', route:'Northside Pickup Route', agent:'Amina (Pickup)', cod:false},
+      {code:'HR260704B7M5RX', customer:'Alice Shop', pickup:'88 Uptown Blvd, Metro City 1000', dropoff:'9 Eastside Ave, Metro City 2000', amount:0, status:'assigned', route:'Northside Pickup Route', agent:'Amina (Pickup)', cod:false},
+      {code:'HR260705C4P9JT', customer:'Bob Sender', pickup:'77 Unknown District, Metro City 9999', dropoff:'12 Riverside Rd, Metro City 2000', amount:0, status:'requested', route:'', agent:'', cod:false},
+      {code:'HR260706D6V2LA', customer:'Bob Sender', pickup:'22 Northside Market, Metro City 1000', dropoff:'14 Central Sq, Metro City 2000', amount:2500, status:'requested', route:'', agent:'', cod:true}
+    ];
+    const events = [
+      {code:'HR260703N8Q2ZK', type:'requested', hub:'North Pickup Hub', note:'Seeded request'},
+      {code:'HR260703N8Q2ZK', type:'assigned', hub:'North Pickup Hub', note:'Auto-assigned by route keywords'},
+      {code:'HR260704B7M5RX', type:'requested', hub:'North Pickup Hub', note:'Seeded request'},
+      {code:'HR260704B7M5RX', type:'assigned', hub:'North Pickup Hub', note:'Auto-assigned by route keywords'}
+    ];
+    let parcels = structuredClone(baseParcels);
+    let currentView = 'parcels';
+    let selectedCode = parcels[0].code;
+
+    const $ = (id) => document.getElementById(id);
+    function money(cents){return cents ? '$' + (cents/100).toFixed(2) : '$0.00'}
+    function statusClass(status){return status === 'delivered' ? 'green' : status === 'requested' ? 'amber' : status === 'failed' ? 'red' : 'blue'}
+    function pill(status){return `<span class="pill ${statusClass(status)}">${status.replaceAll('_',' ')}</span>`}
+    function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),2200)}
+    function setView(view){
+      currentView = view;
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === view));
+      if(view === 'login'){ $('app').classList.add('hidden'); $('login').classList.remove('hidden'); return; }
+      $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+      render();
+    }
+    function kpis(){
+      const requested = parcels.filter(p=>p.status==='requested').length;
+      const assigned = parcels.filter(p=>p.status==='assigned').length;
+      const inMotion = parcels.filter(p=>['picked_up','in_warehouse','out_for_delivery'].includes(p.status)).length;
+      const cod = parcels.filter(p=>p.cod).length;
+      return `<div class="grid four">
+        <div class="kpi"><strong>${requested}</strong><span class="muted">requested</span></div>
+        <div class="kpi"><strong>${assigned}</strong><span class="muted">assigned</span></div>
+        <div class="kpi"><strong>${inMotion}</strong><span class="muted">in motion</span></div>
+        <div class="kpi"><strong>${cod}</strong><span class="muted">COD parcels</span></div>
+      </div>`;
+    }
+    function renderParcels(){
+      return `${kpis()}<div class="card"><h2>Hub parcel queue</h2><p class="muted">Assign visible parcels to a route and agent owned by this hub.</p></div>
+      <div class="table-wrap"><table><thead><tr><th>Tracking</th><th>Customer</th><th>Route</th><th>Agent</th><th>COD</th><th>Status</th><th></th></tr></thead><tbody>
+      ${parcels.map(p=>`<tr><td><strong>${p.code}</strong><br><span class="muted small">${p.pickup}</span></td><td>${p.customer}</td><td>${p.route || 'Unassigned'}</td><td>${p.agent || 'Unassigned'}</td><td>${money(p.amount)}</td><td>${pill(p.status)}</td><td><button class="btn ghost" onclick="assignParcel('${p.code}')">Assign</button></td></tr>`).join('')}
+      </tbody></table></div>`;
+    }
+    function assignParcel(code){
+      const p = parcels.find(x=>x.code===code);
+      p.route = 'Northside Pickup Route';
+      p.agent = 'Amina (Pickup)';
+      p.status = 'assigned';
+      events.unshift({code:p.code,type:'assigned',hub:'North Pickup Hub',note:'Assigned by hub operator'});
+      toast(`${code} assigned to Amina`);
+      render();
+    }
+    function renderRoutes(){
+      return `<div class="grid two"><div class="card"><h2>Northside Pickup Route</h2><p class="muted">Agent: Amina (Pickup)</p><p style="margin-top:10px">${parcels.filter(p=>p.route).length} parcels assigned</p></div><div class="card"><h2>Route manifest</h2><p class="muted">CSV export is available in the PHP source app. This demo keeps the manifest in-browser.</p></div></div>${renderParcels()}`;
+    }
+    function renderScan(){
+      const p = parcels.find(x=>x.code===selectedCode) || parcels[0];
+      return `<div class="card"><h2>Scan / Add Event</h2><p class="muted">Capture a hub or delivery event for a parcel.</p><label>Tracking code</label><select id="scanCode">${parcels.map(x=>`<option ${x.code===p.code?'selected':''}>${x.code}</option>`).join('')}</select><label>Event type</label><select id="scanType"><option>picked_up</option><option>in_warehouse</option><option>out_for_delivery</option><option>delivered</option><option>failed</option><option>payment_collected</option></select><div class="actions" style="margin-top:12px"><button class="btn primary" onclick="recordEvent()">Record event</button></div></div>
+      <div class="card"><h2>${p.code}</h2><p>${pill(p.status)}</p><p class="muted" style="margin-top:8px">${p.pickup} to ${p.dropoff}</p></div>${renderTimeline(p.code)}`;
+    }
+    function recordEvent(){
+      const code = $('scanCode').value;
+      const type = $('scanType').value;
+      selectedCode = code;
+      const p = parcels.find(x=>x.code===code);
+      if(['picked_up','in_warehouse','out_for_delivery','delivered','failed'].includes(type)) p.status = type;
+      events.unshift({code,type,hub:'North Pickup Hub',note:'Recorded in Vercel demo'});
+      toast(`${type.replaceAll('_',' ')} recorded`);
+      render();
+    }
+    function renderTracking(){
+      const p = parcels.find(x=>x.code===selectedCode) || parcels[0];
+      return `<div class="card"><h2>Public tracking</h2><p class="muted">Addresses are partially redacted in the public view.</p><label>Tracking code</label><select id="trackCode" onchange="selectedCode=this.value;render()">${parcels.map(x=>`<option ${x.code===p.code?'selected':''}>${x.code}</option>`).join('')}</select></div>
+      <div class="card"><h2>${p.code}</h2><p>${pill(p.status)}</p><p class="muted" style="margin-top:8px">Pickup: ${p.pickup.replace(/[0-9]/g,'*')}<br>Dropoff: ${p.dropoff.replace(/[0-9]/g,'*')}</p></div>${renderTimeline(p.code)}`;
+    }
+    function renderTimeline(code){
+      const rows = events.filter(e=>e.code===code);
+      return `<div class="card"><h2>Event timeline</h2><div class="timeline">${rows.length ? rows.map(e=>`<div class="event"><strong>${e.type.replaceAll('_',' ')}</strong><br><span class="muted small">${e.hub} / ${e.note}</span></div>`).join('') : '<p class="muted">No events yet.</p>'}</div></div>`;
+    }
+    function render(){
+      const views = {parcels:renderParcels, routes:renderRoutes, scan:renderScan, track:renderTracking};
+      $('view').innerHTML = views[currentView]();
+    }
+    $('signIn').addEventListener('click', () => setView('parcels'));
+    $('tryTracking').addEventListener('click', () => setView('track'));
+    document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setView(t.dataset.view)));
+    setView('login');
+  </script>
+</body>
+</html>

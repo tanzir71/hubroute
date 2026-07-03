@@ -127,11 +127,11 @@
           <h1>Parcel routing without a heavyweight logistics stack.</h1>
           <p class="lead">HubRoute gives small delivery teams a hardened operations console for pickup hubs, warehouse handoffs, last-mile agents, public tracking, COD settlement, and CSV route manifests.</p>
           <div class="actions" aria-label="Primary actions">
-            <a class="btn primary" href="http://hubroute.ganges.quest/">Open hosted demo</a>
-            <a class="btn download" href="hubroute-demo.zip">Download demo ZIP</a>
-            <a class="btn" href="http://hubroute.ganges.quest/demo.php?r=track">Track sample parcel</a>
+            <a class="btn primary" href="https://hubroute.vercel.app/">Open hosted demo</a>
+            <a class="btn" href="https://hubroute.vercel.app/track">Track sample parcel</a>
+            <a class="btn" href="https://github.com/tanzir71/hubroute">View source</a>
           </div>
-          <p class="runtime-note">GitHub Pages hosts this landing page. The demo runs at hubroute.ganges.quest over plain HTTP.</p>
+          <p class="runtime-note">GitHub Pages hosts this landing page. Vercel hosts the browser demo at hubroute.vercel.app.</p>
           <div class="proof" aria-label="Product facts">
             <div class="proof-item"><strong>1 file</strong><span>PHP app entry</span></div>
             <div class="proof-item"><strong>4 roles</strong><span>admin, hub, agent, customer</span></div>
@@ -175,8 +175,8 @@
               <dt>Role</dt><dd>North Pickup Hub operator</dd>
             </dl>
             <div class="actions">
-              <a class="btn primary" href="http://hubroute.ganges.quest/">Open hosted demo</a>
-              <a class="btn" href="http://hubroute.ganges.quest/demo.php?r=track">Public tracking</a>
+              <a class="btn primary" href="https://hubroute.vercel.app/">Open hosted demo</a>
+              <a class="btn" href="https://hubroute.vercel.app/track">Public tracking</a>
             </div>
             <p class="warn">These are seeded demo credentials. Rotate or disable them immediately after a production deployment.</p>
           </div>
@@ -218,22 +218,25 @@
       <section id="setup">
         <div class="section-head">
           <div class="eyebrow">Setup</div>
-          <h2>Upload the ZIP, create the data folder, then open the app.</h2>
+          <h2>Try the Vercel demo, then inspect the PHP source.</h2>
         </div>
         <div class="setup">
           <div class="panel top">
-            <h3>Hosted demo path</h3>
-            <p>Use the demo ZIP for shared hosting. It includes only the PHP runtime, env template, and data-folder denial files; the landing page stays on GitHub Pages.</p>
+            <h3>Hosted browser demo</h3>
+            <p>The Vercel demo is a browser-only walkthrough of the HubRoute workflow. The repo still includes the PHP 8 + SQLite source for shared-hosting deployment.</p>
             <div class="actions" style="margin-top:16px">
-              <a class="btn primary" href="hubroute-demo.zip">Download demo ZIP</a>
-              <a class="btn" href="SETUP.md">Open setup notes</a>
+              <a class="btn primary" href="https://hubroute.vercel.app/">Open Vercel demo</a>
+              <a class="btn" href="SETUP.md">Open PHP setup notes</a>
             </div>
           </div>
-          <pre class="code"><code>Upload hubroute-demo.zip to the demo domain
-Extract it in cPanel File Manager
-Copy .env.example to .env
-Confirm PHP 8.1+, pdo_sqlite, sqlite3
-Visit http://hubroute.ganges.quest/</code></pre>
+          <pre class="code"><code>Hosted demo
+https://hubroute.vercel.app/
+
+Source app
+hubroute.php
+
+Shared-hosting notes
+SETUP.md</code></pre>
         </div>
       </section>
 

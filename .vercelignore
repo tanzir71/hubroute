@@ -1,0 +1,8 @@
+.DS_Store
+.env
+.trae
+data
+tests
+*.zip
+*.md
+*.php
