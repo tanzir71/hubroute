@@ -8,7 +8,7 @@ HubRoute production is the PHP 8 + SQLite app. No external database is required.
 | --- | --- | --- | --- |
 | Shared hosting / cPanel | Supported production | Upload and extract `hubroute-php-sqlite.zip` | PHP 8.1+, `pdo_sqlite`, `sqlite3`, writable private data directory, and cron for maintenance. No terminal is required if you already have the zip. |
 | VPS / SSH host | Supported production | Upload/extract the zip or sync the extracted files | Use Apache, Nginx, or PHP-FPM for traffic. The built-in PHP server is only for smoke tests. |
-| Vercel production app | Requires a Vercel-native port | Next.js/Node functions plus hosted storage | The current PHP + local SQLite bundle is for PHP hosts. A production Vercel version should preserve the product rules while moving server code to Vercel-supported runtimes and using hosted SQLite-compatible storage such as libSQL/Turso if SQLite semantics must remain. |
+| Vercel production starter | Starter artifact available | Extract `hubroute-vercel.zip`, upload the contents to GitHub, import in Vercel | Uses Vercel-supported Node Functions plus hosted SQLite-compatible storage such as libSQL/Turso. The dashboard path does not require local npm; the deployer still needs a Vercel account, a GitHub repo, a hosted database, and production secrets. |
 
 ## Why PHP + SQLite
 
@@ -94,7 +94,7 @@ After deploy, use Admin -> Users to create a production admin and rotate or disa
 
 ## Vercel Production Path
 
-Vercel production is a developer/agent port, not a zip upload. Use this path only when the product owner specifically wants HubRoute to run on Vercel infrastructure.
+Vercel production uses the separate `vercel-app/` fileset. It is not the PHP shared-hosting zip and it is not the maintainer demo. Use this path only when the product owner specifically wants HubRoute to run on Vercel infrastructure.
 
 What does **not** carry over:
 
@@ -120,7 +120,8 @@ Full dashboard/login/admin parity can be layered into this artifact later by por
 What a fileset still cannot include:
 
 - A real Vercel project connection.
-- Production secrets such as `TURSO_AUTH_TOKEN`, `SESSION_SECRET`, or `CRON_SECRET`.
+- A GitHub repository connected to the deployer's Vercel account.
+- Production secrets such as `TURSO_AUTH_TOKEN`, `SESSION_SECRET`, `CRON_SECRET`, or `SETUP_SECRET`.
 - A durable local SQLite file checked into the deployment.
 - A configured custom domain owned by the deployer.
 
@@ -128,7 +129,9 @@ Recommended Vercel shape:
 
 - Keep the current PHP + SQLite shared-hosting app intact.
 - Use the separate Vercel-native app in `vercel-app/` as the deployable starter.
-- Rebuild server behavior in Next.js App Router or another Vercel-supported server runtime.
+- Use the Vercel dashboard import as the beginner deployment path.
+- Use the Vercel CLI only when the deployer already has Node.js/npm and wants a terminal workflow.
+- Extend server behavior in Next.js App Router or another Vercel-supported server runtime as the Vercel artifact grows.
 - Keep SQLite semantics by using hosted SQLite-compatible storage such as Turso/libSQL.
 - Recreate the PHP app's auth, role checks, status transitions, idempotency, audit log, CSV export, public tracking, user access control, and retention rules.
 - Replace `maintenance.php` with a protected Vercel Cron route.
@@ -151,8 +154,9 @@ Minimum Vercel environment variables:
 - `TURSO_AUTH_TOKEN`
 - `SESSION_SECRET`
 - `CRON_SECRET`
+- `SETUP_SECRET`
 - `APP_TIMEZONE`
-- Retention settings matching the PHP app: backup, terminal parcel, audit, idempotency, and rate-limit retention windows.
+- Vercel starter retention settings: terminal parcel, audit, and idempotency retention windows.
 
 Cron shape:
 
@@ -169,15 +173,65 @@ Cron shape:
 
 The cron route must verify `Authorization: Bearer ${CRON_SECRET}` before running backup or cleanup work.
 
-Deploy flow:
+### Beginner Vercel Dashboard Steps
 
-1. Build or unzip the Vercel-native app separately from the PHP zip.
-2. Provision hosted SQLite-compatible storage and add the environment variables to Vercel.
-3. Deploy `hubroute-vercel.zip` or the `vercel-app/` folder.
-4. Open `/api/health`.
-5. Open `/setup` and enter `SETUP_SECRET` to create schema and starter data.
-6. Open `/track/HR260703DHK1A2`.
-7. Add the remaining dashboard/login/admin flows when moving beyond the starter artifact.
+Use this path when the deployer can use GitHub and the Vercel dashboard. No local terminal, npm install, or source packaging is required on the deployer's computer.
+
+1. Get `dist/hubroute-vercel.zip`.
+2. Extract the zip on your computer.
+3. Open the extracted folder and confirm these items are at the top level: `api/`, `lib/`, `scripts/`, `index.html`, `track.html`, `setup.html`, `styles.css`, `package.json`, `package-lock.json`, `vercel.json`, `.env.example`, and `README.md`.
+4. Create a new empty GitHub repository, for example `hubroute-vercel`.
+5. Upload the contents of the extracted folder into the root of that GitHub repository. Do not upload the parent folder itself.
+6. Do not upload the PHP shared-host zip, browser walkthrough files, `.env`, local SQLite databases, logs, or backup files.
+7. Create a hosted SQLite-compatible database in Turso/libSQL.
+8. Copy the database URL into `TURSO_DATABASE_URL`.
+9. Create a database token and copy it into `TURSO_AUTH_TOKEN`.
+10. Create unique 32+ character secrets for `SESSION_SECRET`, `CRON_SECRET`, and `SETUP_SECRET`.
+11. In the Vercel dashboard, choose **Add New -> Project**.
+12. Import the GitHub repository created in step 4.
+13. On the project setup screen, keep the root directory as the repository root. If you placed the files inside a subfolder, choose the folder that contains `vercel.json`.
+14. If Vercel asks for a framework, choose **Other** or **No Framework**.
+15. Keep advanced command fields at their defaults.
+16. Add these Production environment variables in Vercel:
+    - `TURSO_DATABASE_URL`
+    - `TURSO_AUTH_TOKEN`
+    - `SESSION_SECRET`
+    - `CRON_SECRET`
+    - `SETUP_SECRET`
+    - `APP_TIMEZONE`
+    - `MAINTENANCE_PRUNE_TERMINAL_DAYS`
+    - `MAINTENANCE_PRUNE_AUDIT_DAYS`
+    - `MAINTENANCE_PRUNE_IDEMPOTENCY_DAYS`
+17. Click **Deploy**.
+18. Open `https://YOUR-VERCEL-DOMAIN/api/health`.
+19. If health reports missing environment variables, add the missing values in Vercel and redeploy.
+20. Open `https://YOUR-VERCEL-DOMAIN/setup`.
+21. Enter `SETUP_SECRET` to create the schema and starter public-tracking data.
+22. Open `https://YOUR-VERCEL-DOMAIN/track/HR260703DHK1A2`.
+23. In the Vercel project settings, confirm the scheduled cron points at `/api/cron/maintenance`.
+24. Before real operations, replace starter data and continue the remaining dashboard/login/admin port.
+
+### Optional Vercel CLI Steps
+
+Use this only if the deployer already has Node.js/npm and prefers the terminal. The dashboard path above is easier for beginners.
+
+1. Extract `hubroute-vercel.zip`.
+2. Open a terminal inside the extracted folder, the same folder that contains `vercel.json`.
+3. Run:
+
+```bash
+npx vercel login
+npx vercel link
+```
+
+4. Add the same environment variables listed above in the Vercel dashboard.
+5. Run:
+
+```bash
+npx vercel --prod
+```
+
+6. Open `/api/health`, run `/setup`, and test `/track/HR260703DHK1A2`.
 
 LLM prompt for that path:
 
@@ -185,12 +239,12 @@ LLM prompt for that path:
 Port HubRoute to a Vercel-native production app.
 Keep the existing PHP + SQLite shared-hosting build intact and do not upload the PHP zip to Vercel.
 Use the separate Vercel-ready fileset in vercel-app/ or dist/hubroute-vercel.zip.
-Build on the included Vercel Node Functions starter or port additional flows to Next.js App Router.
+Start from the included Vercel Node Functions starter or port additional flows to Next.js App Router.
 Use hosted SQLite-compatible storage such as Turso/libSQL so production remains SQLite-based.
 Do not use local filesystem SQLite for Vercel production.
 Preserve auth, RBAC, status transitions, idempotency, audit logging, CSV export, public tracking, user access control, and maintenance retention rules.
 Map health.php to /api/health and maintenance.php to a protected /api/cron/maintenance route.
-Configure Vercel environment variables: TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, SESSION_SECRET, CRON_SECRET, APP_TIMEZONE, and retention settings.
+Configure Vercel environment variables: TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, SESSION_SECRET, CRON_SECRET, SETUP_SECRET, APP_TIMEZONE, and retention settings.
 Do not replace SQLite with Postgres, MySQL, Supabase, or another backend unless the project owner explicitly changes the database decision.
 Use preview deployments for validation, then promote the validated preview or deploy production.
 After deploy, create a production admin and rotate or disable seeded accounts.
