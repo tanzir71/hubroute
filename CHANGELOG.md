@@ -4,7 +4,10 @@
 
 - Reworked the GitHub landing page with a tighter TinyProctorJS-inspired layout, smaller fixed type scale, demo CTA, setup block, and security checklist.
 - Added a visible seeded hub-operator demo path at `hubroute.php?r=login&demo=hub` that prefills the email only.
-- Documented the Namecheap/cPanel deployment ZIP and demo credential rotation expectations.
+- Made the login GET route render before SQLite startup so shared-hosting runtime issues do not blank the demo login page.
+- Split hosting responsibilities: GitHub Pages serves the landing page, while Namecheap receives only the PHP demo-runtime ZIP.
+- Added a demo front door (`index.php`), packaged `demo.php`, and root `.htaccess` so the cPanel demo works from the domain root after extraction.
+- Guarded disabled env/config functions and added `health.php` for shared-hosting diagnostics.
 
 ## 2026-05-14
 

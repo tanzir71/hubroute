@@ -127,11 +127,11 @@
           <h1>Parcel routing without a heavyweight logistics stack.</h1>
           <p class="lead">HubRoute gives small delivery teams a hardened operations console for pickup hubs, warehouse handoffs, last-mile agents, public tracking, COD settlement, and CSV route manifests.</p>
           <div class="actions" aria-label="Primary actions">
-            <a class="btn primary" href="hubroute.php?r=login&amp;demo=hub">Open demo login</a>
-            <a class="btn download" href="hubroute-namecheap.zip">Download Namecheap ZIP</a>
-            <a class="btn" href="hubroute.php?r=track">Track sample parcel</a>
+            <a class="btn primary" href="http://hubroute.ganges.quest/">Open hosted demo</a>
+            <a class="btn download" href="hubroute-demo.zip">Download demo ZIP</a>
+            <a class="btn" href="http://hubroute.ganges.quest/demo.php?r=track">Track sample parcel</a>
           </div>
-          <p class="runtime-note">GitHub Pages serves the landing page and ZIP; the PHP demo opens after deployment on Namecheap or another PHP host.</p>
+          <p class="runtime-note">GitHub Pages hosts this landing page. The demo runs at hubroute.ganges.quest over plain HTTP.</p>
           <div class="proof" aria-label="Product facts">
             <div class="proof-item"><strong>1 file</strong><span>PHP app entry</span></div>
             <div class="proof-item"><strong>4 roles</strong><span>admin, hub, agent, customer</span></div>
@@ -175,8 +175,8 @@
               <dt>Role</dt><dd>North Pickup Hub operator</dd>
             </dl>
             <div class="actions">
-              <a class="btn primary" href="hubroute.php?r=login&amp;demo=hub">Open demo login</a>
-              <a class="btn" href="hubroute.php?r=track">Public tracking</a>
+              <a class="btn primary" href="http://hubroute.ganges.quest/">Open hosted demo</a>
+              <a class="btn" href="http://hubroute.ganges.quest/demo.php?r=track">Public tracking</a>
             </div>
             <p class="warn">These are seeded demo credentials. Rotate or disable them immediately after a production deployment.</p>
           </div>
@@ -222,18 +222,18 @@
         </div>
         <div class="setup">
           <div class="panel top">
-            <h3>Namecheap/cPanel path</h3>
-            <p>Use the deployment ZIP for shared hosting. It includes the app, landing page, docs, env template, security scan, and data-folder denial files.</p>
+            <h3>Hosted demo path</h3>
+            <p>Use the demo ZIP for shared hosting. It includes only the PHP runtime, env template, and data-folder denial files; the landing page stays on GitHub Pages.</p>
             <div class="actions" style="margin-top:16px">
-              <a class="btn primary" href="hubroute-namecheap.zip">Download ZIP</a>
+              <a class="btn primary" href="hubroute-demo.zip">Download demo ZIP</a>
               <a class="btn" href="SETUP.md">Open setup notes</a>
             </div>
           </div>
-          <pre class="code"><code>Upload hubroute-namecheap.zip to public_html
+          <pre class="code"><code>Upload hubroute-demo.zip to the demo domain
 Extract it in cPanel File Manager
 Copy .env.example to .env
 Confirm PHP 8.1+, pdo_sqlite, sqlite3
-Visit /hubroute.php?r=login&amp;demo=hub</code></pre>
+Visit http://hubroute.ganges.quest/</code></pre>
         </div>
       </section>
 

@@ -2,10 +2,12 @@
 
 HubRoute is a compact PHP 8 + SQLite parcel operations console for shared hosting. It supports customer pickup requests, hub assignment, agent delivery runs, public tracking, COD settlement, and route CSV export.
 
-Landing page: `index.html`  
-App entry: `hubroute.php`  
+Landing page: `index.html` on GitHub Pages
+Demo front door: `index.php`
+Demo app entry: `demo.php`
+Source app entry: `hubroute.php`
 Repository: <https://github.com/tanzir71/hubroute>
-Namecheap package: `hubroute-namecheap.zip`
+Demo package: `hubroute-demo.zip`
 
 ## Security Posture
 
@@ -24,7 +26,7 @@ See [SECURITY.md](SECURITY.md) for the full security notes and [SETUP.md](SETUP.
 
 The landing page and login screen highlight the seeded hub operator demo:
 
-- Demo URL: `hubroute.php?r=login&demo=hub`
+- Demo URL: `http://hubroute.ganges.quest/`
 - Email: `pickuphub@hubroute.local`
 - Password: `hub1234`
 - Role: North Pickup Hub operator
@@ -50,9 +52,9 @@ php -S 127.0.0.1:8080 hubroute.php
 
 Open `http://127.0.0.1:8080/hubroute.php`.
 
-## Namecheap Deployment ZIP
+## Demo Deployment ZIP
 
-`hubroute-namecheap.zip` is the cPanel upload bundle. It includes the PHP app, static landing page, docs, `.env.example`, the PowerShell security scan, and staged `data/.htaccess` plus `data/index.html` denial files. It excludes private/runtime state such as `.env`, SQLite databases, logs, `.git`, and design-source notes.
+`hubroute-demo.zip` is the cPanel demo-runtime bundle. Upload it to the demo domain root, extract it, and visit the domain. It includes `index.php`, a fallback redirect `index.html`, `demo.php`, `health.php`, root `.htaccess`, `.env.example`, and staged `data/.htaccess` plus `data/index.html` denial files. The real landing page and docs stay in the GitHub repo/GitHub Pages. The ZIP excludes private/runtime state such as `.env`, SQLite databases, logs, `.git`, and design-source notes.
 
 ## Static Security Scan
 

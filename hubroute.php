@@ -1,6 +1,24 @@
 <?php
 declare(strict_types=1);
 
+function safeIniSet(string $option, string $value): void
+{
+    if (function_exists('ini_set')) {
+        @ini_set($option, $value);
+    }
+}
+
+function safeGetEnv(string $key)
+{
+    if (function_exists('getenv')) {
+        $value = @getenv($key);
+        if ($value !== false && $value !== '') {
+            return $value;
+        }
+    }
+    return $_ENV[$key] ?? false;
+}
+
 function loadEnvFile(string $path): void
 {
     if (!is_file($path) || !is_readable($path)) {
@@ -21,8 +39,10 @@ function loadEnvFile(string $path): void
         if ((str_starts_with($value, '"') && str_ends_with($value, '"')) || (str_starts_with($value, "'") && str_ends_with($value, "'"))) {
             $value = substr($value, 1, -1);
         }
-        if (getenv($key) === false) {
-            putenv($key . '=' . $value);
+        if (safeGetEnv($key) === false || safeGetEnv($key) === '') {
+            if (function_exists('putenv')) {
+                @putenv($key . '=' . $value);
+            }
             $_ENV[$key] = $value;
         }
     }
@@ -30,19 +50,19 @@ function loadEnvFile(string $path): void
 
 function envString(string $key, string $default): string
 {
-    $value = getenv($key);
+    $value = safeGetEnv($key);
     return $value === false || $value === '' ? $default : (string)$value;
 }
 
 function envInt(string $key, int $default): int
 {
-    $value = getenv($key);
+    $value = safeGetEnv($key);
     return $value === false || !preg_match('/^\d+$/', (string)$value) ? $default : (int)$value;
 }
 
 function envBool(string $key, bool $default): bool
 {
-    $value = getenv($key);
+    $value = safeGetEnv($key);
     if ($value === false || $value === '') {
         return $default;
     }
@@ -75,9 +95,9 @@ if (!is_dir(DATA_DIR)) {
     @mkdir(DATA_DIR, 0775, true);
 }
 
-ini_set('display_errors', '0');
-ini_set('log_errors', '1');
-ini_set('error_log', DATA_DIR . DIRECTORY_SEPARATOR . 'php-error.log');
+safeIniSet('display_errors', '0');
+safeIniSet('log_errors', '1');
+safeIniSet('error_log', DATA_DIR . DIRECTORY_SEPARATOR . 'php-error.log');
 error_reporting(E_ALL);
 
 $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['SERVER_PORT'] ?? '') === '443');
@@ -1095,7 +1115,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     echo '</head><body>' . $nav . '<div class="wrap">' . $flashHtml . $content . '</div>' . $footer . '</body></html>';
 }
 
-function pageLogin(PDO $pdo): void
+function pageLogin(): void
 {
     $demoEmail = getText('demo', 20) === 'hub' ? 'pickuphub@hubroute.local' : '';
     $content = '<div class="card" style="max-width:520px;margin:40px auto"><div class="h1">Sign in</div>';
@@ -2431,13 +2451,15 @@ function routeExport(PDO $pdo, array $u): void
     exit;
 }
 
-$pdo = null;
-try {
-    $pdo = db();
-} catch (Throwable $e) {
-    logAppError($e, ['phase' => 'startup']);
-    renderFatal('HubRoute startup error', 'The application could not start. Check that PDO SQLite and SQLite3 are enabled, then review data/php-error.log on the server.');
-    exit;
+function bootDbOrFail(): PDO
+{
+    try {
+        return db();
+    } catch (Throwable $e) {
+        logAppError($e, ['phase' => 'startup']);
+        renderFatal('HubRoute startup error', 'The application could not start. Check that PDO SQLite and SQLite3 are enabled, then review data/php-error.log on the server.');
+        exit;
+    }
 }
 
 $pathInfo = (string)($_SERVER['PATH_INFO'] ?? '');
@@ -2448,6 +2470,7 @@ if ($pathInfo !== '' && preg_match('#^/track/([A-Za-z0-9_-]+)$#', $pathInfo, $m)
 
 $action = (string)($_POST['action'] ?? '');
 if ($action !== '') {
+    $pdo = bootDbOrFail();
     $u = currentUser($pdo);
     $knownActions = ['login','logout','customer_create','customer_confirm','hub_assign','hub_create_route','record_event','agent_step','settle','admin_create_hub','admin_create_agent','admin_create_customer'];
     if (!in_array($action, $knownActions, true)) {
@@ -2508,7 +2531,7 @@ if ($route === '') {
 }
 
 if ($route === 'login') {
-    pageLogin($pdo);
+    pageLogin();
     exit;
 }
 if ($route === 'logout') {
@@ -2517,10 +2540,12 @@ if ($route === 'logout') {
     exit;
 }
 if ($route === 'track') {
+    $pdo = bootDbOrFail();
     pagePublicTrack($pdo);
     exit;
 }
 
+$pdo = bootDbOrFail();
 $u = requireLogin($pdo);
 
 if ($route === 'dashboard') {

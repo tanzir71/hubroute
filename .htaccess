@@ -1,0 +1,6 @@
+DirectoryIndex index.php index.html
+
+<FilesMatch "^\.env|\.sqlite|\.log$">
+    Require all denied
+    Deny from all
+</FilesMatch>

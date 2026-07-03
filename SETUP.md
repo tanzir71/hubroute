@@ -1,24 +1,31 @@
 # HubRoute Setup
 
-## Namecheap/cPanel Deployment
+## Namecheap/cPanel Demo Deployment
 
 1. In cPanel, set the domain or subdomain PHP version to PHP 8.1 or newer and enable `pdo_sqlite` and `sqlite3`.
-2. Upload `hubroute-namecheap.zip` to the target folder, usually `public_html/`, and extract it there. If you are not using the ZIP, upload `hubroute.php`, `index.html`, `README.md`, `SETUP.md`, `SECURITY.md`, `CHANGELOG.md`, `.env.example`, and `tests/security_scan.ps1`.
-3. Copy `.env.example` to `.env`, edit values if needed, and keep `.env` out of Git.
-4. Create or confirm `data/` next to `hubroute.php`. Prefer permissions `750` or `770`; use `775` only if your host requires it. The ZIP includes starter `data/.htaccess` and `data/index.html` denial files.
-5. Visit `https://yourdomain.com/hubroute.php`. First run creates `data/hubroute.sqlite`, `data/php-error.log`, and runtime denial files inside `data/`.
-6. Confirm `https://yourdomain.com/data/hubroute.sqlite` is not downloadable. If it is reachable, move `DATA_DIR` outside `public_html` in `.env`.
-7. Sign in with a seeded account, immediately create replacement users/passwords, then remove or disable seeded credentials for production.
+2. Upload `hubroute-demo.zip` to the demo domain folder, usually `public_html/` or the subdomain document root, and extract it there with overwrite enabled.
+3. Visit `http://hubroute.ganges.quest/`. `index.php` redirects to the seeded demo login in `demo.php`.
+4. First app startup creates `data/hubroute.sqlite`, `data/php-error.log`, and runtime denial files inside `data/`.
+5. Confirm `http://hubroute.ganges.quest/data/hubroute.sqlite` is not downloadable. If it is reachable, move `DATA_DIR` outside `public_html` in `.env`.
+6. For a public demo, rotate or disable seeded credentials before using real parcel/customer data.
+
+The ZIP is intentionally demo-only: it does not include the GitHub landing page or docs. It includes a root `.htaccess` so `index.php` is preferred, plus a fallback redirect `index.html` in case the host still serves HTML first.
+
+No `.env` file is required for the default demo. Copy `.env.example` to `.env` only if you need to change paths, timezone, or rate-limit/session settings.
 
 ## Demo Login
 
 The deployment includes a seeded hub operator demo account:
 
-- URL: `https://yourdomain.com/hubroute.php?r=login&demo=hub`
+- URL: `http://hubroute.ganges.quest/`
 - Email: `pickuphub@hubroute.local`
 - Password: `hub1234`
 
 The demo URL prefills only the email field. The password is shown in the login helper text and must be typed manually.
+
+If the login page loads but sign-in or public tracking fails with a startup error, recheck that `pdo_sqlite` and `sqlite3` are enabled and that `data/` is writable by PHP.
+
+If the app still fails, open `http://hubroute.ganges.quest/health.php`. It checks PHP version, PDO SQLite, SQLite3, data-folder writability, and an actual SQLite write.
 
 ## Local Smoke Run
 
@@ -46,8 +53,11 @@ Replace `CPANEL_USER` with your hosting username and adjust the path if `DATA_DI
 
 ## Permissions
 
-- `hubroute.php`: `644`
-- `index.html` and docs: `644`
+- `demo.php`: `644`
+- `health.php`: `644`
+- `index.php`: `644`
+- `.htaccess`: `644`
+- `.env.example`: `644`
 - `.env`: `600` or the strictest permission your host supports
 - `data/`: `750` or `770`
 - `data/hubroute.sqlite`: created by PHP; keep writable by the PHP user only
