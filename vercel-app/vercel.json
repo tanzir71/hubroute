@@ -1,0 +1,18 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/maintenance",
+      "schedule": "15 2 * * *"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/track/:code",
+      "destination": "/track.html?code=:code"
+    },
+    {
+      "source": "/setup",
+      "destination": "/setup.html"
+    }
+  ]
+}

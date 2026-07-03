@@ -2,6 +2,7 @@
 
 ## 2026-07-04
 
+- Added a separate `vercel-app/` production starter and `npm run package:vercel` to produce `dist/hubroute-vercel.zip` for Vercel deployments with Turso/libSQL, health, setup, public tracking, and protected maintenance cron routes.
 - Added CLI-only SQLite maintenance for automated backups, retention cleanup, and cron-friendly production pruning.
 - Added admin user access control for creating production admins, resetting passwords, and disabling seeded or unused accounts.
 - Added `npm run package:php` for a fresh shared-hosting zip and rewrote setup docs around zip extraction, one-command deploys, and LLM-assisted deployment.

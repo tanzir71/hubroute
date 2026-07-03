@@ -10,6 +10,7 @@
     "check:demo": "node scripts/build-demo.mjs --check && node scripts/sync-demo.mjs --check",
     "smoke:demo": "node scripts/smoke-demo.mjs",
     "package:php": "node scripts/package-php.mjs",
+    "package:vercel": "node scripts/package-vercel.mjs",
     "deploy:shared": "npm run package:php",
     "maintainer:deploy:demo": "npm run sync:demo && npm test && npx --yes vercel deploy --prod",
     "maintainer:deploy:demo:preview": "npm run sync:demo && npm test && npx --yes vercel deploy",

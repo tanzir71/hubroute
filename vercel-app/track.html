@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Track Parcel / HubRoute Vercel</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <nav class="topbar">
+      <a href="/">HubRoute Vercel</a>
+      <span>Public tracking</span>
+    </nav>
+    <section class="panel">
+      <h1>Track a parcel</h1>
+      <form id="trackForm" class="form">
+        <label>Tracking number
+          <input name="code" autocomplete="off" placeholder="HR260703DHK1A2" required>
+        </label>
+        <button class="btn primary" type="submit">Track</button>
+      </form>
+    </section>
+    <section id="result" class="panel muted">Enter a tracking number to begin.</section>
+  </main>
+  <script>
+    const form = document.querySelector("#trackForm");
+    const result = document.querySelector("#result");
+    const params = new URLSearchParams(location.search);
+    const pathCode = location.pathname.startsWith("/track/") ? location.pathname.split("/").pop() : "";
+    const initial = params.get("code") || pathCode || "";
+    form.code.value = initial;
+
+    async function lookup(code) {
+      if (!code) return;
+      result.className = "panel muted";
+      result.textContent = "Loading...";
+      const response = await fetch(`/api/track?code=${encodeURIComponent(code)}`);
+      const payload = await response.json();
+      if (!payload.ok) {
+        result.className = "panel error";
+        result.textContent = payload.error === "not_found" ? "No parcel found for that tracking number." : payload.error;
+        return;
+      }
+      const parcel = payload.parcel;
+      result.className = "panel";
+      result.innerHTML = `
+        <p class="eyebrow">${parcel.trackingCode}</p>
+        <h2>${parcel.status.replaceAll("_", " ")}</h2>
+        <p>${parcel.pickupArea} -> ${parcel.dropoffArea}</p>
+        <p class="muted">Current hub: ${parcel.currentHub || "Pending"} / ${parcel.paymentMode}</p>
+        <div class="timeline">
+          ${payload.events.map((event) => `
+            <div class="event">
+              <strong>${event.type.replaceAll("_", " ")}</strong>
+              <span>${event.hub || ""}</span>
+              <small>${event.at}</small>
+              <p>${event.note || ""}</p>
+            </div>
+          `).join("")}
+        </div>`;
+    }
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      lookup(form.code.value.trim());
+    });
+    lookup(initial);
+  </script>
+</body>
+</html>

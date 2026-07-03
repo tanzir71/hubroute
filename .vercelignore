@@ -4,6 +4,7 @@
 data
 dist
 tests
+vercel-app
 *.zip
 *.md
 *.php

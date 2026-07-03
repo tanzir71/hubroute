@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Setup / HubRoute Vercel</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <nav class="topbar">
+      <a href="/">HubRoute Vercel</a>
+      <span>First setup</span>
+    </nav>
+    <section class="panel">
+      <h1>Initialize database</h1>
+      <p class="muted">Enter the <code>SETUP_SECRET</code> configured in Vercel. This creates tables and inserts starter public-tracking data if the database is empty.</p>
+      <form id="setupForm" class="form">
+        <label>Setup secret
+          <input name="setupSecret" type="password" required>
+        </label>
+        <button class="btn primary" type="submit">Run setup</button>
+      </form>
+    </section>
+    <section id="result" class="panel muted">Setup has not run yet.</section>
+  </main>
+  <script>
+    const form = document.querySelector("#setupForm");
+    const result = document.querySelector("#result");
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      result.className = "panel muted";
+      result.textContent = "Running setup...";
+      const response = await fetch("/api/setup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ setupSecret: form.setupSecret.value })
+      });
+      const payload = await response.json();
+      result.className = payload.ok ? "panel success" : "panel error";
+      result.textContent = JSON.stringify(payload, null, 2);
+    });
+  </script>
+</body>
+</html>

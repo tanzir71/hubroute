@@ -30,6 +30,7 @@ exclude:
   - "src/"
   - "tests/"
   - "vercel-demo/"
+  - "vercel-app/"
   - "vercel.json"
   - "*.log"
   - "*.sqlite"

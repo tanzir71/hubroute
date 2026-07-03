@@ -41,7 +41,7 @@ The command backs up SQLite first, then prunes old terminal parcels, old audit r
 
 Shared hosting and small VPS deployments are the supported production path today: upload/extract `hubroute-php-sqlite.zip` or sync the extracted PHP runtime files over SSH, then run the PHP 8 + SQLite app.
 
-The Vercel browser demo is maintainer-only and is not a user deployment path. A production Vercel app should be a separate Vercel-native port using Next.js/Node functions and hosted SQLite-compatible storage such as libSQL/Turso if the product must remain SQLite-based. The PHP + local SQLite production bundle is intentionally kept simple for shared hosts.
+The Vercel browser demo is maintainer-only and is not a user deployment path. The repo now includes a separate Vercel-ready starter fileset in `vercel-app/`, packaged as `dist/hubroute-vercel.zip`, using Vercel-supported server code and hosted SQLite-compatible storage such as libSQL/Turso. The PHP + local SQLite production bundle is intentionally kept simple for shared hosts.
 
 ## Why PHP + SQLite
 
@@ -94,6 +94,12 @@ Build the shared-hosting zip from source:
 
 ```bash
 npm run deploy:shared
+```
+
+Build the Vercel-ready starter zip from source:
+
+```bash
+npm run package:vercel
 ```
 
 The browser walkthrough is separate from production and is maintainer-only. It is generated from `src/demo/` into `public/index.html` and stores changes in localStorage.

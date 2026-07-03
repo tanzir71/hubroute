@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HubRoute Vercel</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <nav class="topbar">
+      <strong>HubRoute Vercel</strong>
+      <span>Production starter</span>
+    </nav>
+    <section class="panel hero">
+      <p class="eyebrow">Vercel-ready fileset</p>
+      <h1>Hosted SQLite-compatible parcel tracking for Vercel.</h1>
+      <p>This artifact is separate from the PHP shared-host zip. It runs on Vercel Functions and stores data in Turso/libSQL.</p>
+      <div class="actions">
+        <a class="btn primary" href="/track.html">Track parcel</a>
+        <a class="btn" href="/setup.html">First setup</a>
+        <a class="btn" href="/api/health">Health check</a>
+      </div>
+    </section>
+    <section class="grid">
+      <article class="panel">
+        <h2>Required environment</h2>
+        <ul>
+          <li><code>TURSO_DATABASE_URL</code></li>
+          <li><code>TURSO_AUTH_TOKEN</code></li>
+          <li><code>SESSION_SECRET</code></li>
+          <li><code>CRON_SECRET</code></li>
+          <li><code>SETUP_SECRET</code></li>
+        </ul>
+      </article>
+      <article class="panel">
+        <h2>After deploy</h2>
+        <ol>
+          <li>Open <code>/api/health</code>.</li>
+          <li>Open <code>/setup</code> and enter <code>SETUP_SECRET</code>.</li>
+          <li>Try <code>/track/HR260703DHK1A2</code>.</li>
+          <li>Replace starter data before real operations.</li>
+        </ol>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
