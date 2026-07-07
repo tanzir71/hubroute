@@ -348,6 +348,14 @@ Goal: someone with zero terminal experience deploys HubRoute tracking on Vercel 
 ### E-04+ — (Loop-generated tasks)
 Add new tasks here during the final audit (§9), using the same format: ID, Files, Do, Accept. Never edit completed task text.
 
+### E-04 — Final audit live runtime checks
+- [B] BLOCKED
+  - blocked-on local PHP SQLite runtime: `extension_loaded('pdo_sqlite') === false` and `extension_loaded('sqlite3') === false`, so the PHP app cannot complete first-run seed, real screenshot capture, PHP tracking Lighthouse, or the local PHP zip workflow in this environment.
+- **Files:** `index.html`, `hubroute.php`, `assets/shots/*.png`, packaged PHP zip
+- **Do:** complete final-audit items 1, 3, and 8 that require a live PHP + SQLite app: capture real PHP screenshots, deploy `dist/hubroute-php-sqlite.zip` locally, and run Lighthouse on PHP tracking.
+- **Workaround completed:** static landing/docs link audit passed; GLOBAL GATES passed; `npm run check:tokens` passed; PHP lint passed; public tracking privacy/stepper, empty states, deploy guide, a11y, and performance are covered by regression tests.
+- **Accept:** rerun on a host with `pdo_sqlite` and `sqlite3` enabled; screenshots exist under `assets/shots/`; local PHP workflow succeeds; Lighthouse meets §9 thresholds.
+
 ---
 
 ## 9. Final audit (run when all boxes are [x] or [B])
