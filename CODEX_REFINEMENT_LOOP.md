@@ -185,7 +185,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** `npm run check:tokens` passes; deliberately altering one token value in `hubroute.php` makes it fail (then revert); GLOBAL GATES pass.
 
 ### B-02 — App shell: header, nav, footer
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php` (`renderLayout()`)
 - **Do:**
   - Topbar: white `--panel`, 1px `--line` bottom border. Left: inline route-arrow logo SVG (copy the exact markup from `index.html` nav) + `HubRoute` wordmark. Center/right: nav links styled as underline-tab items (`border-bottom:2px solid transparent`, active → `var(--brand)`, hover `--panel-2`), matching the demo console's `.tab` pattern. Far right: `email / ROLE` in mono 11px uppercase + Logout as a bordered secondary button.

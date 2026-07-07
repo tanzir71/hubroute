@@ -1242,6 +1242,13 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     $refreshTag = $refresh ? '<meta http-equiv="refresh" content="' . e((string)$refresh) . '">' : '';
     $flash = takeFlash();
 
+    $currentRoute = queryText('r', 40);
+    if ($currentRoute === '') {
+        $currentRoute = 'track';
+    }
+    $logo = '<span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 32 32" class="logo-svg" focusable="false" aria-hidden="true"><rect class="logo-bg" width="32" height="32"></rect><path class="logo-arrow" d="M6.5 25.5 L20.5 11.5" fill="none" stroke-width="3.4"></path><path class="logo-head" d="M24 8 L23.1 15.7 L15.9 14.4 Z"></path><rect class="logo-node" x="9.3" y="19.1" width="3.8" height="3.8" stroke-width="1.5"></rect></svg></span>';
+    $brandHref = $user ? '?r=dashboard' : '?r=track';
+    $brand = '<a class="brand" href="' . e($brandHref) . '">' . $logo . '<span>' . e(APP_NAME) . '</span></a>';
     $nav = '';
     if ($user) {
         $links = [
@@ -1267,12 +1274,19 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
 
         $navLinks = '';
         foreach ($links as $l) {
-            $navLinks .= '<a class="navlink" href="?r=' . e($l[1]) . '">' . e($l[0]) . '</a>';
+            $active = $currentRoute === $l[1] ? ' active' : '';
+            $aria = $active ? ' aria-current="page"' : '';
+            $navLinks .= '<a class="navlink' . $active . '" href="?r=' . e($l[1]) . '"' . $aria . '>' . e($l[0]) . '</a>';
         }
-        $logout = '<form method="post" class="navform"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="logout"><button class="navlink navbutton" type="submit">Logout</button></form>';
-        $nav = '<div class="topbar"><div class="brand">' . e(APP_NAME) . '</div><div class="nav">' . $navLinks . $logout . '</div><div class="who">' . e((string)$user['email']) . ' / ' . e(roleLabel((string)$user['role'])) . '</div></div>';
+        $logout = '<form method="post" class="navform"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="logout"><button class="btn secondary nav-logout" type="submit">Logout</button></form>';
+        $who = '<span class="who">' . e((string)$user['email']) . ' / ' . e(strtoupper(roleLabel((string)$user['role']))) . '</span>';
+        $nav = '<div class="topbar">' . $brand . '<div class="nav">' . $navLinks . '</div><div class="user-tools">' . $who . $logout . '</div></div>';
     } else {
-        $nav = '<div class="topbar"><div class="brand">' . e(APP_NAME) . '</div><div class="nav"><a class="navlink" href="?r=track">Public Tracking</a><a class="navlink" href="?r=login">Login</a></div></div>';
+        $trackActive = $currentRoute === 'track' ? ' active' : '';
+        $loginActive = $currentRoute === 'login' ? ' active' : '';
+        $trackAria = $trackActive ? ' aria-current="page"' : '';
+        $loginAria = $loginActive ? ' aria-current="page"' : '';
+        $nav = '<div class="topbar">' . $brand . '<div class="nav"><a class="navlink' . $trackActive . '" href="?r=track"' . $trackAria . '>Public Tracking</a><a class="navlink' . $loginActive . '" href="?r=login"' . $loginAria . '>Login</a></div></div>';
     }
 
     $flashHtml = '';
@@ -1282,21 +1296,28 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
         $flashHtml .= '<div class="flash ' . e((string)$t) . '">' . e((string)$msg) . '</div>';
     }
 
-    $footer = '<footer class="footer"><span>' . e(APP_NAME) . '</span><a href="?r=track">Public Tracking</a></footer>';
+    $footer = '<footer class="footer"><span>' . e(APP_NAME) . ' &middot; self-hosted parcel operations</span><a href="?r=track">Public Tracking</a></footer>';
 
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' . $refreshTag . '<title>' . e($title) . ' / ' . e(APP_NAME) . '</title>';
     echo '<style>
     :root{--bg:#f4f5f7;--panel:#ffffff;--panel-2:#f8f9fb;--text:#141821;--muted:#5c6470;--line:#e5e8ee;--line-strong:#d3d8e0;--ink:#0b0d12;--brand:#2f56d9;--brand-ink:#2444b8;--brand-soft:#eef2fe;--ok:#0f7a4d;--warn:#9a5b00;--danger:#c0362c;--mono:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;--shadow:0 16px 40px rgba(11,13,18,.14);--band:var(--panel-2);--soft:var(--brand-soft);--blue:var(--brand);--green:var(--ok);--amber:var(--warn);--red:var(--danger);}
     *{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg)}
     a{color:var(--text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}a:hover{color:var(--brand)}
-    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
-    .brand{font-weight:750;letter-spacing:0}
-    .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .topbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;padding:0 18px;min-height:62px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:750;letter-spacing:0;text-decoration:none}
+    .logo-mark{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:0 0 30px}
+    .logo-mark svg,.logo-svg{display:block;width:30px;height:30px}
+    .logo-bg{fill:var(--brand)}
+    .logo-arrow{stroke:var(--panel)}
+    .logo-head{fill:var(--panel)}
+    .logo-node{fill:var(--brand);stroke:var(--panel)}
+    .nav{display:flex;gap:2px;flex-wrap:wrap;align-items:center}
     .navform{margin:0}
-    .navlink{display:inline-flex;align-items:center;padding:6px 8px;color:var(--text);text-decoration:none}
+    .navlink{display:inline-flex;align-items:center;min-height:38px;padding:8px 10px;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent}
     .navlink:hover{background:var(--soft);text-decoration:none}
-    .navbutton{border:0;background:transparent;font:inherit;cursor:pointer}
-    .who{color:var(--muted);font-size:12px}
+    .navlink.active{color:var(--ink);border-bottom-color:var(--brand);font-weight:650}
+    .user-tools{display:flex;align-items:center;gap:10px;justify-content:flex-end}
+    .who{color:var(--muted);font:11px/1.3 var(--mono);letter-spacing:.04em;text-transform:uppercase}
     .wrap{max-width:1200px;margin:0 auto;padding:18px}
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:980px){.grid.cols2{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}}
@@ -1306,6 +1327,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;font:inherit}
     .btn.primary{background:var(--brand);border-color:var(--brand);color:var(--panel)}
+    .btn.secondary{background:var(--panel);border-color:var(--line-strong);color:var(--text)}
     .btn:disabled{opacity:.45;cursor:not-allowed}
     input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);font:inherit}
     input:focus,select:focus,textarea:focus,.btn:focus-visible,.navlink:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
@@ -1328,7 +1350,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .kpi .l{font-size:12px;color:var(--muted)}
     .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
     .footer a{color:var(--muted)}
-    @media(max-width:720px){.topbar{align-items:flex-start;flex-direction:column}.who{order:2}.wrap{padding:12px}.card{padding:12px}.table th{position:static}}
+    @media(max-width:720px){.topbar{grid-template-columns:1fr;align-items:flex-start;padding:12px 18px}.user-tools{justify-content:flex-start;flex-wrap:wrap}.wrap{padding:12px}.card{padding:12px}.table th{position:static}}
     </style>';
     echo '</head><body>' . $nav . '<div class="wrap">' . $flashHtml . $content . '</div>' . $footer . '</body></html>';
 }
