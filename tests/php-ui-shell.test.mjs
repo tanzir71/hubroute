@@ -14,6 +14,6 @@ test("PHP layout shell includes branded logo, active nav state, and operator ide
 });
 
 test("PHP layout footer uses the product positioning copy", () => {
-  assert.match(php, /self-hosted parcel operations/);
+  assert.match(php, /self-hosted courier &amp; parcel operations console/);
   assert.match(php, /Public Tracking/);
 });

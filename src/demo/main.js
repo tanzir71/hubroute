@@ -1,6 +1,6 @@
 import { loadDemoSnapshot, persistDemoState } from './api-shim.js';
 import { ACTIVE_STATUSES, DEMO_ACCOUNTS, EVENT_TYPES, STATUSES, seedState } from './data.js';
-import { $, esc, filterCard, fmtDate, matchesQuery, money, normalized, options, pill, redact, renderEmptyState, renderErrorState, renderLoadingState, selectOptions, statusClass, tableStateRow, uid } from './components.js';
+import { $, esc, filterCard, fmtDate, matchesQuery, money, normalized, options, pill, redact, renderEmptyState, renderErrorState, renderLoadingState, selectOptions, statusClass, statusLabel, tableStateRow, uid } from './components.js';
 import { createFilters, createSessionState } from './state.js';
 import { renderCurrentView } from './views.js';
 
@@ -125,7 +125,7 @@ function renderSidebarCustody(){
     <div>
       <p class="eyebrow">Active custody path</p>
       <h3><button class="text-action" data-action="focus-parcel" data-id="${esc(parcel.id)}" type="button">${esc(parcel.code)}</button></h3>
-      <p class="muted small">${esc(customerName(parcel.customerId))} / ${esc(parcel.status.replaceAll('_',' '))}</p>
+      <p class="muted small">${esc(customerName(parcel.customerId))} / ${esc(statusLabel(parcel.status))}</p>
     </div>
     <div class="path-list" aria-label="Selected parcel hub path">
       ${path.map((hubId, index) => {
@@ -221,7 +221,7 @@ function filterSelect(scope, key, label, optionsHtml){
   return `<label>${esc(label)}<select data-filter-scope="${esc(scope)}" data-filter-key="${esc(key)}">${optionsHtml}</select></label>`;
 }
 function statusOptions(selected, label = 'All statuses'){
-  return selectOptions(STATUSES.map(s => ({ value: s, label: s.replaceAll('_',' ') })), selected, label);
+  return selectOptions(STATUSES.map(s => ({ value: s, label: statusLabel(s) })), selected, label);
 }
 function hubOptions(selected, label = 'All hubs'){
   return selectOptions(state.hubs.map(h => ({ value: h.id, label: h.name })), selected, label);
@@ -666,7 +666,7 @@ function renderRiders(){
     </div>
     ${filterCard('riders', 'Search and filter riders', 'Filter riders by name, +880 phone, vehicle, status, and active ride load.', [
       filterInput('riders', 'q', 'Search rider fields', 'Amina, +88018, van, free...'),
-      filterSelect('riders', 'status', 'Status', selectOptions(['active','off_duty','inactive'].map(s => ({value:s,label:s.replaceAll('_',' ')})), filters.riders.status, 'All statuses')),
+      filterSelect('riders', 'status', 'Status', selectOptions(['active','off_duty','inactive'].map(s => ({value:s,label:statusLabel(s)})), filters.riders.status, 'All statuses')),
       filterSelect('riders', 'vehicle', 'Vehicle', vehicleOptions(filters.riders.vehicle, baseRiders)),
       filterSelect('riders', 'load', 'Ride load', selectOptions([{value:'free',label:'No active rides'},{value:'available',label:'Has capacity'},{value:'busy',label:'70%+ busy'}], filters.riders.load, 'All loads'))
     ].join(''), baseRiders.length, riders.length, 'three')}
@@ -731,14 +731,14 @@ function renderScan(){
     ${filterCard('scan', 'Search scan queue and events', 'Search by tracking code, Bangladesh address, hub, route, rider, customer, event type, and event note.', [
       filterInput('scan', 'q', 'Search scan fields', 'Tejgaon, picked up, HR2607, Narayanganj...'),
       filterSelect('scan', 'status', 'Parcel status', statusOptions(filters.scan.status)),
-      filterSelect('scan', 'eventType', 'Event type', selectOptions(EVENT_TYPES.map(type => ({value:type,label:type.replaceAll('_',' ')})), filters.scan.eventType, 'All event types'))
+      filterSelect('scan', 'eventType', 'Event type', selectOptions(EVENT_TYPES.map(type => ({value:type,label:statusLabel(type)})), filters.scan.eventType, 'All event types'))
     ].join(''), baseParcels.length, parcels.length, 'three')}
     <div class="grid two">
       <form id="scanForm" class="card">
         <h2>Record event</h2>
         ${parcel ? '' : renderEmptyState(baseParcels.length ? 'No parcels match the scan filters' : 'No parcels available for scan', baseParcels.length ? 'Reset filters to choose from the current hub queue.' : 'Create a parcel before recording custody events.', baseParcels.length ? '<button class="btn ghost slim" data-action="reset-filters" data-scope="scan" type="button">Reset filters</button>' : actionButton('new-parcel', 'New parcel'))}
         <label>Tracking code<select name="parcelId" ${scanDisabled}>${options(parcels, parcel?.id, p => p.code + ' - ' + customerName(p.customerId))}</select></label>
-        <label>Event type<select name="type" ${scanDisabled}>${EVENT_TYPES.map(type => `<option value="${esc(type)}">${esc(type.replaceAll('_',' '))}</option>`).join('')}</select></label>
+        <label>Event type<select name="type" ${scanDisabled}>${EVENT_TYPES.map(type => `<option value="${esc(type)}">${esc(statusLabel(type))}</option>`).join('')}</select></label>
         <label>Hub<select name="hubId" ${state.hubs.length ? scanDisabled : 'disabled'}>${options(state.hubs, state.currentHubId, h => h.name)}</select></label>
         <label>Note<textarea name="note" placeholder="Optional event note" ${scanDisabled}></textarea></label>
         <div class="actions"><button class="btn primary" type="submit" ${scanDisabled}>Record event</button></div>
@@ -787,7 +787,7 @@ function renderPublicProgressStepper(parcel){
 function renderPublicTimeline(parcelId){
   const rows = state.events.filter(event => event.parcelId === parcelId && event.type !== 'note');
   if (!rows.length) return renderEmptyState('No events yet', 'Custody events will appear here once the parcel starts moving.');
-  return `<div class="timeline">${rows.map(event => `<div class="event"><strong>${esc(event.type.replaceAll('_',' '))}</strong><span class="muted small">${esc(hubName(event.hubId))} / ${esc(event.note || 'No note')} / ${fmtDate(event.at)}</span></div>`).join('')}</div>`;
+  return `<div class="timeline">${rows.map(event => `<div class="event"><strong>${esc(statusLabel(event.type))}</strong><span class="muted small">${esc(hubName(event.hubId))} / ${esc(event.note || 'No note')} / ${fmtDate(event.at)}</span></div>`).join('')}</div>`;
 }
 
 function renderPublicParcel(parcel){
@@ -842,7 +842,7 @@ function renderEventList(events){
   if (!events.length) return renderEmptyState('No events yet', 'Custody events, scan notes, and handoff updates will appear here once activity is recorded.');
   return `<div class="timeline">${events.map(event => {
     const parcel = getParcel(event.parcelId);
-    return `<div class="event"><strong>${esc(event.type.replaceAll('_',' '))}${parcel ? ' / ' + esc(parcel.code) : ''}</strong><span class="muted small">${esc(hubName(event.hubId))} / ${esc(event.note || 'No note')} / ${fmtDate(event.at)}</span></div>`;
+    return `<div class="event"><strong>${esc(statusLabel(event.type))}${parcel ? ' / ' + esc(parcel.code) : ''}</strong><span class="muted small">${esc(hubName(event.hubId))} / ${esc(event.note || 'No note')} / ${fmtDate(event.at)}</span></div>`;
   }).join('')}</div>`;
 }
 
@@ -944,7 +944,7 @@ function enhanceSelects(root = document){
 function openModal(title, body, footer = ''){
   const root = $('modalRoot');
   root.innerHTML = `<div class="modal">
-    <div class="modal-header"><div><p class="eyebrow">HubRoute demo</p><h2>${esc(title)}</h2></div><button class="btn ghost slim" data-action="close-modal" type="button">Close</button></div>
+    <div class="modal-header"><div><p class="eyebrow">HubRoute walkthrough</p><h2>${esc(title)}</h2></div><button class="btn ghost slim" data-action="close-modal" type="button">Close</button></div>
     <div class="modal-body">${body}</div>
     ${footer}
   </div>`;
@@ -971,7 +971,7 @@ function openParcelForm(id = ''){
       <div class="form-grid">
         <div class="readonly-field"><span>Tracking number</span><strong>${p.code ? esc(p.code) : 'Auto-generated on save'}</strong></div>
         <label>Customer<select name="customerId" required>${options(state.customers.filter(c => c.status !== 'inactive' || c.id === p.customerId), p.customerId, c => c.name)}</select></label>
-        <label>Status<select name="status">${STATUSES.map(s => `<option value="${esc(s)}" ${s === p.status ? 'selected' : ''}>${esc(s.replaceAll('_',' '))}</option>`).join('')}</select></label>
+        <label>Status<select name="status">${STATUSES.map(s => `<option value="${esc(s)}" ${s === p.status ? 'selected' : ''}>${esc(statusLabel(s))}</option>`).join('')}</select></label>
         <label>Weight kg<input name="weightKg" value="${esc(p.weightKg)}"></label>
         <label>Current hub<select name="currentHubId">${options(state.hubs, p.currentHubId, h => h.name)}</select></label>
         <label>Pickup hub<select name="pickupHubId">${options(state.hubs, p.pickupHubId, h => h.name)}</select></label>
@@ -979,7 +979,7 @@ function openParcelForm(id = ''){
         <label>Delivery hub<select name="deliveryHubId">${options(state.hubs, p.deliveryHubId, h => h.name)}</select></label>
         <label>Route<select name="routeId">${options(state.routes.filter(r => r.hubId === state.currentHubId || r.id === p.routeId), p.routeId, r => r.name, 'Unassigned')}</select></label>
         <label>Rider<select name="riderId">${options(state.riders.filter(r => r.hubId === state.currentHubId || r.id === p.riderId), p.riderId, r => r.name, 'Unassigned')}</select></label>
-        <label>COD amount (BDT)<input name="amount" type="number" min="0" step="1" value="${Math.round(Number(p.amountCents || 0) / 100)}"></label>
+        <label>COD amount (৳)<input name="amount" type="number" min="0" step="1" value="${Math.round(Number(p.amountCents || 0) / 100)}"></label>
         <label class="checkline"><input name="cod" type="checkbox" ${p.cod ? 'checked' : ''}> COD required</label>
         <label class="wide">Pickup address<textarea name="pickupAddress" required>${esc(p.pickupAddress)}</textarea></label>
         <label class="wide">Dropoff address<textarea name="dropoffAddress" required>${esc(p.dropoffAddress)}</textarea></label>
@@ -1094,7 +1094,7 @@ function openRiderForm(id = ''){
         <label>Phone<input name="phone" value="${esc(rider.phone)}"></label>
         <label>Vehicle<input name="vehicle" value="${esc(rider.vehicle)}"></label>
         <label>Capacity<input name="capacity" type="number" min="1" value="${esc(rider.capacity)}"></label>
-        <label>Status<select name="status">${['active','off_duty','inactive'].map(s => `<option value="${s}" ${rider.status === s ? 'selected' : ''}>${s.replaceAll('_',' ')}</option>`).join('')}</select></label>
+        <label>Status<select name="status">${['active','off_duty','inactive'].map(s => `<option value="${s}" ${rider.status === s ? 'selected' : ''}>${statusLabel(s)}</option>`).join('')}</select></label>
       </div>
     </form>`,
     `<div class="modal-actions"><button class="btn ghost" data-action="close-modal" type="button">Cancel</button><button class="btn primary" form="riderForm" type="submit">Save rider</button></div>`);

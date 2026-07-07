@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HubRoute &mdash; track a parcel</title>
-  <meta name="description" content="Track a HubRoute parcel with a public tracking code and redacted shipment status.">
-  <meta property="og:title" content="HubRoute &mdash; track a parcel">
-  <meta property="og:description" content="Enter a HubRoute tracking number to see current parcel status and public event history.">
+  <title>HubRoute &mdash; self-hosted courier &amp; parcel operations console tracking</title>
+  <meta name="description" content="Track a parcel from the HubRoute self-hosted courier &amp; parcel operations console with a public tracking code and redacted shipment status.">
+  <meta property="og:title" content="HubRoute &mdash; self-hosted courier &amp; parcel operations console tracking">
+  <meta property="og:description" content="Enter a HubRoute tracking number to see current parcel status and public event history from the self-hosted courier &amp; parcel operations console.">
   <meta property="og:type" content="website">
   <meta name="theme-color" content="#2f56d9">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%232f56d9'/%3E%3Cpath%20d='M6.5%2025.5%20L20.5%2011.5'%20fill='none'%20stroke='%23fff'%20stroke-width='3.4'/%3E%3Cpath%20d='M24%208%20L23.1%2015.7%20L15.9%2014.4%20Z'%20fill='%23fff'/%3E%3Crect%20x='9.3'%20y='19.1'%20width='3.8'%20height='3.8'%20fill='%232f56d9'%20stroke='%23fff'%20stroke-width='1.5'/%3E%3C/svg%3E">
@@ -83,8 +83,21 @@
       return normalized || fallback;
     }
 
-    function labelize(value, fallback = "pending") {
-      return text(value, fallback).replaceAll("_", " ");
+    function statusLabel(value, fallback = "pending") {
+      const normalized = text(value, fallback);
+      const labels = {
+        picked_up: "picked up",
+        en_route: "in transit",
+        in_transit: "in transit",
+        in_warehouse: "at hub",
+        out_for_delivery: "out for delivery",
+        cod_settled: "cod settled",
+        failed: "failed attempt",
+        note_only: "note",
+        cod: "COD",
+        prepaid: "prepaid"
+      };
+      return labels[normalized] || normalized.replaceAll("_", " ");
     }
 
     function node(tag, options = {}, children = []) {
@@ -105,7 +118,23 @@
 
     function formatDate(value) {
       const raw = text(value);
-      return raw ? raw.replace("T", " ").slice(0, 16) : "Pending";
+      if (!raw) return "Pending";
+      if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test(raw) && !/(Z|[+-]\d{2}:?\d{2})$/i.test(raw)) {
+        return raw.replace("T", " ").slice(0, 16);
+      }
+      const date = new Date(raw);
+      if (Number.isNaN(date.getTime())) return raw.replace("T", " ").slice(0, 16);
+      const parts = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Dhaka",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23"
+      }).formatToParts(date).map((part) => [part.type, part.value]));
+      const hour = parts.hour === "24" ? "00" : parts.hour;
+      return `${parts.year}-${parts.month}-${parts.day} ${hour}:${parts.minute}`;
     }
 
     function eventStage(type) {
@@ -142,7 +171,7 @@
     function renderStatusChip(status) {
       const normalized = text(status);
       const isDanger = ["failed", "returned"].includes(normalized);
-      return node("span", { className: `status-chip${isDanger ? " danger" : ""}`, text: labelize(normalized) });
+      return node("span", { className: `status-chip${isDanger ? " danger" : ""}`, text: statusLabel(normalized) });
     }
 
     function renderMeta(label, value) {
@@ -182,7 +211,7 @@
         ]);
       }
       return node("div", { className: "timeline" }, events.map((event) => node("div", { className: "event" }, [
-        node("strong", { text: labelize(event.type) }),
+        node("strong", { text: statusLabel(event.type) }),
         node("span", { className: "muted small", text: `${text(event.hub, "Hub pending")} / ${formatDate(event.at)}` }),
         text(event.note) ? node("p", { text: event.note }) : null
       ])));
@@ -237,7 +266,7 @@
         node("div", { className: "meta-grid" }, [
           renderMeta("Route", route),
           renderMeta("Current hub", text(parcel.currentHub, "Pending")),
-          renderMeta("Payment", labelize(parcel.paymentMode, "prepaid"))
+          renderMeta("Payment", statusLabel(parcel.paymentMode, "prepaid"))
         ]),
         node("div", { className: "public-section" }, [
           node("p", { className: "eyebrow", text: "Hub path" }),

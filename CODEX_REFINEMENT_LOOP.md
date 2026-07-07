@@ -333,10 +333,17 @@ Goal: someone with zero terminal experience deploys HubRoute tracking on Vercel 
 - **Accept:** Lighthouse perf ≥ 90 landing + docs; `grep -RniE "fonts.googleapis|cdn.jsdelivr|unpkg" index.html docs.html hubroute.php src/ vercel-app/ --include=*.html --include=*.css --include=*.js --include=*.php` returns nothing; GLOBAL GATES pass.
 
 ### E-03 — Copy consistency sweep
-- [ ] Done
+- [x] Done
 - **Files:** all user-visible strings
 - **Do:** one product name (`HubRoute`), one tagline everywhere; status vocabulary matches §3 table across landing, demo, PHP app, Vercel app; dates rendered consistently (`YYYY-MM-DD HH:MM`, Asia/Dhaka); currency always `৳` prefix with mono digits.
 - **Accept:** spot-check matrix (4 surfaces × status names × date format) documented as a table appended under this task; GLOBAL GATES pass.
+
+| Surface | Product/tagline | Status labels | Date format | Currency |
+|---|---|---|---|---|
+| Landing/docs | HubRoute / self-hosted courier & parcel operations console | Public copy uses Booked, At hub, Out for delivery, Delivered plus contract examples | Static pages show no raw operational dates | Proof/COD copy uses `৳` where money appears |
+| Demo walkthrough | HubRoute / self-hosted courier & parcel operations console | `requested`, `assigned`, `picked up`, `at hub`, `in transit`, `out for delivery`, `delivered`, `failed attempt` | `fmtDate()` renders `YYYY-MM-DD HH:MM` in Asia/Dhaka | `money()` returns `<span class="mono">৳…</span>` |
+| PHP app | HubRoute / self-hosted courier & parcel operations console | `statusLabel()` maps internal keys to the shared visible vocabulary | `formatDateTime()` renders `YYYY-MM-DD HH:MM` in `APP_TIMEZONE=Asia/Dhaka` | `formatMoney()` returns `৳` and money cells use mono wrappers |
+| Vercel app | HubRoute / self-hosted courier & parcel operations console | `statusLabel()` mirrors demo/PHP labels on public tracking | `formatDate()` renders `YYYY-MM-DD HH:MM` in Asia/Dhaka | No public amount is exposed; payment mode only |
 
 ### E-04+ — (Loop-generated tasks)
 Add new tasks here during the final audit (§9), using the same format: ID, Files, Do, Accept. Never edit completed task text.
