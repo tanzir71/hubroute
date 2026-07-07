@@ -47,6 +47,12 @@
     .docs{display:grid;gap:0}
     section{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;padding:32px 0;display:grid;gap:16px}
     section:first-child{border-top:0;padding-top:8px}
+    .job-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:1px solid var(--line)}
+    .job-card{border-right:1px solid var(--line);background:#fff;padding:18px;display:grid;gap:12px;align-content:start}
+    .job-card:last-child{border-right:0}
+    .job-card ol{margin:0;padding-left:20px;display:grid;gap:8px;color:#30343b}
+    .job-card li{padding-left:2px}
+    .walkthrough-note{border:1px solid var(--line);border-left:2px solid var(--brand);background:var(--band);padding:14px 16px;display:grid;gap:6px}
     .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0;border:1px solid var(--line)}
     .grid.three{grid-template-columns:repeat(3,1fr)}
     .card{border:0;border-right:1px solid var(--line);border-bottom:1px solid var(--line);border-radius:0;padding:16px;background:#fff;display:grid;gap:7px;align-content:start}
@@ -68,8 +74,10 @@
       .layout{grid-template-columns:1fr;gap:20px}
       .toc{position:static;display:flex;flex-wrap:wrap;gap:4px}
       .toc a{border-left:0}
-      .grid,.grid.three,.flow{grid-template-columns:1fr}
-      .card,.step{border-right:0}
+      .job-grid,.grid,.grid.three,.flow{grid-template-columns:1fr}
+      .job-card,.card,.step{border-right:0}
+      .job-card{border-bottom:1px solid var(--line)}
+      .job-card:last-child{border-bottom:0}
     }
     @media(max-width:640px){.shell{padding:0 18px}.nav{flex-direction:column;align-items:flex-start;padding:14px 0;gap:12px}.links{gap:16px}h1{font-size:28px}}
   </style>
@@ -95,11 +103,11 @@
     <header class="hero">
       <div class="kicker">Documentation</div>
       <h1>Run HubRoute in minutes.</h1>
-      <p class="lead">Extract one generated zip on shared hosting or sync the same PHP + SQLite app to a VPS. HubRoute creates its production SQLite database on first load.</p>
+      <p class="lead">Deploy the self-hosted PHP + SQLite console, prepare a Vercel tracking starter, or run the first parcel through the operator workflow.</p>
       <div class="actions">
-        <a class="btn primary" href="#zip-deploy">Zip deploy</a>
-        <a class="btn" href="#single-command">Single command</a>
-        <a class="btn" href="#llm-deploy">LLM prompt</a>
+        <a class="btn primary" href="#hosting">Shared hosting</a>
+        <a class="btn" href="#vercel">Vercel</a>
+        <a class="btn" href="#workflow">First parcel</a>
       </div>
     </header>
 
@@ -127,26 +135,47 @@
         <section id="quick-start">
           <div>
             <div class="eyebrow">Fast Start</div>
-            <h2>Pick the easiest path for your host.</h2>
+            <h2>Choose the job you are doing right now.</h2>
           </div>
-          <div class="grid">
-            <div class="card top">
-              <h3>1. Shared-host zip</h3>
-              <p>Get <code>hubroute-php-sqlite.zip</code>, upload it in cPanel/File Manager, extract it into <code>public_html</code>, and open <code>/health.php</code>.</p>
-            </div>
-            <div class="card top">
-              <h3>2. One-command SSH</h3>
-              <p>Extract the zip locally, then sync the extracted runtime folder with <code>rsync</code>.</p>
-            </div>
-            <div class="card top">
-              <h3>3. LLM-assisted deploy</h3>
-              <p>Point an LLM at the repo and tell it to deploy only the PHP + SQLite app, keeping SQLite as production storage.</p>
-            </div>
-            <div class="card top">
-              <h3>4. Vercel production</h3>
-              <p>Use the separate Vercel-ready fileset with hosted SQLite-compatible storage. The maintainer demo is not a user deployment path.</p>
-            </div>
+          <div class="job-grid">
+            <article class="job-card">
+              <span class="tag">10 min</span>
+              <h3>Deploy on shared hosting (10 min)</h3>
+              <ol>
+                <li>Build the package with <code>npm run package:php</code>, or start from <code>dist/hubroute-php-sqlite.zip</code>.</li>
+                <li>In cPanel or your host panel, open File Manager and enable hidden files.</li>
+                <li>Upload <code>hubroute-php-sqlite.zip</code> into <code>public_html</code> or the subdomain folder.</li>
+                <li>Click Extract, then make sure <code>index.php</code>, <code>hubroute.php</code>, <code>health.php</code>, <code>maintenance.php</code>, <code>.htaccess</code>, <code>.env.example</code>, and <code>data/</code> are directly in the website folder.</li>
+                <li>Open <code>https://YOUR-DOMAIN/health.php</code>, then open <code>https://YOUR-DOMAIN/</code>.</li>
+              </ol>
+            </article>
+            <article class="job-card">
+              <span class="tag">10 min</span>
+              <h3>Deploy on Vercel (10 min)</h3>
+              <ol>
+                <li>Build the package with <code>npm run package:vercel</code>, or start from <code>dist/hubroute-vercel.zip</code>.</li>
+                <li>Extract the zip and upload its contents to a new GitHub repository.</li>
+                <li>Create a Turso/libSQL database and copy <code>TURSO_DATABASE_URL</code> plus <code>TURSO_AUTH_TOKEN</code>.</li>
+                <li>In Vercel, choose <code>Add New -&gt; Project</code>, import the repository, and add <code>SESSION_SECRET</code>, <code>CRON_SECRET</code>, and <code>SETUP_SECRET</code>.</li>
+                <li>Deploy, open <code>/api/health</code>, run <code>/setup</code>, then test <code>/track/HR260703DHK1A2</code>.</li>
+              </ol>
+            </article>
+            <article class="job-card">
+              <span class="tag">5 min</span>
+              <h3>Run your first parcel (5 min)</h3>
+              <ol>
+                <li>Open <code>/hubroute.php?r=login&amp;demo=hub</code> and sign in with <code>pickuphub@hubroute.local</code> / <code>hub1234</code>.</li>
+                <li>Create or open a seeded parcel from the pickup queue.</li>
+                <li>Assign a route and rider for the current hub.</li>
+                <li>Use <code>Scan / Add Event</code> to record pickup, hub handoff, and delivery events.</li>
+                <li>Open public tracking with the parcel code, for example <code>/hubroute.php?r=track&amp;code=HR260703DHK1A2</code>.</li>
+              </ol>
+            </article>
           </div>
+          <aside class="walkthrough-note">
+            <h3>Browser walkthrough</h3>
+            <p>The hosted walkthrough is useful for a no-install tour, but production setup starts with the shared-hosting package or the Vercel starter above.</p>
+          </aside>
         </section>
 
         <section id="targets">

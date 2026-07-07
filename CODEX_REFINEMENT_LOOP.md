@@ -157,7 +157,7 @@ Rules (identical to `CODEX_BUILD_PLAN.md` §5, restated so this file is self-suf
 - **Accept:** images exist under `assets/shots/`, each < 150 KB; landing renders them; Lighthouse perf ≥ 90 on landing; GLOBAL GATES pass.
 
 ### A-03 — Docs: task-oriented, operator-first
-- [ ] Done
+- [x] Done
 - **Files:** `docs.html`
 - **Do:** restructure top of docs into three job-cards: `Deploy on shared hosting (10 min)`, `Deploy on Vercel (10 min)`, `Run your first parcel (5 min)`. Each is a numbered list with exact clicks/commands (source from `SETUP.md` — keep them in sync). Remove demo-first framing; the walkthrough becomes a sidebar note. Keep the REAL existing anchors working (`#quick-start`, `#workflow`, `#hosting`, `#zip-deploy`, `#vercel`, `#security`, `#operations`, `#troubleshooting`).
 - **Accept:** the three job-cards exist and every command in them is copy-pasteable and correct against `SETUP.md`; every `docs.html#…` href in `index.html` resolves to a real id (verify: extract hrefs with grep, check each against `grep -o 'id="[a-z-]*"' docs.html`); GLOBAL GATES pass.
