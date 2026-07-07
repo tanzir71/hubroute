@@ -1238,6 +1238,11 @@ function renderQueueHeader(string $title, int $count, string $actionLabel, strin
     return '<div class="queue-head"><div class="queue-title"><strong>' . e($title) . '</strong>' . uiPill($countLabel, 'bg-blue') . '</div><a class="btn primary" href="' . e($actionHref) . '">' . e($actionLabel) . '</a></div>';
 }
 
+function renderEmptyState(string $title, string $hint, string $actionLabel, string $actionHref): string
+{
+    return '<div class="empty-state"><div class="empty-title">' . e($title) . '</div><div class="muted">' . e($hint) . '</div><a class="btn primary" href="' . e($actionHref) . '">' . e($actionLabel) . '</a></div>';
+}
+
 function tableCell(string $label, string $html, string $class = ''): string
 {
     $classAttr = $class !== '' ? ' class="' . e($class) . '"' : '';
@@ -1393,6 +1398,9 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .kpi .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
     .queue-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 10px;flex-wrap:wrap}
     .queue-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .empty-state{border:1px dashed var(--line-strong);padding:22px;text-align:center;background:var(--panel);margin:12px 0}
+    .empty-title{font-weight:750;margin-bottom:4px}
+    .empty-state .btn{margin-top:12px}
     .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
     .footer a{color:var(--muted)}
     @media(max-width:720px){.table thead{display:none}.table,.table tbody,.table tr,.table td{display:block;width:100%}.table tr{border:1px solid var(--line);margin:0 0 10px;background:var(--panel)}.table td{border:0;padding:7px 8px}.table td::before{content:attr(data-label);display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}.table td[data-label=""]::before{display:none}}
@@ -1628,19 +1636,24 @@ function pageCustomerParcels(PDO $pdo, array $u): void
         . '<a class="btn" href="?r=customer_parcels&status=delivered">Delivered (' . (int)($by['delivered'] ?? 0) . ')</a>'
         . '</div>';
     $content .= renderQueueHeader('Parcel queue', count($rows), 'Create request', '#create-request');
-    $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Status</th><th>Pickup</th><th>Dropoff</th><th>COD</th><th>Agent</th><th>Updated</th></tr></thead><tbody>';
-    foreach ($rows as $p) {
-        $content .= '<tr>';
-        $content .= tableCell('Tracking', '<a class="mono" href="?r=parcel&id=' . (int)$p['id'] . '">' . e((string)$p['tracking_code']) . '</a>');
-        $content .= tableCell('Status', statusPill((string)$p['status']));
-        $content .= tableCell('Pickup', e((string)$p['pickup_address']), 'muted');
-        $content .= tableCell('Dropoff', e((string)$p['dropoff_address']), 'muted');
-        $content .= tableCell('COD', monoValue(formatMoney((int)$p['amount_cents'])));
-        $content .= tableCell('Agent', e((string)($p['agent_name'] ?? '')));
-        $content .= tableCell('Updated', monoValue((string)$p['updated_at']), 'muted mono');
-        $content .= '</tr>';
+    if (count($rows) === 0) {
+        $content .= renderEmptyState('No parcels yet', 'Create the first parcel to start tracking custody.', 'Create parcel', '#create-request');
+    } else {
+        $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Status</th><th>Pickup</th><th>Dropoff</th><th>COD</th><th>Agent</th><th>Updated</th></tr></thead><tbody>';
+        foreach ($rows as $p) {
+            $content .= '<tr>';
+            $content .= tableCell('Tracking', '<a class="mono" href="?r=parcel&id=' . (int)$p['id'] . '">' . e((string)$p['tracking_code']) . '</a>');
+            $content .= tableCell('Status', statusPill((string)$p['status']));
+            $content .= tableCell('Pickup', e((string)$p['pickup_address']), 'muted');
+            $content .= tableCell('Dropoff', e((string)$p['dropoff_address']), 'muted');
+            $content .= tableCell('COD', monoValue(formatMoney((int)$p['amount_cents'])));
+            $content .= tableCell('Agent', e((string)($p['agent_name'] ?? '')));
+            $content .= tableCell('Updated', monoValue((string)$p['updated_at']), 'muted mono');
+            $content .= '</tr>';
+        }
+        $content .= '</tbody></table>';
     }
-    $content .= '</tbody></table></div>';
+    $content .= '</div>';
 
     $content .= '<div id="create-request" class="card"><div class="h1">Create pickup request</div>';
     $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="customer_create">';
@@ -1828,40 +1841,44 @@ function pageHubParcels(PDO $pdo, array $u): void
         . '</form>';
 
     $content .= renderQueueHeader('Hub parcel queue', count($rows), 'Record event', '?r=scan');
-    $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Status</th><th>Pickup</th><th>Dropoff</th><th>COD</th><th>Route</th><th>Agent</th><th>Created</th><th>Assign</th></tr></thead><tbody>';
-    foreach ($rows as $p) {
-        $content .= '<tr>';
-        $content .= tableCell('Tracking', '<a class="mono" href="?r=parcel&id=' . (int)$p['id'] . '">' . e((string)$p['tracking_code']) . '</a><div class="muted" style="font-size:12px">' . e((string)$p['customer_name']) . '</div>');
-        $content .= tableCell('Status', statusPill((string)$p['status']) . '<div class="muted mono" style="font-size:12px">Updated ' . e((string)$p['updated_at']) . '</div>');
-        $pickupAddr = (string)$p['pickup_address'];
-        $dropoffAddr = (string)$p['dropoff_address'];
-        $content .= tableCell('Pickup', e($pickupAddr) . '<div style="margin-top:4px"><a href="' . e(mapsUrl($pickupAddr)) . '" target="_blank" rel="noopener">Map</a></div>', 'muted');
-        $content .= tableCell('Dropoff', e($dropoffAddr) . '<div style="margin-top:4px"><a href="' . e(mapsUrl($dropoffAddr)) . '" target="_blank" rel="noopener">Map</a></div>', 'muted');
-        $content .= tableCell('COD', monoValue(formatMoney((int)$p['amount_cents'])) . ($p['cod_settled'] ? '<div class="muted" style="font-size:12px">settled</div>' : ''));
-        $content .= tableCell('Route', e((string)($p['route_name'] ?? '')));
-        $content .= tableCell('Agent', e((string)($p['agent_name'] ?? '')));
-        $content .= tableCell('Created', monoValue((string)$p['created_at']), 'muted mono');
+    if (count($rows) === 0) {
+        $content .= renderEmptyState('No parcels yet', 'No parcels match this hub view yet. Reset filters or record custody when a parcel arrives.', 'Record event', '?r=scan');
+    } else {
+        $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Status</th><th>Pickup</th><th>Dropoff</th><th>COD</th><th>Route</th><th>Agent</th><th>Created</th><th>Assign</th></tr></thead><tbody>';
+        foreach ($rows as $p) {
+            $content .= '<tr>';
+            $content .= tableCell('Tracking', '<a class="mono" href="?r=parcel&id=' . (int)$p['id'] . '">' . e((string)$p['tracking_code']) . '</a><div class="muted" style="font-size:12px">' . e((string)$p['customer_name']) . '</div>');
+            $content .= tableCell('Status', statusPill((string)$p['status']) . '<div class="muted mono" style="font-size:12px">Updated ' . e((string)$p['updated_at']) . '</div>');
+            $pickupAddr = (string)$p['pickup_address'];
+            $dropoffAddr = (string)$p['dropoff_address'];
+            $content .= tableCell('Pickup', e($pickupAddr) . '<div style="margin-top:4px"><a href="' . e(mapsUrl($pickupAddr)) . '" target="_blank" rel="noopener">Map</a></div>', 'muted');
+            $content .= tableCell('Dropoff', e($dropoffAddr) . '<div style="margin-top:4px"><a href="' . e(mapsUrl($dropoffAddr)) . '" target="_blank" rel="noopener">Map</a></div>', 'muted');
+            $content .= tableCell('COD', monoValue(formatMoney((int)$p['amount_cents'])) . ($p['cod_settled'] ? '<div class="muted" style="font-size:12px">settled</div>' : ''));
+            $content .= tableCell('Route', e((string)($p['route_name'] ?? '')));
+            $content .= tableCell('Agent', e((string)($p['agent_name'] ?? '')));
+            $content .= tableCell('Created', monoValue((string)$p['created_at']), 'muted mono');
 
-        $content .= '<td data-label="Assign">';
-        $content .= '<form method="post" class="row" style="gap:6px"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="hub_assign"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '">';
-        $content .= '<select name="route_id" style="min-width:160px"><option value="">No route</option>';
-        foreach ($routeRows as $r) {
-            $sel = ((int)$p['route_id'] === (int)$r['id']) ? ' selected' : '';
-            $content .= '<option value="' . (int)$r['id'] . '"' . $sel . '>' . e((string)$r['name']) . '</option>';
+            $content .= '<td data-label="Assign">';
+            $content .= '<form method="post" class="row" style="gap:6px"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="hub_assign"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '">';
+            $content .= '<select name="route_id" style="min-width:160px"><option value="">No route</option>';
+            foreach ($routeRows as $r) {
+                $sel = ((int)$p['route_id'] === (int)$r['id']) ? ' selected' : '';
+                $content .= '<option value="' . (int)$r['id'] . '"' . $sel . '>' . e((string)$r['name']) . '</option>';
+            }
+            $content .= '</select>';
+            $content .= '<select name="agent_id" style="min-width:160px"><option value="">Unassigned</option>';
+            foreach ($agentRows as $a) {
+                $sel = ((int)$p['assigned_agent_id'] === (int)$a['id']) ? ' selected' : '';
+                $content .= '<option value="' . (int)$a['id'] . '"' . $sel . '>' . e((string)$a['name']) . '</option>';
+            }
+            $content .= '</select>';
+            $content .= '<button class="btn" type="submit">Set</button>';
+            $content .= '</form>';
+            $content .= '</td>';
+            $content .= '</tr>';
         }
-        $content .= '</select>';
-        $content .= '<select name="agent_id" style="min-width:160px"><option value="">Unassigned</option>';
-        foreach ($agentRows as $a) {
-            $sel = ((int)$p['assigned_agent_id'] === (int)$a['id']) ? ' selected' : '';
-            $content .= '<option value="' . (int)$a['id'] . '"' . $sel . '>' . e((string)$a['name']) . '</option>';
-        }
-        $content .= '</select>';
-        $content .= '<button class="btn" type="submit">Set</button>';
-        $content .= '</form>';
-        $content .= '</td>';
-        $content .= '</tr>';
+        $content .= '</tbody></table>';
     }
-    $content .= '</tbody></table>';
     $content .= '</div>';
     renderLayout('Hub Parcels', $u, $content);
 }
@@ -2035,20 +2052,25 @@ function pageHubRoutes(PDO $pdo, array $u): void
 
     $content = '<div class="grid cols2">';
     $content .= '<div class="card"><div class="h1">Routes · ' . e($hubName) . '</div>';
-    $content .= '<table class="table"><thead><tr><th>Name</th><th>Match keywords</th><th>Agent</th><th>Active</th><th>Export</th></tr></thead><tbody>';
-    foreach ($rows as $r) {
-        $kw = implode(', ', jsonArray((string)$r['match_keywords']));
-        $content .= '<tr>';
-        $content .= tableCell('Name', e((string)$r['name']));
-        $content .= tableCell('Match keywords', e($kw), 'muted');
-        $content .= tableCell('Agent', e((string)($r['agent_name'] ?? '')));
-        $content .= tableCell('Active', ((int)$r['active'] === 1 ? uiPill('active', 'bg-green') : uiPill('inactive', 'bg-red')));
-        $content .= tableCell('Export', '<a class="btn" href="?r=route_export&id=' . (int)$r['id'] . '">CSV</a>');
-        $content .= '</tr>';
+    if (count($rows) === 0) {
+        $content .= renderEmptyState('No routes yet', 'Create a route to match parcels to an agent run.', 'Create route', '#create-route');
+    } else {
+        $content .= '<table class="table"><thead><tr><th>Name</th><th>Match keywords</th><th>Agent</th><th>Active</th><th>Export</th></tr></thead><tbody>';
+        foreach ($rows as $r) {
+            $kw = implode(', ', jsonArray((string)$r['match_keywords']));
+            $content .= '<tr>';
+            $content .= tableCell('Name', e((string)$r['name']));
+            $content .= tableCell('Match keywords', e($kw), 'muted');
+            $content .= tableCell('Agent', e((string)($r['agent_name'] ?? '')));
+            $content .= tableCell('Active', ((int)$r['active'] === 1 ? uiPill('active', 'bg-green') : uiPill('inactive', 'bg-red')));
+            $content .= tableCell('Export', '<a class="btn" href="?r=route_export&id=' . (int)$r['id'] . '">CSV</a>');
+            $content .= '</tr>';
+        }
+        $content .= '</tbody></table>';
     }
-    $content .= '</tbody></table></div>';
+    $content .= '</div>';
 
-    $content .= '<div class="card"><div class="h1">Create route</div>';
+    $content .= '<div id="create-route" class="card"><div class="h1">Create route</div>';
     $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="hub_create_route">';
     $content .= '<div><label>Route name</label><input name="name" required></div>';
     $content .= '<div><label>Match keywords/postcodes (comma-separated)</label><input name="keywords" placeholder="Northside, Uptown, 1000" required></div>';
@@ -2190,16 +2212,22 @@ function pageScan(PDO $pdo, array $u): void
     $content .= '<div class="card"><div class="h1">Recent events</div>';
     $ev = $pdo->prepare("SELECT e.*, h.name AS hub_name FROM events e LEFT JOIN hubs h ON h.id=e.hub_id WHERE e.parcel_id=? ORDER BY e.ts DESC LIMIT 20");
     $ev->execute([(int)$parcel['id']]);
-    $content .= '<table class="table"><thead><tr><th>Time</th><th>Event</th><th>Hub</th><th>Note</th></tr></thead><tbody>';
-    foreach ($ev->fetchAll() as $r) {
-        $content .= '<tr>'
-            . tableCell('Time', monoValue((string)$r['ts']), 'muted mono')
-            . tableCell('Event', e((string)$r['event_type']))
-            . tableCell('Hub', e((string)($r['hub_name'] ?? '')))
-            . tableCell('Note', e((string)($r['note'] ?? '')), 'muted')
-            . '</tr>';
+    $eventRows = $ev->fetchAll();
+    if (count($eventRows) === 0) {
+        $content .= renderEmptyState('No events yet', 'Record the first custody event for this parcel.', 'Record event', '?r=scan&code=' . (string)$parcel['tracking_code']);
+    } else {
+        $content .= '<table class="table"><thead><tr><th>Time</th><th>Event</th><th>Hub</th><th>Note</th></tr></thead><tbody>';
+        foreach ($eventRows as $r) {
+            $content .= '<tr>'
+                . tableCell('Time', monoValue((string)$r['ts']), 'muted mono')
+                . tableCell('Event', e((string)$r['event_type']))
+                . tableCell('Hub', e((string)($r['hub_name'] ?? '')))
+                . tableCell('Note', e((string)($r['note'] ?? '')), 'muted')
+                . '</tr>';
+        }
+        $content .= '</tbody></table>';
     }
-    $content .= '</tbody></table></div>';
+    $content .= '</div>';
     $content .= '</div>';
     renderLayout('Scan', $u, $content);
 }
@@ -2375,7 +2403,7 @@ function pageAgentRun(PDO $pdo, array $u): void
     $content .= '<div class="card"><div class="h1">My Run</div><div class="muted">Open a parcel to update its next step.</div>';
     $content .= renderQueueHeader('Run queue', count($rows), 'Record event', '?r=scan');
     if (count($rows) === 0) {
-        $content .= '<div class="muted" style="margin-top:10px">No assigned parcels right now.</div>';
+        $content .= renderEmptyState('No parcels yet', 'No assigned parcels are ready for this run.', 'Record event', '?r=scan');
     } else {
         $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Status</th><th>Pickup</th><th>Dropoff</th><th>COD</th><th>Customer</th></tr></thead><tbody>';
         foreach ($rows as $p) {
@@ -2506,22 +2534,26 @@ function pageParcelDetail(PDO $pdo, array $u): void
     $content .= '</div>';
 
     $right = '<div class="card"><div class="h1">Timeline</div>';
-    $right .= '<table class="table"><thead><tr><th>Time</th><th>Event</th><th>Hub</th><th>Actor</th><th>Note</th></tr></thead><tbody>';
-    foreach ($evs as $ev) {
-        $actor = (string)($ev['user_type'] ?? '');
-        $actorName = '';
-        if ($actor === 'agent') {
-            $actorName = (string)($ev['agent_name'] ?? '');
+    if (count($evs) === 0) {
+        $right .= renderEmptyState('No events yet', 'Record the first custody event to start this timeline.', 'Record event', '?r=scan&code=' . (string)$p['tracking_code']);
+    } else {
+        $right .= '<table class="table"><thead><tr><th>Time</th><th>Event</th><th>Hub</th><th>Actor</th><th>Note</th></tr></thead><tbody>';
+        foreach ($evs as $ev) {
+            $actor = (string)($ev['user_type'] ?? '');
+            $actorName = '';
+            if ($actor === 'agent') {
+                $actorName = (string)($ev['agent_name'] ?? '');
+            }
+            $right .= '<tr>'
+                . tableCell('Time', monoValue((string)$ev['ts']), 'muted mono')
+                . tableCell('Event', e((string)$ev['event_type']))
+                . tableCell('Hub', e((string)($ev['hub_name'] ?? '')))
+                . tableCell('Actor', e($actorName !== '' ? ($actor . ':' . $actorName) : $actor), 'muted')
+                . tableCell('Note', e((string)($ev['note'] ?? '')), 'muted')
+                . '</tr>';
         }
-        $right .= '<tr>'
-            . tableCell('Time', monoValue((string)$ev['ts']), 'muted mono')
-            . tableCell('Event', e((string)$ev['event_type']))
-            . tableCell('Hub', e((string)($ev['hub_name'] ?? '')))
-            . tableCell('Actor', e($actorName !== '' ? ($actor . ':' . $actorName) : $actor), 'muted')
-            . tableCell('Note', e((string)($ev['note'] ?? '')), 'muted')
-            . '</tr>';
+        $right .= '</tbody></table>';
     }
-    $right .= '</tbody></table>';
 
     if ($role === 'agent' && (int)$u['agent_id'] === (int)$p['assigned_agent_id']) {
         $next = allowedNextStatuses((string)$p['status']);
@@ -2654,7 +2686,10 @@ function pageSettlements(PDO $pdo, array $u): void
     $ps = $rows->fetchAll();
 
     $content = '<div class="card"><div class="h1">Settlements</div><div class="muted">Mark parcels as settled after reconciliation.</div>';
-    $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Customer</th><th>Amount</th><th>Status</th><th>Settled</th><th>Action</th></tr></thead><tbody>';
+    if (count($ps) === 0) {
+        $content .= renderEmptyState('No settlements due', 'COD parcels that need reconciliation will appear here.', 'View parcels', '?r=hub_parcels');
+    } else {
+        $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Customer</th><th>Amount</th><th>Status</th><th>Settled</th><th>Action</th></tr></thead><tbody>';
     foreach ($ps as $p) {
         $content .= '<tr>';
         $content .= tableCell('Tracking', '<a class="mono" href="?r=parcel&id=' . (int)$p['id'] . '">' . e((string)$p['tracking_code']) . '</a>');
@@ -2671,7 +2706,9 @@ function pageSettlements(PDO $pdo, array $u): void
         $content .= '</td>';
         $content .= '</tr>';
     }
-    $content .= '</tbody></table></div>';
+        $content .= '</tbody></table>';
+    }
+    $content .= '</div>';
     renderLayout('Settlements', $u, $content);
 }
 
@@ -2776,17 +2813,22 @@ function pageAdmin(PDO $pdo, array $u): void
             ])
             . '</div>';
         $content .= '<div class="card">'
-            . renderQueueHeader('Recent audit', count($recentAudit), 'Manage users', '?r=admin&tab=users')
-            . '<table class="table"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Reason</th></tr></thead><tbody>';
-        foreach ($recentAudit as $row) {
-            $content .= '<tr>'
-                . tableCell('Time', monoValue((string)$row['created_at']), 'muted mono')
-                . tableCell('Actor', e((string)($row['actor_email'] ?? ('User #' . $row['actor_user_id']))))
-                . tableCell('Action', e((string)$row['action']))
-                . tableCell('Reason', e((string)($row['reason'] ?? '')), 'muted')
-                . '</tr>';
+            . renderQueueHeader('Recent audit', count($recentAudit), 'Manage users', '?r=admin&tab=users');
+        if (count($recentAudit) === 0) {
+            $content .= renderEmptyState('No audit entries yet', 'Privileged changes and custody updates will appear here.', 'Manage users', '?r=admin&tab=users');
+        } else {
+            $content .= '<table class="table"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Reason</th></tr></thead><tbody>';
+            foreach ($recentAudit as $row) {
+                $content .= '<tr>'
+                    . tableCell('Time', monoValue((string)$row['created_at']), 'muted mono')
+                    . tableCell('Actor', e((string)($row['actor_email'] ?? ('User #' . $row['actor_user_id']))))
+                    . tableCell('Action', e((string)$row['action']))
+                    . tableCell('Reason', e((string)($row['reason'] ?? '')), 'muted')
+                    . '</tr>';
+            }
+            $content .= '</tbody></table>';
         }
-        $content .= '</tbody></table></div>';
+        $content .= '</div>';
     }
 
     if ($tab === 'users') {
@@ -2797,41 +2839,46 @@ function pageAdmin(PDO $pdo, array $u): void
             LEFT JOIN customers c ON c.id=u.customer_id
             ORDER BY u.active DESC, u.role, u.email")->fetchAll();
         $content .= '<div class="card"><div class="h1">User access control</div><div class="muted">Create a production admin first, then reset or disable every seeded login before real operations.</div>';
-        $content .= '<table class="table"><thead><tr><th>User</th><th>Role</th><th>Scope</th><th>Status</th><th>Access action</th></tr></thead><tbody>';
-        foreach ($users as $row) {
-            $email = (string)$row['email'];
-            $role = (string)$row['role'];
-            $scopeParts = [];
-            if (!empty($row['hub_name'])) {
-                $scopeParts[] = 'Hub: ' . (string)$row['hub_name'];
+        if (count($users) === 0) {
+            $content .= renderEmptyState('No users yet', 'Create a production admin to secure the console.', 'Create admin', '#create-admin');
+        } else {
+            $content .= '<table class="table"><thead><tr><th>User</th><th>Role</th><th>Scope</th><th>Status</th><th>Access action</th></tr></thead><tbody>';
+            foreach ($users as $row) {
+                $email = (string)$row['email'];
+                $role = (string)$row['role'];
+                $scopeParts = [];
+                if (!empty($row['hub_name'])) {
+                    $scopeParts[] = 'Hub: ' . (string)$row['hub_name'];
+                }
+                if (!empty($row['agent_name'])) {
+                    $scopeParts[] = 'Agent: ' . (string)$row['agent_name'];
+                }
+                if (!empty($row['customer_name'])) {
+                    $scopeParts[] = 'Customer: ' . (string)$row['customer_name'];
+                }
+                $scope = $scopeParts ? implode(' / ', $scopeParts) : 'Global';
+                $isActive = (int)$row['active'] === 1;
+                $seededTag = isSeededAccountEmail($email) ? '<div>' . uiPill('seeded', 'bg-red') . '</div>' : '';
+                $content .= '<tr>'
+                    . tableCell('User', e($email) . $seededTag . '<div class="muted mono" style="font-size:12px">User #' . (int)$row['id'] . '</div>')
+                    . tableCell('Role', e(roleLabel($role)))
+                    . tableCell('Scope', e($scope), 'muted')
+                    . tableCell('Status', ($isActive ? uiPill('active', 'bg-green') : uiPill('disabled', 'bg-red')))
+                    . '<td data-label="Access action"><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput()
+                    . '<input type="hidden" name="action" value="admin_update_user">'
+                    . '<input type="hidden" name="user_id" value="' . (int)$row['id'] . '">'
+                    . '<div><label>New password</label><input name="password" type="password" placeholder="Leave blank to keep"></div>'
+                    . '<div><label>Status</label><select name="active"><option value="1"' . ($isActive ? ' selected' : '') . '>active</option><option value="0"' . (!$isActive ? ' selected' : '') . '>disabled</option></select></div>'
+                    . '<div><label>Reason</label><input name="reason" value="' . (isSeededAccountEmail($email) ? 'Post-deploy seeded credential rotation' : '') . '" required></div>'
+                    . '<button class="btn" type="submit">Update access</button>'
+                    . '</form></td>'
+                    . '</tr>';
             }
-            if (!empty($row['agent_name'])) {
-                $scopeParts[] = 'Agent: ' . (string)$row['agent_name'];
-            }
-            if (!empty($row['customer_name'])) {
-                $scopeParts[] = 'Customer: ' . (string)$row['customer_name'];
-            }
-            $scope = $scopeParts ? implode(' / ', $scopeParts) : 'Global';
-            $isActive = (int)$row['active'] === 1;
-            $seededTag = isSeededAccountEmail($email) ? '<div>' . uiPill('seeded', 'bg-red') . '</div>' : '';
-            $content .= '<tr>'
-                . tableCell('User', e($email) . $seededTag . '<div class="muted mono" style="font-size:12px">User #' . (int)$row['id'] . '</div>')
-                . tableCell('Role', e(roleLabel($role)))
-                . tableCell('Scope', e($scope), 'muted')
-                . tableCell('Status', ($isActive ? uiPill('active', 'bg-green') : uiPill('disabled', 'bg-red')))
-                . '<td data-label="Access action"><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput()
-                . '<input type="hidden" name="action" value="admin_update_user">'
-                . '<input type="hidden" name="user_id" value="' . (int)$row['id'] . '">'
-                . '<div><label>New password</label><input name="password" type="password" placeholder="Leave blank to keep"></div>'
-                . '<div><label>Status</label><select name="active"><option value="1"' . ($isActive ? ' selected' : '') . '>active</option><option value="0"' . (!$isActive ? ' selected' : '') . '>disabled</option></select></div>'
-                . '<div><label>Reason</label><input name="reason" value="' . (isSeededAccountEmail($email) ? 'Post-deploy seeded credential rotation' : '') . '" required></div>'
-                . '<button class="btn" type="submit">Update access</button>'
-                . '</form></td>'
-                . '</tr>';
+            $content .= '</tbody></table>';
         }
-        $content .= '</tbody></table></div>';
+        $content .= '</div>';
 
-        $content .= '<div class="card"><div class="h1">Create production admin</div><div class="muted">Use this before disabling <code>admin@hubroute.local</code>.</div>'
+        $content .= '<div id="create-admin" class="card"><div class="h1">Create production admin</div><div class="muted">Use this before disabling <code>admin@hubroute.local</code>.</div>'
             . '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput()
             . '<input type="hidden" name="action" value="admin_create_user">'
             . '<div><label>Admin email</label><input name="email" type="email" required></div>'
@@ -2843,17 +2890,23 @@ function pageAdmin(PDO $pdo, array $u): void
     if ($tab === 'hubs') {
         $hubs = $pdo->query("SELECT * FROM hubs ORDER BY id")->fetchAll();
         $content .= '<div class="grid cols2">';
-        $content .= '<div class="card"><div class="h1">Hubs</div><table class="table"><thead><tr><th>Name</th><th>Type</th><th>City</th><th>Auto</th></tr></thead><tbody>';
-        foreach ($hubs as $h) {
-            $content .= '<tr>'
-                . tableCell('Name', e((string)$h['name']))
-                . tableCell('Type', e((string)$h['type']))
-                . tableCell('City', e((string)($h['city'] ?? '')), 'muted')
-                . tableCell('Auto', ((int)$h['auto_assign'] === 1 ? 'yes' : 'no'))
-                . '</tr>';
+        $content .= '<div class="card"><div class="h1">Hubs</div>';
+        if (count($hubs) === 0) {
+            $content .= renderEmptyState('No hubs yet', 'Create a hub before routing parcels through the network.', 'Create hub', '#create-hub');
+        } else {
+            $content .= '<table class="table"><thead><tr><th>Name</th><th>Type</th><th>City</th><th>Auto</th></tr></thead><tbody>';
+            foreach ($hubs as $h) {
+                $content .= '<tr>'
+                    . tableCell('Name', e((string)$h['name']))
+                    . tableCell('Type', e((string)$h['type']))
+                    . tableCell('City', e((string)($h['city'] ?? '')), 'muted')
+                    . tableCell('Auto', ((int)$h['auto_assign'] === 1 ? 'yes' : 'no'))
+                    . '</tr>';
+            }
+            $content .= '</tbody></table>';
         }
-        $content .= '</tbody></table></div>';
-        $content .= '<div class="card"><div class="h1">Create hub</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_hub">'
+        $content .= '</div>';
+        $content .= '<div id="create-hub" class="card"><div class="h1">Create hub</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_hub">'
             . '<div><label>Name</label><input name="name" required></div>'
             . '<div><label>Type</label><select name="type" required><option value="pickup">pickup</option><option value="warehouse">warehouse</option><option value="lastmile">lastmile</option></select></div>'
             . '<div><label>Address</label><input name="address"></div>'
@@ -2869,17 +2922,23 @@ function pageAdmin(PDO $pdo, array $u): void
         $agents = $pdo->query("SELECT a.*, h.name AS hub_name FROM agents a JOIN hubs h ON h.id=a.hub_id ORDER BY a.id")->fetchAll();
         $hubs = $pdo->query("SELECT * FROM hubs ORDER BY id")->fetchAll();
         $content .= '<div class="grid cols2">';
-        $content .= '<div class="card"><div class="h1">Agents</div><table class="table"><thead><tr><th>Name</th><th>Hub</th><th>Role</th><th>Active</th></tr></thead><tbody>';
-        foreach ($agents as $a) {
-            $content .= '<tr>'
-                . tableCell('Name', e((string)$a['name']))
-                . tableCell('Hub', e((string)$a['hub_name']), 'muted')
-                . tableCell('Role', e((string)$a['role']))
-                . tableCell('Active', ((int)$a['active'] === 1 ? 'yes' : 'no'))
-                . '</tr>';
+        $content .= '<div class="card"><div class="h1">Agents</div>';
+        if (count($agents) === 0) {
+            $content .= renderEmptyState('No agents yet', 'Create an agent login before assigning route work.', 'Create agent', '#create-agent');
+        } else {
+            $content .= '<table class="table"><thead><tr><th>Name</th><th>Hub</th><th>Role</th><th>Active</th></tr></thead><tbody>';
+            foreach ($agents as $a) {
+                $content .= '<tr>'
+                    . tableCell('Name', e((string)$a['name']))
+                    . tableCell('Hub', e((string)$a['hub_name']), 'muted')
+                    . tableCell('Role', e((string)$a['role']))
+                    . tableCell('Active', ((int)$a['active'] === 1 ? 'yes' : 'no'))
+                    . '</tr>';
+            }
+            $content .= '</tbody></table>';
         }
-        $content .= '</tbody></table></div>';
-        $content .= '<div class="card"><div class="h1">Create agent + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_agent">'
+        $content .= '</div>';
+        $content .= '<div id="create-agent" class="card"><div class="h1">Create agent + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_agent">'
             . '<div><label>Name</label><input name="name" required></div>'
             . '<div><label>Phone</label><input name="phone"></div>'
             . '<div><label>Role</label><select name="role"><option value="pickup">pickup</option><option value="delivery">delivery</option><option value="both">both</option></select></div>'
@@ -2898,16 +2957,22 @@ function pageAdmin(PDO $pdo, array $u): void
     if ($tab === 'customers') {
         $customers = $pdo->query("SELECT * FROM customers ORDER BY id")->fetchAll();
         $content .= '<div class="grid cols2">';
-        $content .= '<div class="card"><div class="h1">Customers</div><table class="table"><thead><tr><th>Name</th><th>Email</th><th>Created</th></tr></thead><tbody>';
-        foreach ($customers as $c) {
-            $content .= '<tr>'
-                . tableCell('Name', e((string)$c['name']))
-                . tableCell('Email', e((string)$c['email']), 'muted')
-                . tableCell('Created', monoValue((string)$c['created_at']), 'muted mono')
-                . '</tr>';
+        $content .= '<div class="card"><div class="h1">Customers</div>';
+        if (count($customers) === 0) {
+            $content .= renderEmptyState('No customers yet', 'Create a customer login so requests can enter the queue.', 'Create customer', '#create-customer');
+        } else {
+            $content .= '<table class="table"><thead><tr><th>Name</th><th>Email</th><th>Created</th></tr></thead><tbody>';
+            foreach ($customers as $c) {
+                $content .= '<tr>'
+                    . tableCell('Name', e((string)$c['name']))
+                    . tableCell('Email', e((string)$c['email']), 'muted')
+                    . tableCell('Created', monoValue((string)$c['created_at']), 'muted mono')
+                    . '</tr>';
+            }
+            $content .= '</tbody></table>';
         }
-        $content .= '</tbody></table></div>';
-        $content .= '<div class="card"><div class="h1">Create customer + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_customer">'
+        $content .= '</div>';
+        $content .= '<div id="create-customer" class="card"><div class="h1">Create customer + login</div><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="admin_create_customer">'
             . '<div><label>Name</label><input name="name" required></div>'
             . '<div><label>Email</label><input name="email" type="email" required></div>'
             . '<div><label>Temporary password</label><input name="password" required></div>'
@@ -2923,17 +2988,22 @@ function pageAdmin(PDO $pdo, array $u): void
             ORDER BY a.created_at DESC, a.id DESC
             LIMIT 200")->fetchAll();
         $content .= '<div class="card"><div class="h1">Audit log</div><div class="muted">Privileged changes and custody-affecting mutations, newest first.</div>';
-        $content .= '<table class="table"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Reason</th></tr></thead><tbody>';
-        foreach ($rows as $row) {
-            $content .= '<tr>'
-                . tableCell('Time', monoValue((string)$row['created_at']), 'muted mono')
-                . tableCell('Actor', e((string)($row['actor_email'] ?? ('User #' . $row['actor_user_id']))) . '<div class="muted" style="font-size:12px">' . e((string)$row['actor_role']) . '</div>')
-                . tableCell('Action', e((string)$row['action']))
-                . tableCell('Entity', e((string)$row['entity_type']) . ' #' . (int)$row['entity_id'])
-                . tableCell('Reason', e((string)($row['reason'] ?? '')), 'muted')
-                . '</tr>';
+        if (count($rows) === 0) {
+            $content .= renderEmptyState('No audit entries yet', 'Security-sensitive changes will appear here after the first mutation.', 'Manage users', '?r=admin&tab=users');
+        } else {
+            $content .= '<table class="table"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Entity</th><th>Reason</th></tr></thead><tbody>';
+            foreach ($rows as $row) {
+                $content .= '<tr>'
+                    . tableCell('Time', monoValue((string)$row['created_at']), 'muted mono')
+                    . tableCell('Actor', e((string)($row['actor_email'] ?? ('User #' . $row['actor_user_id']))) . '<div class="muted" style="font-size:12px">' . e((string)$row['actor_role']) . '</div>')
+                    . tableCell('Action', e((string)$row['action']))
+                    . tableCell('Entity', e((string)$row['entity_type']) . ' #' . (int)$row['entity_id'])
+                    . tableCell('Reason', e((string)($row['reason'] ?? '')), 'muted')
+                    . '</tr>';
+            }
+            $content .= '</tbody></table>';
         }
-        $content .= '</tbody></table></div>';
+        $content .= '</div>';
     }
 
     renderLayout('Admin', $u, $content);

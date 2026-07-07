@@ -218,7 +218,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** parcel list usable at 375px with no horizontal scroll; codes are mono; GLOBAL GATES pass.
 
 ### B-07 — Empty states everywhere
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php`
 - **Do:** every list screen (parcels, routes, agents, hubs, events, settlements, users, audit) currently renders a bare table or nothing when empty. Add a shared `renderEmptyState($title, $hint, $actionLabel, $actionHref)` helper: centered block inside a dashed 1px `--line-strong` border, muted icon-free text, one primary button. Examples: parcels → "No parcels yet" / "Create the first parcel to start tracking custody." / `Create parcel`. Empty states must never show for public tracking "not found" (that has its own message).
 - **Accept:** with a fresh DB (delete `data/hubroute.sqlite`, re-run first-run seed, or temporarily filter to an empty status) each list shows a designed empty state, not a bare table header; GLOBAL GATES pass.
