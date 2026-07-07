@@ -206,7 +206,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** parcel list shows 3+ visually distinct statuses; chip text readable at AA contrast (spot-check brand/ok/warn/danger tints against their backgrounds with a contrast checker ≥ 4.5:1); GLOBAL GATES pass.
 
 ### B-05 — Dashboard: KPIs + work queues that look alive
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php` (dashboard routes for each role)
 - **Do:** KPI tiles → collapsed-border grid (one 1px `--line` wrapper, internal shared borders, no per-tile radius/shadow): mono 22px value, 10.5px uppercase muted label; the "needs attention" tile (exceptions/failed/unassigned) gets a `2px solid var(--brand)` top border. Under KPIs, each role keeps its existing queue tables but each table gets a header row with title + count chip + one primary action button (e.g. hub: `New parcel`, `Record event`).
 - **Accept:** all four role dashboards render with the new KPI grid; numbers are mono; no horizontal scroll at 375px width; GLOBAL GATES pass.

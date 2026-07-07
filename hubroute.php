@@ -1222,6 +1222,22 @@ function statusPill(string $status): string
     return uiPill($status, $cls);
 }
 
+function renderKpiGrid(array $items): string
+{
+    $html = '<div class="kpis">';
+    foreach ($items as $item) {
+        $attention = !empty($item['attention']) ? ' attention' : '';
+        $html .= '<div class="kpi' . $attention . '"><div class="n">' . e((string)$item['value']) . '</div><div class="l">' . e((string)$item['label']) . '</div></div>';
+    }
+    return $html . '</div>';
+}
+
+function renderQueueHeader(string $title, int $count, string $actionLabel, string $actionHref): string
+{
+    $countLabel = $count . ' ' . ($count === 1 ? 'item' : 'items');
+    return '<div class="queue-head"><div class="queue-title"><strong>' . e($title) . '</strong>' . uiPill($countLabel, 'bg-blue') . '</div><a class="btn primary" href="' . e($actionHref) . '">' . e($actionLabel) . '</a></div>';
+}
+
 function redactAddress(string $addr): string
 {
     $s = trim($addr);
@@ -1355,11 +1371,14 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .flash.ok{border-left:2px solid var(--ok);border-color:var(--line);background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
     .flash.err{border-left:2px solid var(--danger);border-color:var(--line);background:color-mix(in srgb,var(--danger) 8%,var(--panel))}
     .flash.info{border-left:2px solid var(--brand);background:var(--brand-soft)}
-    .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-    @media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
-    .kpi{padding:10px 12px;border:1px solid var(--line);background:var(--panel)}
-    .kpi .n{font-size:18px;font-weight:800}
-    .kpi .l{font-size:12px;color:var(--muted)}
+    .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);background:var(--line);gap:1px}
+    @media(min-width:640px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+    .kpi{min-width:0;padding:12px;border:0;background:var(--panel)}
+    .kpi.attention{border-top:2px solid var(--brand);padding-top:10px}
+    .kpi .n{font:700 22px/1 var(--mono);letter-spacing:0}
+    .kpi .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:6px}
+    .queue-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 10px;flex-wrap:wrap}
+    .queue-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
     .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
     .footer a{color:var(--muted)}
     @media(max-width:720px){.topbar{grid-template-columns:1fr;align-items:flex-start;padding:12px 18px}.user-tools{justify-content:flex-start;flex-wrap:wrap}.wrap{padding:12px}.card{padding:12px}.table th{position:static}}
@@ -1565,7 +1584,21 @@ function pageCustomerParcels(PDO $pdo, array $u): void
         $by[$r['status']] = (int)$r['c'];
     }
 
-    $content = '<div class="grid cols2">';
+    $total = array_sum($by);
+    $attention = (int)($by['failed'] ?? 0) + (int)($by['returned'] ?? 0);
+    $inMotion = (int)($by['assigned'] ?? 0) + (int)($by['en_route'] ?? 0) + (int)($by['picked_up'] ?? 0) + (int)($by['in_warehouse'] ?? 0) + (int)($by['out_for_delivery'] ?? 0);
+    $open = max(0, $total - (int)($by['delivered'] ?? 0) - $attention);
+
+    $content = '<div class="card"><div class="h1">Customer dashboard</div>'
+        . renderKpiGrid([
+            ['value' => $total, 'label' => 'Total parcels'],
+            ['value' => $open, 'label' => 'Open work'],
+            ['value' => $inMotion, 'label' => 'In motion'],
+            ['value' => $attention, 'label' => 'Needs attention', 'attention' => true],
+        ])
+        . '</div>';
+
+    $content .= '<div class="grid cols2">';
     $content .= '<div class="card"><div class="h1">My Parcels</div><div class="muted">Open a parcel to see its hub chain and timeline.</div>';
     $content .= '<div class="row" style="margin:10px 0">'
         . '<a class="btn" href="?r=customer_parcels">All</a>'
@@ -1574,6 +1607,7 @@ function pageCustomerParcels(PDO $pdo, array $u): void
         . '<a class="btn" href="?r=customer_parcels&status=out_for_delivery">Out (' . (int)($by['out_for_delivery'] ?? 0) . ')</a>'
         . '<a class="btn" href="?r=customer_parcels&status=delivered">Delivered (' . (int)($by['delivered'] ?? 0) . ')</a>'
         . '</div>';
+    $content .= renderQueueHeader('Parcel queue', count($rows), 'Create request', '#create-request');
     $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Status</th><th>Pickup</th><th>Dropoff</th><th>COD</th><th>Agent</th><th>Updated</th></tr></thead><tbody>';
     foreach ($rows as $p) {
         $content .= '<tr>';
@@ -1588,7 +1622,7 @@ function pageCustomerParcels(PDO $pdo, array $u): void
     }
     $content .= '</tbody></table></div>';
 
-    $content .= '<div class="card"><div class="h1">Create pickup request</div>';
+    $content .= '<div id="create-request" class="card"><div class="h1">Create pickup request</div>';
     $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="customer_create">';
     $content .= '<div><label>Pickup address</label><textarea name="pickup_address" required></textarea></div>';
     $content .= '<div><label>Dropoff address</label><textarea name="dropoff_address" required></textarea></div>';
@@ -1740,7 +1774,28 @@ function pageHubParcels(PDO $pdo, array $u): void
     $routes->execute([$hubId]);
     $routeRows = $routes->fetchAll();
 
+    $counts = $pdo->prepare("SELECT status, COUNT(*) AS c FROM parcels WHERE (hub_pickup_id=? OR hub_warehouse_id=? OR hub_delivery_id=? OR current_hub_id=?) GROUP BY status");
+    $counts->execute([$hubId, $hubId, $hubId, $hubId]);
+    $by = [];
+    foreach ($counts->fetchAll() as $r) {
+        $by[$r['status']] = (int)$r['c'];
+    }
+    $unassigned = $pdo->prepare("SELECT COUNT(*) FROM parcels WHERE (hub_pickup_id=? OR hub_warehouse_id=? OR hub_delivery_id=? OR current_hub_id=?) AND assigned_agent_id IS NULL AND status NOT IN ('delivered','failed','returned')");
+    $unassigned->execute([$hubId, $hubId, $hubId, $hubId]);
+    $unassignedCount = (int)$unassigned->fetchColumn();
+    $total = array_sum($by);
+    $inMotion = (int)($by['assigned'] ?? 0) + (int)($by['en_route'] ?? 0) + (int)($by['picked_up'] ?? 0) + (int)($by['in_warehouse'] ?? 0) + (int)($by['out_for_delivery'] ?? 0);
+    $attention = $unassignedCount + (int)($by['failed'] ?? 0) + (int)($by['returned'] ?? 0);
+
     $content = '<div class="card"><div class="h1">Hub Operations · ' . e($hubName) . '</div>';
+    $content = '<div class="card"><div class="h1">Hub dashboard &middot; ' . e($hubName) . '</div>'
+        . renderKpiGrid([
+            ['value' => $total, 'label' => 'Visible parcels'],
+            ['value' => $inMotion, 'label' => 'In motion'],
+            ['value' => (int)($by['delivered'] ?? 0), 'label' => 'Delivered'],
+            ['value' => $attention, 'label' => 'Needs attention', 'attention' => true],
+        ])
+        . '</div>' . $content;
     $content .= '<form class="row" method="get" style="margin:10px 0"><input type="hidden" name="r" value="hub_parcels">'
         . '<div style="flex:1;min-width:220px"><input name="q" value="' . e($q) . '" placeholder="Search tracking/address"></div>'
         . '<div style="min-width:180px"><select name="status"><option value="">All statuses</option>';
@@ -1752,6 +1807,7 @@ function pageHubParcels(PDO $pdo, array $u): void
         . '<a class="btn" href="?r=hub_parcels">Reset</a>'
         . '</form>';
 
+    $content .= renderQueueHeader('Hub parcel queue', count($rows), 'Record event', '?r=scan');
     $content .= '<table class="table"><thead><tr><th>Tracking</th><th>Status</th><th>Pickup</th><th>Dropoff</th><th>COD</th><th>Route</th><th>Agent</th><th>Created</th><th>Assign</th></tr></thead><tbody>';
     foreach ($rows as $p) {
         $content .= '<tr>';
@@ -2271,8 +2327,28 @@ function pageAgentRun(PDO $pdo, array $u): void
     $st->execute([$agentId]);
     $rows = $st->fetchAll();
 
-    $content = '<div class="grid cols2">';
+    $counts = $pdo->prepare("SELECT status, COUNT(*) AS c FROM parcels WHERE assigned_agent_id=? GROUP BY status");
+    $counts->execute([$agentId]);
+    $by = [];
+    foreach ($counts->fetchAll() as $r) {
+        $by[$r['status']] = (int)$r['c'];
+    }
+    $codDue = $pdo->prepare("SELECT COUNT(*) FROM parcels WHERE assigned_agent_id=? AND amount_cents > 0 AND cod_settled=0 AND status NOT IN ('delivered','failed','returned')");
+    $codDue->execute([$agentId]);
+    $attention = (int)($by['failed'] ?? 0) + (int)($by['returned'] ?? 0);
+
+    $content = '<div class="card"><div class="h1">Agent dashboard</div>'
+        . renderKpiGrid([
+            ['value' => count($rows), 'label' => 'Active run'],
+            ['value' => (int)($by['out_for_delivery'] ?? 0), 'label' => 'Out for delivery'],
+            ['value' => (int)$codDue->fetchColumn(), 'label' => 'COD due'],
+            ['value' => $attention, 'label' => 'Needs attention', 'attention' => true],
+        ])
+        . '</div>';
+
+    $content .= '<div class="grid cols2">';
     $content .= '<div class="card"><div class="h1">My Run</div><div class="muted">Open a parcel to update its next step.</div>';
+    $content .= renderQueueHeader('Run queue', count($rows), 'Record event', '?r=scan');
     if (count($rows) === 0) {
         $content .= '<div class="muted" style="margin-top:10px">No assigned parcels right now.</div>';
     } else {
@@ -2654,13 +2730,32 @@ function pageAdmin(PDO $pdo, array $u): void
         $k1 = (int)$pdo->query("SELECT COUNT(*) FROM parcels")->fetchColumn();
         $k2 = (int)$pdo->query("SELECT COUNT(*) FROM hubs")->fetchColumn();
         $k3 = (int)$pdo->query("SELECT COUNT(*) FROM agents")->fetchColumn();
-        $k4 = (int)$pdo->query("SELECT COUNT(*) FROM events")->fetchColumn();
-        $content .= '<div class="card"><div class="h1">System overview</div><div class="kpis">'
-            . '<div class="kpi"><div class="n">' . $k1 . '</div><div class="l">Parcels</div></div>'
-            . '<div class="kpi"><div class="n">' . $k2 . '</div><div class="l">Hubs</div></div>'
-            . '<div class="kpi"><div class="n">' . $k3 . '</div><div class="l">Agents</div></div>'
-            . '<div class="kpi"><div class="n">' . $k4 . '</div><div class="l">Events</div></div>'
-            . '</div></div>';
+        $k4 = (int)$pdo->query("SELECT COUNT(*) FROM parcels WHERE assigned_agent_id IS NULL OR status IN ('failed','returned')")->fetchColumn();
+        $recentAudit = $pdo->query("SELECT a.*, u.email AS actor_email
+            FROM audit_log a
+            LEFT JOIN users u ON u.id=a.actor_user_id
+            ORDER BY a.created_at DESC, a.id DESC
+            LIMIT 5")->fetchAll();
+        $content .= '<div class="card"><div class="h1">System overview</div>'
+            . renderKpiGrid([
+                ['value' => $k1, 'label' => 'Parcels'],
+                ['value' => $k2, 'label' => 'Hubs'],
+                ['value' => $k3, 'label' => 'Agents'],
+                ['value' => $k4, 'label' => 'Needs attention', 'attention' => true],
+            ])
+            . '</div>';
+        $content .= '<div class="card">'
+            . renderQueueHeader('Recent audit', count($recentAudit), 'Manage users', '?r=admin&tab=users')
+            . '<table class="table"><thead><tr><th>Time</th><th>Actor</th><th>Action</th><th>Reason</th></tr></thead><tbody>';
+        foreach ($recentAudit as $row) {
+            $content .= '<tr>'
+                . '<td class="muted">' . e((string)$row['created_at']) . '</td>'
+                . '<td>' . e((string)($row['actor_email'] ?? ('User #' . $row['actor_user_id']))) . '</td>'
+                . '<td>' . e((string)$row['action']) . '</td>'
+                . '<td class="muted">' . e((string)($row['reason'] ?? '')) . '</td>'
+                . '</tr>';
+        }
+        $content .= '</tbody></table></div>';
     }
 
     if ($tab === 'users') {
