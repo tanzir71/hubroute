@@ -524,6 +524,15 @@ After deploy, create a production admin and rotate or disable seeded accounts.</
             <li>Test restore by copying a backup into a separate staging folder and opening <code>/health.php</code>.</li>
             <li>Review <code>data/php-error.log</code> after deployments and keep <code>ENABLE_EXTRA_LOGGING=false</code> outside troubleshooting windows.</li>
           </ul>
+          <div class="warn">
+            <h3>Automatic offsite backups (no vendor lock-in)</h3>
+            <ol>
+              <li>Install and sign in to the OneDrive, Google Drive, or Dropbox desktop client on the server or workstation that runs maintenance.</li>
+              <li>Set <code>BACKUP_DIR</code> to a folder inside that synced area, such as <code>C:\Users\you\OneDrive\hubroute-backups</code> or <code>/home/you/GoogleDrive/hubroute-backups</code>.</li>
+              <li>Add the cron line <code>php maintenance.php run --apply</code> so HubRoute writes fresh backup files on schedule.</li>
+            </ol>
+            <p>Cloud sync is configured by the user with their own account; HubRoute only writes local files.</p>
+          </div>
         </section>
 
         <section id="troubleshooting">

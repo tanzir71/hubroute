@@ -348,6 +348,16 @@ Recommended nightly cron on cPanel:
 
 Replace `CPANEL_USER` with your hosting username and adjust the path if the app is not in `public_html`.
 
+## Automatic offsite backups (no vendor lock-in)
+
+Use any local folder that is synced by a desktop client you control:
+
+1. Install and sign in to the OneDrive, Google Drive, or Dropbox desktop client on the server or workstation that runs maintenance.
+2. Set `BACKUP_DIR` to a folder inside that synced area, such as `C:\Users\you\OneDrive\hubroute-backups` or `/home/you/GoogleDrive/hubroute-backups`.
+3. Add the cron line `php maintenance.php run --apply` so HubRoute writes fresh backup files on schedule.
+
+Cloud sync is configured by the user with their own account; HubRoute only writes local files.
+
 Retention is configured in `.env`:
 
 ```dotenv

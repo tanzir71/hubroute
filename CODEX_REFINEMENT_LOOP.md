@@ -247,6 +247,17 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Do:** after first-run seeding, show a dismissible one-time banner (session-flagged) on the admin dashboard: "Fresh install — 3 steps to production: 1) create your real admin, 2) disable seed accounts, 3) run a backup (`php maintenance.php run --apply`)" with links to the relevant admin screens. Style: `--brand-soft` background, 2px `--brand` left border.
 - **Accept:** banner appears once for admin on a fresh DB, dismisses, never shows again in that session; GLOBAL GATES pass.
 
+### B-12 — Backup to a user-chosen local folder (bring-your-own cloud sync)
+- [x] Done
+- **Files:** `hubroute.php` (admin dashboard), `maintenance.php`, `.env.example`, `docs.html`, `SETUP.md`
+- **Context:** `BACKUP_DIR` in `.env` already accepts any absolute path (`maintAppPath()` in `maintenance.php` passes through Windows `C:\…` and Unix `/…` paths). The feature exists but is invisible. Surface it as a first-class option: users point `BACKUP_DIR` at a folder synced by OneDrive / Google Drive / Dropbox **desktop clients they configure themselves** — HubRoute never integrates any cloud API (zero-dependency rule holds).
+- **Do:**
+  - `.env.example`: expand the `BACKUP_DIR` comment into a short block: default `data/backups`; may be any absolute local path; example `BACKUP_DIR=C:\Users\you\OneDrive\hubroute-backups` and `BACKUP_DIR=/home/you/GoogleDrive/hubroute-backups`; warning in caps: **sync the BACKUP folder only — never place `DATA_DIR`/the live `hubroute.sqlite` inside a sync folder (sync clients can corrupt a live SQLite file)**.
+  - `maintenance.php`: when `BACKUP_DIR` resolves outside the app directory, still create it if missing (already does via backup path) and print a one-line notice `backup_dir=<path> (external)` in the run output; skip `maintWriteDenyFiles()` warnings for non-web-root dirs if they error (external folders don't need `.htaccess` — wrap in a try/ignore rather than failing the backup).
+  - Admin dashboard (`hubroute.php`): add a small "Backups" facts card: backup dir path (mono), latest `hubroute-*.sqlite` file name + age (read via `glob()` on `BACKUP_DIR`, newest mtime), and a muted hint — if no backup in > 7 days or none ever: render the line with a `--warn` chip `stale` / `never run` and the command `php maintenance.php run --apply`. Read-only display; no backup-triggering button (backups stay CLI/cron-only).
+  - `docs.html` + `SETUP.md`: add a short section `Automatic offsite backups (no vendor lock-in)` under operations/hosting: 3 steps — install the OneDrive/Google Drive desktop client, set `BACKUP_DIR` to a folder inside the synced area, add the cron line `php maintenance.php run --apply`. State plainly: cloud sync is configured by the user with their own account; HubRoute only writes local files.
+- **Accept:** with `BACKUP_DIR` set to an absolute path outside the repo, `php maintenance.php run --apply` writes the backup there and prints the external notice; admin dashboard shows the backup card with correct latest-backup age (test fresh = `never run`, then after a run = today); `.env.example` contains the corruption warning; docs section exists in both files; GLOBAL GATES pass.
+
 ---
 
 ## 6. Phase C — Public tracking: the storefront screen

@@ -82,6 +82,7 @@ loadEnvFile(__DIR__ . DIRECTORY_SEPARATOR . '.env');
 define('APP_NAME', envString('APP_NAME', 'HubRoute'));
 define('DATA_DIR', appPath(envString('DATA_DIR', 'data')));
 define('DB_PATH', appPath(envString('DB_PATH', DATA_DIR . DIRECTORY_SEPARATOR . 'hubroute.sqlite')));
+define('BACKUP_DIR', appPath(envString('BACKUP_DIR', DATA_DIR . DIRECTORY_SEPARATOR . 'backups')));
 define('APP_TIMEZONE', envString('APP_TIMEZONE', 'Asia/Dhaka'));
 define('SESSION_IDLE_TIMEOUT_SECONDS', envInt('SESSION_IDLE_TIMEOUT_SECONDS', 1800));
 define('SESSION_ABSOLUTE_TIMEOUT_SECONDS', envInt('SESSION_ABSOLUTE_TIMEOUT_SECONDS', 28800));
@@ -1249,6 +1250,70 @@ function statusClass(string $status): string
     return $map[$status] ?? 'bg-slate';
 }
 
+function backupAgeLabel(?int $mtime): string
+{
+    if ($mtime === null) {
+        return 'never run';
+    }
+    $seconds = max(0, time() - $mtime);
+    $days = intdiv($seconds, 86400);
+    if ($days === 0) {
+        return 'today';
+    }
+    return $days === 1 ? '1 day ago' : $days . ' days ago';
+}
+
+function latestBackupInfo(string $dir): array
+{
+    $latest = null;
+    $latestMtime = null;
+    foreach (glob($dir . DIRECTORY_SEPARATOR . 'hubroute-*.sqlite') ?: [] as $file) {
+        if (!is_file($file)) {
+            continue;
+        }
+        $mtime = (int)filemtime($file);
+        if ($latestMtime === null || $mtime > $latestMtime) {
+            $latest = $file;
+            $latestMtime = $mtime;
+        }
+    }
+
+    if ($latest === null || $latestMtime === null) {
+        return [
+            'file' => null,
+            'age' => 'never run',
+            'state' => 'never run',
+        ];
+    }
+
+    $isStale = (time() - $latestMtime) > (7 * 86400);
+    return [
+        'file' => basename($latest),
+        'age' => backupAgeLabel($latestMtime),
+        'state' => $isStale ? 'stale' : 'current',
+    ];
+}
+
+function renderBackupFactsCard(): string
+{
+    $backup = latestBackupInfo(BACKUP_DIR);
+    $state = (string)$backup['state'];
+    $stateClass = $state === 'current' ? 'bg-green' : 'bg-amber';
+    $latest = $backup['file'] === null
+        ? '<span class="muted">No backups yet</span>'
+        : monoValue((string)$backup['file']);
+
+    $html = '<div class="card backup-facts"><div class="h1">Backups</div>'
+        . '<div class="muted">Write backups to any local folder, including one synced by your own cloud desktop client.</div>'
+        . '<div class="fact-row"><span class="muted">Backup dir</span><strong class="mono">' . e(BACKUP_DIR) . '</strong></div>'
+        . '<div class="fact-row"><span class="muted">Latest backup</span><strong>' . $latest . '</strong></div>'
+        . '<div class="fact-row"><span class="muted">Backup age</span><strong class="row">' . uiPill($state, $stateClass) . '<span class="mono">' . e((string)$backup['age']) . '</span></strong></div>';
+    if ($state !== 'current') {
+        $html .= '<div class="backup-warning">' . uiPill($state, 'bg-amber') . '<span>Run <code>php maintenance.php run --apply</code> from cron or your host terminal.</span></div>';
+    }
+    return $html . '</div>';
+}
+
 function eventStatusClass(string $eventType): string
 {
     return match ($eventType) {
@@ -1513,6 +1578,9 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .parcel-side{display:grid;gap:12px}
     .parcel-facts{display:grid;gap:12px}
     .fact-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-top:1px solid var(--line);padding-top:10px}
+    .backup-facts .fact-row strong{text-align:right;word-break:break-word}
+    .backup-warning{border-left:2px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,var(--panel));padding:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+    .backup-warning code{font-family:var(--mono);font-size:12px}
     .track-shell{max-width:760px;margin:0 auto;display:grid;gap:12px}
     .track-search{padding:18px}
     .track-search form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:12px}
@@ -3024,6 +3092,7 @@ function pageAdmin(PDO $pdo, array $u): void
                 ['value' => $k4, 'label' => 'Needs attention', 'attention' => true],
             ])
             . '</div>';
+        $content .= renderBackupFactsCard();
         $content .= '<div class="card">'
             . renderQueueHeader('Recent audit', count($recentAudit), 'Manage users', '?r=admin&tab=users');
         if (count($recentAudit) === 0) {

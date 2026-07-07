@@ -76,11 +76,30 @@ function maintAppPath(string $path): string
     return __DIR__ . DIRECTORY_SEPARATOR . $path;
 }
 
+function maintComparablePath(string $path): string
+{
+    $real = realpath($path);
+    $value = $real !== false ? $real : $path;
+    return rtrim(strtolower(str_replace('\\', '/', $value)), '/');
+}
+
+function maintIsExternalPath(string $path, string $baseDir): bool
+{
+    $pathNorm = maintComparablePath($path);
+    $baseNorm = maintComparablePath($baseDir);
+    return $pathNorm !== $baseNorm && !str_starts_with($pathNorm, $baseNorm . '/');
+}
+
+function maintEnsureDirectory(string $dir): void
+{
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
+        throw new RuntimeException('Backup directory could not be created: ' . $dir);
+    }
+}
+
 function maintWriteDenyFiles(string $dir): void
 {
-    if (!is_dir($dir)) {
-        @mkdir($dir, 0775, true);
-    }
+    maintEnsureDirectory($dir);
 
     $deny = $dir . DIRECTORY_SEPARATOR . '.htaccess';
     if (!is_file($deny)) {
@@ -132,12 +151,15 @@ function maintPdo(string $dbPath): PDO
     return $pdo;
 }
 
-function maintBackupSqlite(PDO $pdo, string $dbPath, string $backupDir): string
+function maintBackupSqlite(PDO $pdo, string $dbPath, string $backupDir, bool $externalBackupDir): string
 {
     if (!extension_loaded('sqlite3')) {
         throw new RuntimeException('SQLite3 extension is required for safe online backups.');
     }
-    maintWriteDenyFiles($backupDir);
+    maintEnsureDirectory($backupDir);
+    if (!$externalBackupDir) {
+        maintWriteDenyFiles($backupDir);
+    }
     $pdo->exec('PRAGMA wal_checkpoint(TRUNCATE)');
 
     $backupPath = $backupDir . DIRECTORY_SEPARATOR . 'hubroute-' . gmdate('Ymd-His') . '.sqlite';
@@ -243,6 +265,7 @@ maintLoadEnvFile(__DIR__ . DIRECTORY_SEPARATOR . '.env');
 $dataDir = maintAppPath(maintEnvString('DATA_DIR', 'data'));
 $dbPath = maintAppPath(maintEnvString('DB_PATH', $dataDir . DIRECTORY_SEPARATOR . 'hubroute.sqlite'));
 $backupDir = maintAppPath(maintEnvString('BACKUP_DIR', $dataDir . DIRECTORY_SEPARATOR . 'backups'));
+$backupDirExternal = maintIsExternalPath($backupDir, __DIR__);
 $settings = [
     'terminal_days' => maintDays($argv, 'terminal-days', maintEnvInt('MAINTENANCE_PRUNE_TERMINAL_DAYS', 180)),
     'audit_days' => maintDays($argv, 'audit-days', maintEnvInt('MAINTENANCE_PRUNE_AUDIT_DAYS', 365)),
@@ -264,7 +287,10 @@ try {
     $didPrune = false;
 
     if ($command === 'backup' || $command === 'run' || ($command === 'prune' && $apply)) {
-        $backupPath = maintBackupSqlite($pdo, $dbPath, $backupDir);
+        $backupPath = maintBackupSqlite($pdo, $dbPath, $backupDir, $backupDirExternal);
+        if ($backupDirExternal) {
+            echo 'backup_dir=' . $backupDir . ' (external)' . "\n";
+        }
         echo 'backup=' . $backupPath . "\n";
         echo 'old_backups_deleted=' . maintDeleteOldBackups($backupDir, $settings['backup_days']) . "\n";
     }
