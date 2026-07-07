@@ -242,7 +242,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** label page renders; browser print preview fits one A6/A4; no new dependencies; unauthorized user gets the same denial as parcel detail; GLOBAL GATES pass.
 
 ### B-11 — First-run experience (fresh install confidence)
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php`
 - **Do:** after first-run seeding, show a dismissible one-time banner (session-flagged) on the admin dashboard: "Fresh install — 3 steps to production: 1) create your real admin, 2) disable seed accounts, 3) run a backup (`php maintenance.php run --apply`)" with links to the relevant admin screens. Style: `--brand-soft` background, 2px `--brand` left border.
 - **Accept:** banner appears once for admin on a fresh DB, dismisses, never shows again in that session; GLOBAL GATES pass.

@@ -764,6 +764,8 @@ function migrateAndSeed(PDO $pdo): void
         }
 
         $pdo->commit();
+        $_SESSION['fresh_install_seeded'] = 1;
+        unset($_SESSION['fresh_install_banner_dismissed']);
     } catch (Throwable $e) {
         $pdo->rollBack();
         throw $e;
@@ -1200,6 +1202,32 @@ function isSeededAccountEmail(string $email): bool
     return in_array(strtolower($email), seededAccountEmails(), true);
 }
 
+function shouldShowFreshInstallBanner(array $u): bool
+{
+    return (string)$u['role'] === 'admin'
+        && (int)($_SESSION['fresh_install_seeded'] ?? 0) === 1
+        && (int)($_SESSION['fresh_install_banner_dismissed'] ?? 0) !== 1;
+}
+
+function handleFreshInstallBannerDismiss(): void
+{
+    if (queryText('dismiss_fresh_install', 10) === '1') {
+        $_SESSION['fresh_install_banner_dismissed'] = 1;
+        redirect('admin');
+    }
+}
+
+function renderFreshInstallBanner(): string
+{
+    return '<div class="fresh-install">'
+        . '<div><strong>Fresh install &mdash; 3 steps to production:</strong> '
+        . '1) <a href="?r=admin&tab=users#create-admin">create your real admin</a>, '
+        . '2) <a href="?r=admin&tab=users">disable seed accounts</a>, '
+        . '3) run a backup (<code>php maintenance.php run --apply</code>).</div>'
+        . '<a class="btn secondary" href="?r=admin&dismiss_fresh_install=1">Dismiss</a>'
+        . '</div>';
+}
+
 function uiPill(string $label, string $class): string
 {
     return '<span class="pill ' . e($class) . '"><span class="led" aria-hidden="true"></span><span>' . e($label) . '</span></span>';
@@ -1419,6 +1447,8 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .flash.ok{border-left:2px solid var(--ok);border-color:var(--line);background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
     .flash.err{border-left:2px solid var(--danger);border-color:var(--line);background:color-mix(in srgb,var(--danger) 8%,var(--panel))}
     .flash.info{border-left:2px solid var(--brand);background:var(--brand-soft)}
+    .fresh-install{background:var(--brand-soft);border-left:2px solid var(--brand);border-top:1px solid var(--line);border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:12px;margin:0 0 12px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+    .fresh-install code{font-family:var(--mono);font-size:12px}
     .kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));border:1px solid var(--line);background:var(--line);gap:1px}
     @media(min-width:640px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
     .kpi{min-width:0;padding:12px;border:0;background:var(--panel)}
@@ -2893,6 +2923,7 @@ function actionSettle(PDO $pdo, array $u): void
 function pageAdmin(PDO $pdo, array $u): void
 {
     requireRole($u, ['admin']);
+    handleFreshInstallBannerDismiss();
     $tab = queryText('tab', 20);
     if (!in_array($tab, ['overview','users','hubs','agents','customers','audit'], true)) {
         $tab = 'overview';
@@ -3117,6 +3148,10 @@ function pageAdmin(PDO $pdo, array $u): void
             $content .= '</tbody></table>';
         }
         $content .= '</div>';
+    }
+
+    if (shouldShowFreshInstallBanner($u)) {
+        $content = renderFreshInstallBanner() . $content;
     }
 
     renderLayout('Admin', $u, $content);
