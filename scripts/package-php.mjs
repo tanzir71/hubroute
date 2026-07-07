@@ -3,7 +3,7 @@
 import { cp, mkdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawn } from "node:child_process";
+import { archiveDirectory } from "./package-archive.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(root, "dist");
@@ -21,23 +21,6 @@ const runtimeFiles = [
 ];
 
 const rel = (filePath) => path.relative(root, filePath);
-
-function run(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      stdio: "inherit",
-      ...options
-    });
-    child.on("error", reject);
-    child.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(new Error(`${command} ${args.join(" ")} exited with ${code}`));
-    });
-  });
-}
 
 await rm(stageDir, { recursive: true, force: true });
 await rm(zipPath, { force: true });
@@ -81,7 +64,7 @@ await writeFile(
   ].join("\n")
 );
 
-await run("zip", ["-qr", zipPath, "."], { cwd: stageDir });
+await archiveDirectory({ cwd: stageDir, zipPath });
 
 console.log(`[php-package] Created ${rel(zipPath)}`);
 console.log(`[php-package] Staged runtime files in ${rel(stageDir)}`);
