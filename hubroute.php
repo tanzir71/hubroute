@@ -1446,8 +1446,22 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .led.bg-amber,.led.bg-orange,.led.bg-teal{color:var(--warn)}
     .led.bg-green{color:var(--ok)}
     .led.bg-red{color:var(--danger)}
+    .label-shell{display:grid;gap:12px}
+    .label-sheet{width:min(100%,105mm);min-height:148mm;background:var(--panel);border:1px solid var(--line-strong);padding:16px;display:grid;gap:14px;align-content:start}
+    .label-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .label-code{font:800 28px/1.1 var(--mono);letter-spacing:0;word-break:break-all}
+    .label-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .label-block{border:1px solid var(--line);padding:10px;min-height:82px}
+    .label-block .muted,.label-sheet .muted{font-size:10.5px;text-transform:uppercase;letter-spacing:.04em}
+    .label-cod{border:2px solid var(--ink);padding:10px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+    .code-strip{border:1px solid var(--ink);padding:12px;text-align:center}
+    .code-strip .mono{display:block;font-size:20px;font-weight:800;word-break:break-all}
+    .print-note{font-size:12px}
     .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
     .footer a{color:var(--muted)}
+    @page{size:A6;margin:8mm}
+    @media print{.topbar,.footer,.no-print{display:none!important}.wrap{max-width:none;padding:0}.label-shell{display:block}.label-sheet{width:100%;min-height:auto;border:0;padding:0;background:#fff;color:#000}body{background:#fff;color:#000}}
+    @media(max-width:720px){.label-grid{grid-template-columns:1fr}}
     @media(max-width:720px){.table thead{display:none}.table,.table tbody,.table tr,.table td{display:block;width:100%}.table tr{border:1px solid var(--line);margin:0 0 10px;background:var(--panel)}.table td{border:0;padding:7px 8px}.table td::before{content:attr(data-label);display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}.table td[data-label=""]::before{display:none}}
     @media(max-width:720px){.timeline-item{grid-template-columns:20px minmax(0,1fr)}.timeline-time{grid-column:2;text-align:left}}
     @media(max-width:720px){.topbar{grid-template-columns:1fr;align-items:flex-start;padding:12px 18px}.user-tools{justify-content:flex-start;flex-wrap:wrap}.wrap{padding:12px}.card{padding:12px}.table th{position:static}}
@@ -2562,6 +2576,8 @@ function pageParcelDetail(PDO $pdo, array $u): void
     }
     $content .= '</div>';
 
+    $content .= '<div class="row" style="margin-top:12px"><a class="btn" href="?r=parcel_label&id=' . (int)$p['id'] . '">Print label</a></div>';
+
     if ($role === 'hub') {
         $content .= '<div class="row" style="margin-top:12px"><a class="btn" href="?r=scan&code=' . e((string)$p['tracking_code']) . '">Scan / Add Event</a><a class="btn" href="?r=track&code=' . e((string)$p['tracking_code']) . '">Public Tracking</a></div>';
     }
@@ -2640,6 +2656,47 @@ function pageParcelDetail(PDO $pdo, array $u): void
     $content .= $right;
     $content .= '</div>';
     renderLayout('Parcel', $u, $content, ['refresh' => 15]);
+}
+
+function pageParcelLabel(PDO $pdo, array $u): void
+{
+    $id = (int)($_GET['id'] ?? 0);
+    $st = $pdo->prepare("SELECT p.*, c.name AS customer_name, a.name AS agent_name,
+        hp.name AS pickup_hub_name, hd.name AS delivery_hub_name
+        FROM parcels p
+        JOIN customers c ON c.id=p.customer_id
+        LEFT JOIN agents a ON a.id=p.assigned_agent_id
+        LEFT JOIN hubs hp ON hp.id=p.hub_pickup_id
+        LEFT JOIN hubs hd ON hd.id=p.hub_delivery_id
+        WHERE p.id=?");
+    $st->execute([$id]);
+    $p = $st->fetch();
+    if (!$p) {
+        http_response_code(404);
+        echo 'Not found';
+        return;
+    }
+    if (!canAccessParcel($u, $p)) {
+        http_response_code(403);
+        echo 'Forbidden';
+        return;
+    }
+
+    $trackingCode = (string)$p['tracking_code'];
+    $content = '<div class="label-shell">';
+    $content .= '<div class="no-print row"><button class="btn primary" type="button" onclick="window.print()">Print</button><a class="btn" href="?r=parcel&id=' . (int)$p['id'] . '">Back to parcel</a><span class="muted print-note">No JavaScript? Use your browser print command.</span></div>';
+    $content .= '<section class="label-sheet" aria-label="Parcel label">';
+    $content .= '<div class="label-head"><div class="brand">' . logoMark() . '<span>' . e(APP_NAME) . '</span></div><div class="muted mono">' . e((string)$p['created_at']) . '</div></div>';
+    $content .= '<div><div class="muted">Tracking</div><div class="label-code">' . e($trackingCode) . '</div></div>';
+    $content .= '<div class="label-grid">';
+    $content .= '<div class="label-block"><div class="muted">From</div><strong>' . e((string)$p['customer_name']) . '</strong><div>' . e((string)$p['pickup_address']) . '</div><div class="muted">' . e((string)($p['pickup_hub_name'] ?? '')) . '</div></div>';
+    $content .= '<div class="label-block"><div class="muted">To</div><strong>Recipient</strong><div>' . e((string)$p['dropoff_address']) . '</div><div class="muted">' . e((string)($p['delivery_hub_name'] ?? '')) . '</div></div>';
+    $content .= '</div>';
+    $content .= '<div class="label-cod"><span>COD amount</span><strong class="mono">' . e(formatMoney((int)$p['amount_cents'])) . '</strong></div>';
+    $content .= '<div class="code-strip"><span class="mono">' . e($trackingCode) . '</span><span class="muted">scan = type the code</span></div>';
+    $content .= '</section></div>';
+
+    renderLayout('Print Label', $u, $content);
 }
 
 function actionAgentStep(PDO $pdo, array $u): void
@@ -3599,6 +3656,10 @@ if ($route === 'agent_run') {
 }
 if ($route === 'parcel') {
     pageParcelDetail($pdo, $u);
+    exit;
+}
+if ($route === 'parcel_label') {
+    pageParcelLabel($pdo, $u);
     exit;
 }
 if ($route === 'scan') {

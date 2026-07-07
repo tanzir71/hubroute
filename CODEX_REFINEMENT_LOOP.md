@@ -236,7 +236,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** timeline reads top=newest, latest highlighted; copy button works; COD chip present on COD parcels; GLOBAL GATES pass.
 
 ### B-10 — Print-ready parcel label (waybill-lite)
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php`
 - **Do:** add a `Print label` action on parcel detail → route `?r=parcel_label&id=…` (auth: same access rule as parcel detail) rendering a minimal A6-styled sheet: logo, tracking code huge in mono, from/to blocks, COD amount box, date, and a **pure-CSS code strip**: render the tracking code also as large mono in a bordered box (do NOT add a barcode library; note "scan = type the code" — keeps zero-dependency rule). `@media print` hides nav/footer. Button `window.print()` with a no-JS fallback note.
 - **Accept:** label page renders; browser print preview fits one A6/A4; no new dependencies; unauthorized user gets the same denial as parcel detail; GLOBAL GATES pass.
