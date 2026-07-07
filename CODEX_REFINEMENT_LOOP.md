@@ -200,7 +200,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** visual pass on login, parcel create, scan/event form; error flash and success flash both visibly distinct; GLOBAL GATES pass.
 
 ### B-04 — Status chips + LED (kill the gray pills)
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php`
 - **Do:** replace `.pill` styling with squared status chips per §3 table: uppercase, 10.5px, letter-spaced, mono, 1px tinted border + tinted background + status color text. Map existing `bg-blue|indigo|purple` → pre-transit (brand), `bg-amber|orange|teal` → in-motion (warn), `bg-green` → success (ok), `bg-red` → problem (danger). Prepend the 8px `.led` dot inside each chip (same color). Keep the text label always (never color-only).
 - **Accept:** parcel list shows 3+ visually distinct statuses; chip text readable at AA contrast (spot-check brand/ok/warn/danger tints against their backgrounds with a contrast checker ≥ 4.5:1); GLOBAL GATES pass.

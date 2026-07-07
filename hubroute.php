@@ -1200,10 +1200,15 @@ function isSeededAccountEmail(string $email): bool
     return in_array(strtolower($email), seededAccountEmails(), true);
 }
 
+function uiPill(string $label, string $class): string
+{
+    return '<span class="pill ' . e($class) . '"><span class="led" aria-hidden="true"></span><span>' . e($label) . '</span></span>';
+}
+
 function statusPill(string $status): string
 {
     $map = [
-        'requested' => 'bg-slate',
+        'requested' => 'bg-blue',
         'assigned' => 'bg-blue',
         'en_route' => 'bg-indigo',
         'picked_up' => 'bg-amber',
@@ -1214,7 +1219,7 @@ function statusPill(string $status): string
         'returned' => 'bg-orange',
     ];
     $cls = $map[$status] ?? 'bg-slate';
-    return '<span class="pill ' . e($cls) . '">' . e($status) . '</span>';
+    return uiPill($status, $cls);
 }
 
 function redactAddress(string $addr): string
@@ -1339,8 +1344,12 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .table{width:100%;border-collapse:collapse}
     .table th{position:sticky;top:52px;background:var(--panel-2);text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);padding:10px}
     .table td{border-bottom:1px solid var(--line);padding:10px;vertical-align:top}
-    .pill{display:inline-block;padding:3px 8px;font-size:12px;border:1px solid var(--line-strong);background:var(--panel)}
-    .pill.bg-blue,.pill.bg-indigo,.pill.bg-amber,.pill.bg-purple,.pill.bg-teal,.pill.bg-green,.pill.bg-red,.pill.bg-orange{background:var(--soft);border-color:var(--line-strong)}
+    .pill{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;font:600 10.5px/1.2 var(--mono);letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line-strong);background:var(--panel);color:var(--muted)}
+    .pill.bg-blue,.pill.bg-indigo,.pill.bg-purple{background:var(--brand-soft);border-color:color-mix(in srgb,var(--brand) 28%,var(--panel));color:var(--brand)}
+    .pill.bg-amber,.pill.bg-orange,.pill.bg-teal{background:color-mix(in srgb,var(--warn) 8%,var(--panel));border-color:color-mix(in srgb,var(--warn) 28%,var(--panel));color:var(--warn)}
+    .pill.bg-green{background:color-mix(in srgb,var(--ok) 8%,var(--panel));border-color:color-mix(in srgb,var(--ok) 28%,var(--panel));color:var(--ok)}
+    .pill.bg-red{background:color-mix(in srgb,var(--danger) 8%,var(--panel));border-color:color-mix(in srgb,var(--danger) 28%,var(--panel));color:var(--danger)}
+    .pill.bg-slate{background:var(--panel-2);border-color:var(--line-strong);color:var(--muted)}
     .led{display:inline-block;width:8px;height:8px;border-radius:999px;background:currentColor}
     .flash{padding:10px 12px;margin:0 0 10px;border:1px solid var(--line);border-left:2px solid var(--brand);background:var(--brand-soft)}
     .flash.ok{border-left:2px solid var(--ok);border-color:var(--line);background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
@@ -1957,7 +1966,7 @@ function pageHubRoutes(PDO $pdo, array $u): void
         $content .= '<td>' . e((string)$r['name']) . '</td>';
         $content .= '<td class="muted">' . e($kw) . '</td>';
         $content .= '<td>' . e((string)($r['agent_name'] ?? '')) . '</td>';
-        $content .= '<td>' . ((int)$r['active'] === 1 ? '<span class="pill bg-green">active</span>' : '<span class="pill bg-red">inactive</span>') . '</td>';
+        $content .= '<td>' . ((int)$r['active'] === 1 ? uiPill('active', 'bg-green') : uiPill('inactive', 'bg-red')) . '</td>';
         $content .= '<td><a class="btn" href="?r=route_export&id=' . (int)$r['id'] . '">CSV</a></td>';
         $content .= '</tr>';
     }
@@ -2545,7 +2554,7 @@ function pageSettlements(PDO $pdo, array $u): void
         $content .= '<td class="muted">' . e((string)$p['customer_name']) . '</td>';
         $content .= '<td>' . e(formatMoney((int)$p['amount_cents'])) . '</td>';
         $content .= '<td>' . statusPill((string)$p['status']) . '</td>';
-        $content .= '<td>' . ((int)$p['cod_settled'] === 1 ? '<span class="pill bg-green">yes</span>' : '<span class="pill bg-amber">no</span>') . '</td>';
+        $content .= '<td>' . ((int)$p['cod_settled'] === 1 ? uiPill('yes', 'bg-green') : uiPill('no', 'bg-amber')) . '</td>';
         $content .= '<td>';
         if ((int)$p['cod_settled'] === 0) {
             $content .= '<form method="post"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="settle"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '"><button class="btn" type="submit">Mark settled</button></form>';
@@ -2678,12 +2687,12 @@ function pageAdmin(PDO $pdo, array $u): void
             }
             $scope = $scopeParts ? implode(' / ', $scopeParts) : 'Global';
             $isActive = (int)$row['active'] === 1;
-            $seededTag = isSeededAccountEmail($email) ? '<div><span class="pill bg-red">seeded</span></div>' : '';
+            $seededTag = isSeededAccountEmail($email) ? '<div>' . uiPill('seeded', 'bg-red') . '</div>' : '';
             $content .= '<tr>'
                 . '<td>' . e($email) . $seededTag . '<div class="muted" style="font-size:12px">User #' . (int)$row['id'] . '</div></td>'
                 . '<td>' . e(roleLabel($role)) . '</td>'
                 . '<td class="muted">' . e($scope) . '</td>'
-                . '<td>' . ($isActive ? '<span class="pill bg-green">active</span>' : '<span class="pill bg-red">disabled</span>') . '</td>'
+                . '<td>' . ($isActive ? uiPill('active', 'bg-green') : uiPill('disabled', 'bg-red')) . '</td>'
                 . '<td><form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput()
                 . '<input type="hidden" name="action" value="admin_update_user">'
                 . '<input type="hidden" name="user_id" value="' . (int)$row['id'] . '">'
