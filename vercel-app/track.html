@@ -11,6 +11,42 @@
   <meta name="theme-color" content="#2f56d9">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%232f56d9'/%3E%3Cpath%20d='M6.5%2025.5%20L20.5%2011.5'%20fill='none'%20stroke='%23fff'%20stroke-width='3.4'/%3E%3Cpath%20d='M24%208%20L23.1%2015.7%20L15.9%2014.4%20Z'%20fill='%23fff'/%3E%3Crect%20x='9.3'%20y='19.1'%20width='3.8'%20height='3.8'%20fill='%232f56d9'%20stroke='%23fff'%20stroke-width='1.5'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="/styles.css">
+  <style>
+    .mono{font-family:var(--mono)}
+    .small{font-size:12px}
+    .public-result{display:grid;gap:16px}
+    .public-result-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .public-code{font:800 24px/1.1 var(--mono);letter-spacing:0;word-break:break-all;margin:.15rem 0 0}
+    .status-stack{display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .status-chip{display:inline-flex;align-items:center;min-height:26px;border:1px solid var(--line-strong);background:#fff;color:var(--text);padding:4px 8px;font-size:11px;font-weight:750;text-transform:uppercase}
+    .status-chip.danger{border-color:var(--danger);color:var(--danger);background:#fff7f5}
+    .meta-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+    .meta-item{border:1px solid var(--line);background:#fff;padding:10px;display:grid;gap:4px}
+    .meta-item span:first-child{color:var(--muted);font-size:11px;text-transform:uppercase;font-weight:700}
+    .meta-item strong{word-break:break-word}
+    .public-section{display:grid;gap:8px}
+    .public-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:4px 0 0}
+    .public-step{position:relative;display:grid;gap:6px;justify-items:center;text-align:center;color:var(--muted)}
+    .public-step::before{content:"";position:absolute;top:9px;left:-50%;width:100%;height:2px;background:var(--line-strong);z-index:0}
+    .public-step:first-child::before{display:none}
+    .public-step.complete::before{background:var(--brand)}
+    .step-marker{width:18px;height:18px;background:var(--panel);border:2px solid var(--line-strong);position:relative;z-index:1}
+    .public-step.complete .step-marker{background:var(--brand);border-color:var(--brand)}
+    .public-step.current .step-label{color:var(--text);font-weight:700}
+    .public-hub-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .public-hub-node{border:1px solid var(--line-strong);background:#fff;padding:6px 8px;font-weight:650}
+    .public-hub-arrow{color:var(--muted);font-family:var(--mono)}
+    .timeline{display:grid;gap:10px}
+    .event{border-left:2px solid var(--brand);padding:2px 0 4px 12px;display:grid;gap:3px}
+    .event p{margin:0}
+    .state-card{border:1px dashed var(--line-strong);background:#fff;padding:18px;display:grid;gap:8px;color:var(--muted)}
+    .state-card strong{color:var(--text)}
+    .skeleton{display:grid;gap:9px}
+    .skeleton-bar{height:12px;background:#e5eaf2;border:1px solid var(--line)}
+    .skeleton-bar.short{width:46%}
+    .skeleton-bar.medium{width:72%}
+    @media(max-width:640px){.meta-grid,.public-stepper{grid-template-columns:1fr}.public-step{grid-template-columns:24px minmax(0,1fr);justify-items:start;text-align:left}.public-step::before{left:8px;top:-12px;width:2px;height:20px}.public-step:first-child::before{display:none}.status-stack{justify-content:flex-start}}
+  </style>
 </head>
 <body>
   <main class="shell">
@@ -35,44 +71,205 @@
   <script>
     const form = document.querySelector("#trackForm");
     const result = document.querySelector("#result");
+    const codeInput = form.elements.code;
+    const TRACK_STEPS = ["Booked", "At hub", "Out for delivery", "Delivered"];
     const params = new URLSearchParams(location.search);
     const pathCode = location.pathname.startsWith("/track/") ? location.pathname.split("/").pop() : "";
     const initial = params.get("code") || pathCode || "";
-    form.code.value = initial;
+    codeInput.value = initial;
 
-    async function lookup(code) {
-      if (!code) return;
-      result.className = "panel muted";
-      result.textContent = "Loading...";
-      const response = await fetch(`/api/track?code=${encodeURIComponent(code)}`);
-      const payload = await response.json();
+    function text(value, fallback = "") {
+      const normalized = String(value ?? "").trim();
+      return normalized || fallback;
+    }
+
+    function labelize(value, fallback = "pending") {
+      return text(value, fallback).replaceAll("_", " ");
+    }
+
+    function node(tag, options = {}, children = []) {
+      const element = document.createElement(tag);
+      for (const [key, value] of Object.entries(options)) {
+        if (value === null || value === undefined || value === false) continue;
+        if (key === "className") element.className = value;
+        else if (key === "text") element.textContent = value;
+        else element.setAttribute(key, value);
+      }
+      for (const child of Array.isArray(children) ? children : [children]) {
+        if (child === null || child === undefined) continue;
+        if (typeof child === "string") element.appendChild(document.createTextNode(child));
+        else element.appendChild(child);
+      }
+      return element;
+    }
+
+    function formatDate(value) {
+      const raw = text(value);
+      return raw ? raw.replace("T", " ").slice(0, 16) : "Pending";
+    }
+
+    function eventStage(type) {
+      const normalized = text(type);
+      if (normalized === "delivered") return 3;
+      if (normalized === "out_for_delivery" || normalized === "failed") return 2;
+      if (["assigned", "en_route", "picked_up", "in_transit", "in_warehouse", "handoff_departed", "handoff_received", "payment_collected"].includes(normalized)) return 1;
+      return 0;
+    }
+
+    function trackingStage(parcel, events) {
+      const status = text(parcel.status);
+      if (["failed", "returned"].includes(status)) {
+        const lastGood = events.reduce((stage, event) => Math.max(stage, eventStage(event.type)), 0);
+        return Math.min(lastGood, 2);
+      }
+      if (status === "delivered") return 3;
+      if (status === "out_for_delivery") return 2;
+      if (["assigned", "en_route", "picked_up", "in_transit", "in_warehouse"].includes(status)) return 1;
+      return 0;
+    }
+
+    function renderProgressStepper(parcel, events) {
+      const stage = trackingStage(parcel, events);
+      return node("div", { className: "public-stepper", "aria-label": "Shipment progress" }, TRACK_STEPS.map((label, index) => {
+        const stateClass = `${index <= stage ? " complete" : ""}${index === stage ? " current" : ""}`;
+        return node("div", { className: `public-step${stateClass}` }, [
+          node("span", { className: "step-marker", "aria-hidden": "true" }),
+          node("span", { className: "step-label", text: label })
+        ]);
+      }));
+    }
+
+    function renderStatusChip(status) {
+      const normalized = text(status);
+      const isDanger = ["failed", "returned"].includes(normalized);
+      return node("span", { className: `status-chip${isDanger ? " danger" : ""}`, text: labelize(normalized) });
+    }
+
+    function renderMeta(label, value) {
+      return node("div", { className: "meta-item" }, [
+        node("span", { text: label }),
+        node("strong", { text: value })
+      ]);
+    }
+
+    function hubPath(parcel, events) {
+      const names = [];
+      const push = (value) => {
+        const name = text(value);
+        if (name && !names.includes(name)) names.push(name);
+      };
+      for (const event of [...events].reverse()) push(event.hub);
+      push(parcel.currentHub);
+      return names;
+    }
+
+    function renderHubPath(parcel, events) {
+      const path = hubPath(parcel, events);
+      if (!path.length) return node("p", { className: "muted small", text: "No hub updates yet." });
+      const chain = node("div", { className: "public-hub-chain" });
+      path.forEach((hub, index) => {
+        if (index > 0) chain.appendChild(node("span", { className: "public-hub-arrow", "aria-hidden": "true", text: "->" }));
+        chain.appendChild(node("span", { className: "public-hub-node", text: hub }));
+      });
+      return chain;
+    }
+
+    function renderTimeline(events) {
+      if (!events.length) {
+        return node("div", { className: "state-card" }, [
+          node("strong", { text: "No events yet" }),
+          node("p", { text: "Custody events will appear here once the parcel starts moving." })
+        ]);
+      }
+      return node("div", { className: "timeline" }, events.map((event) => node("div", { className: "event" }, [
+        node("strong", { text: labelize(event.type) }),
+        node("span", { className: "muted small", text: `${text(event.hub, "Hub pending")} / ${formatDate(event.at)}` }),
+        text(event.note) ? node("p", { text: event.note }) : null
+      ])));
+    }
+
+    function showLoading() {
+      result.className = "panel";
+      result.replaceChildren(node("div", { className: "skeleton", "aria-label": "Loading tracking result" }, [
+        node("div", { className: "skeleton-bar short" }),
+        node("div", { className: "skeleton-bar medium" }),
+        node("div", { className: "skeleton-bar" })
+      ]));
+    }
+
+    function showNotFound(code) {
+      result.className = "panel";
+      result.replaceChildren(node("div", { className: "state-card" }, [
+        node("strong", { text: "No parcel found for that code" }),
+        node("p", { text: "No parcel found for that code - check the number and try again." }),
+        code ? node("span", { className: "mono small", text: code }) : null
+      ]));
+    }
+
+    function showError(message) {
+      result.className = "panel error";
+      result.replaceChildren(node("strong", { text: text(message, "Tracking service unavailable.") }));
+    }
+
+    function renderTrackingPayload(payload, code) {
       if (!payload.ok) {
-        result.className = "panel error";
-        result.textContent = payload.error === "not_found" ? "No parcel found for that tracking number." : payload.error;
+        if (payload.error === "not_found") showNotFound(code);
+        else showError(payload.error);
         return;
       }
-      const parcel = payload.parcel;
+
+      const parcel = payload.parcel || {};
+      const events = Array.isArray(payload.events) ? payload.events : [];
+      const route = `${text(parcel.pickupArea, "Pickup pending")} -> ${text(parcel.dropoffArea, "Dropoff pending")}`;
       result.className = "panel";
-      result.innerHTML = `
-        <p class="eyebrow">${parcel.trackingCode}</p>
-        <h2>${parcel.status.replaceAll("_", " ")}</h2>
-        <p>${parcel.pickupArea} -> ${parcel.dropoffArea}</p>
-        <p class="muted">Current hub: ${parcel.currentHub || "Pending"} / ${parcel.paymentMode}</p>
-        <div class="timeline">
-          ${payload.events.map((event) => `
-            <div class="event">
-              <strong>${event.type.replaceAll("_", " ")}</strong>
-              <span>${event.hub || ""}</span>
-              <small>${event.at}</small>
-              <p>${event.note || ""}</p>
-            </div>
-          `).join("")}
-        </div>`;
+      result.replaceChildren(node("div", { className: "public-result" }, [
+        node("div", { className: "public-result-head" }, [
+          node("div", {}, [
+            node("p", { className: "eyebrow", text: "Tracking code" }),
+            node("h2", { className: "public-code mono", text: text(parcel.trackingCode, code) })
+          ]),
+          node("div", { className: "status-stack" }, [
+            renderStatusChip(parcel.status),
+            node("span", { className: "muted small", text: `Updated ${formatDate(parcel.updatedAt)}` })
+          ])
+        ]),
+        renderProgressStepper(parcel, events),
+        node("div", { className: "meta-grid" }, [
+          renderMeta("Route", route),
+          renderMeta("Current hub", text(parcel.currentHub, "Pending")),
+          renderMeta("Payment", labelize(parcel.paymentMode, "prepaid"))
+        ]),
+        node("div", { className: "public-section" }, [
+          node("p", { className: "eyebrow", text: "Hub path" }),
+          renderHubPath(parcel, events)
+        ]),
+        node("div", { className: "public-section" }, [
+          node("p", { className: "eyebrow", text: "Timeline" }),
+          renderTimeline(events)
+        ])
+      ]));
+    }
+
+    async function lookup(code) {
+      if (!code) {
+        result.className = "panel muted";
+        result.replaceChildren("Enter a tracking number to begin.");
+        return;
+      }
+
+      try {
+        showLoading();
+        const response = await fetch(`/api/track?code=${encodeURIComponent(code)}`);
+        const payload = await response.json();
+        renderTrackingPayload(payload, code);
+      } catch (error) {
+        showError(error.message);
+      }
     }
 
     form.addEventListener("submit", (event) => {
       event.preventDefault();
-      lookup(form.code.value.trim());
+      lookup(codeInput.value.trim());
     });
     lookup(initial);
   </script>

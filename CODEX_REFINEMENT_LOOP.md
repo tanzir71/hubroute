@@ -287,7 +287,7 @@ Goal: someone with zero terminal experience deploys HubRoute tracking on Vercel 
 - **Accept:** no `border-radius` > 0 in `vercel-app/styles.css` except a `.led` rule; homepage contains no env-var names; `npm run package:vercel` passes; GLOBAL GATES pass.
 
 ### D-02 — Tracking page: stepper + XSS fix
-- [ ] Done
+- [x] Done
 - **Files:** `vercel-app/track.html`
 - **Do:** port the C-01 stepper/hub-path/timeline design. **Fix the injection risk:** current code interpolates API payload values into `innerHTML`; switch to building DOM nodes with `textContent` (or escape every interpolated value through a tiny `esc()` helper). Add loading skeleton (3 shimmer-free gray bars — static, no animation lib) and the friendly not-found card.
 - **Accept:** a tracking value containing `<img onerror>` renders inert as text (test by temporarily hardcoding a malicious payload through the render path, then remove the test); stepper works against `/api/track`; GLOBAL GATES pass.
