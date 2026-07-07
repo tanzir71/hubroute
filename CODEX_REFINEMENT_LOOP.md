@@ -175,7 +175,7 @@ Rules (identical to `CODEX_BUILD_PLAN.md` §5, restated so this file is self-suf
 This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lines 1288–1331) is replaced with the token design system. **Restyle only — handler/SQL/auth logic must not change.**
 
 ### B-01 — Token foundation + drift check
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php`, new `scripts/check-tokens.mjs`, `package.json`
 - **Do:**
   - Replace the app's `:root` (`--bg:#fff; --pri:#080808 …`) with the full token set from §3, inline.

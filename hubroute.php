@@ -448,7 +448,7 @@ function renderFatal(string $title, string $message): void
     $safeMsg = nl2br(e($message));
     echo '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
         . '<title>' . $safeTitle . '</title>'
-        . '<style>body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Arial,sans-serif;background:#fff;color:#080808;margin:0;padding:24px}.card{max-width:820px;margin:0 auto;background:#fff;border:1px solid #d8d8d8;border-radius:8px;padding:18px}.h1{font-size:20px;font-weight:700;margin:0 0 10px}.muted{color:#666}</style>'
+        . '<style>:root{--bg:#f4f5f7;--panel:#ffffff;--panel-2:#f8f9fb;--text:#141821;--muted:#5c6470;--line:#e5e8ee;--line-strong:#d3d8e0;--ink:#0b0d12;--brand:#2f56d9;--brand-ink:#2444b8;--brand-soft:#eef2fe;--ok:#0f7a4d;--warn:#9a5b00;--danger:#c0362c;--mono:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;--shadow:0 16px 40px rgba(11,13,18,.14);--band:var(--panel-2);--soft:var(--brand-soft);--blue:var(--brand);--green:var(--ok);--amber:var(--warn);--red:var(--danger);}body{font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);margin:0;padding:24px}.card{max-width:820px;margin:0 auto;background:var(--panel);border:1px solid var(--line);padding:18px}.h1{font-size:20px;font-weight:700;margin:0 0 10px}.muted{color:var(--muted)}</style>'
         . '</head><body><div class="card"><div class="h1">' . $safeTitle . '</div><div>' . $safeMsg . '</div>'
         . '<div class="muted" style="margin-top:12px">Check server error log: <code>' . e(DATA_DIR . DIRECTORY_SEPARATOR . 'php-error.log') . '</code></div>'
         . '</div></body></html>';
@@ -1286,46 +1286,47 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
 
     echo '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' . $refreshTag . '<title>' . e($title) . ' / ' . e(APP_NAME) . '</title>';
     echo '<style>
-    :root{--bg:#fff;--card:#fff;--text:#080808;--muted:#666;--border:#d8d8d8;--soft:#f4f4f4;--pri:#080808;--danger:#8a1111;}
+    :root{--bg:#f4f5f7;--panel:#ffffff;--panel-2:#f8f9fb;--text:#141821;--muted:#5c6470;--line:#e5e8ee;--line-strong:#d3d8e0;--ink:#0b0d12;--brand:#2f56d9;--brand-ink:#2444b8;--brand-soft:#eef2fe;--ok:#0f7a4d;--warn:#9a5b00;--danger:#c0362c;--mono:ui-monospace,"SF Mono","JetBrains Mono","Roboto Mono",Menlo,Consolas,monospace;--shadow:0 16px 40px rgba(11,13,18,.14);--band:var(--panel-2);--soft:var(--brand-soft);--blue:var(--brand);--green:var(--ok);--amber:var(--warn);--red:var(--danger);}
     *{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg)}
-    a{color:var(--text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}a:hover{color:#555}
-    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;background:rgba(255,255,255,.94);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:20;backdrop-filter:blur(10px)}
+    a{color:var(--text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}a:hover{color:var(--brand)}
+    .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
     .brand{font-weight:750;letter-spacing:0}
     .nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
     .navform{margin:0}
-    .navlink{display:inline-flex;align-items:center;padding:6px 8px;border-radius:6px;color:var(--text);text-decoration:none}
+    .navlink{display:inline-flex;align-items:center;padding:6px 8px;color:var(--text);text-decoration:none}
     .navlink:hover{background:var(--soft);text-decoration:none}
     .navbutton{border:0;background:transparent;font:inherit;cursor:pointer}
     .who{color:var(--muted);font-size:12px}
     .wrap{max-width:1200px;margin:0 auto;padding:18px}
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:980px){.grid.cols2{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px}
+    .card{background:var(--panel);border:1px solid var(--line);padding:14px}
     .h1{font-size:18px;font-weight:750;margin:0 0 8px;letter-spacing:0}
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border-radius:6px;border:1px solid var(--text);background:#fff;color:var(--text);cursor:pointer;text-decoration:none;font:inherit}
-    .btn.primary{background:var(--pri);border-color:var(--pri);color:#fff}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;font:inherit}
+    .btn.primary{background:var(--brand);border-color:var(--brand);color:var(--panel)}
     .btn:disabled{opacity:.45;cursor:not-allowed}
-    input,select,textarea{width:100%;padding:9px 10px;border-radius:6px;border:1px solid var(--border);background:#fff;color:var(--text);font:inherit}
-    input:focus,select:focus,textarea:focus,.btn:focus-visible,.navlink:focus-visible{outline:2px solid #111;outline-offset:2px}
+    input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);font:inherit}
+    input:focus,select:focus,textarea:focus,.btn:focus-visible,.navlink:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
     textarea{min-height:90px;resize:vertical}
     label{display:block;font-size:12px;color:var(--muted);margin:6px 0}
     .form{display:grid;gap:10px}
     .table{width:100%;border-collapse:collapse}
-    .table th{position:sticky;top:52px;background:var(--card);text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border);padding:10px}
-    .table td{border-bottom:1px solid var(--border);padding:10px;vertical-align:top}
-    .pill{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;border:1px solid var(--border);background:#fff}
-    .pill.bg-blue,.pill.bg-indigo,.pill.bg-amber,.pill.bg-purple,.pill.bg-teal,.pill.bg-green,.pill.bg-red,.pill.bg-orange{background:var(--soft);border-color:var(--border)}
-    .flash{padding:10px 12px;border-radius:8px;margin:0 0 10px;border:1px solid var(--border);background:#fff}
-    .flash.ok{border-color:#111;background:#f8f8f8}
-    .flash.err{border-color:var(--danger);background:#fff}
+    .table th{position:sticky;top:52px;background:var(--panel-2);text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);padding:10px}
+    .table td{border-bottom:1px solid var(--line);padding:10px;vertical-align:top}
+    .pill{display:inline-block;padding:3px 8px;font-size:12px;border:1px solid var(--line-strong);background:var(--panel)}
+    .pill.bg-blue,.pill.bg-indigo,.pill.bg-amber,.pill.bg-purple,.pill.bg-teal,.pill.bg-green,.pill.bg-red,.pill.bg-orange{background:var(--soft);border-color:var(--line-strong)}
+    .led{display:inline-block;width:8px;height:8px;border-radius:999px;background:currentColor}
+    .flash{padding:10px 12px;margin:0 0 10px;border:1px solid var(--line);background:var(--panel)}
+    .flash.ok{border-color:var(--ok);background:var(--panel)}
+    .flash.err{border-color:var(--danger);background:var(--panel)}
     .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
     @media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
-    .kpi{padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:#fff}
+    .kpi{padding:10px 12px;border:1px solid var(--line);background:var(--panel)}
     .kpi .n{font-size:18px;font-weight:800}
     .kpi .l{font-size:12px;color:var(--muted)}
-    .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+    .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
     .footer a{color:var(--muted)}
     @media(max-width:720px){.topbar{align-items:flex-start;flex-direction:column}.who{order:2}.wrap{padding:12px}.card{padding:12px}.table th{position:static}}
     </style>';
@@ -1450,7 +1451,7 @@ function pagePublicTrack(PDO $pdo): void
                 $content .= '<div class="muted">No hub updates yet.</div>';
             } else {
                 foreach ($hubPath as $h) {
-                    $content .= '<div style="padding:6px 0;border-bottom:1px solid var(--border)"><div><strong>' . e((string)$h['hub_name']) . '</strong></div><div class="muted" style="font-size:12px">' . e((string)$h['first_ts']) . (isset($h['last_ts']) ? ' → ' . e((string)$h['last_ts']) : '') . '</div></div>';
+                    $content .= '<div style="padding:6px 0;border-bottom:1px solid var(--line)"><div><strong>' . e((string)$h['hub_name']) . '</strong></div><div class="muted" style="font-size:12px">' . e((string)$h['first_ts']) . (isset($h['last_ts']) ? ' → ' . e((string)$h['last_ts']) : '') . '</div></div>';
                 }
             }
             $content .= '</div>';
@@ -2345,7 +2346,7 @@ function pageParcelDetail(PDO $pdo, array $u): void
     } else {
         foreach ($order as $hid) {
             $h = $hubPath[$hid];
-            $content .= '<div style="padding:6px 0;border-bottom:1px solid var(--border)"><div><strong>' . e((string)$h['hub_name']) . '</strong></div><div class="muted" style="font-size:12px">' . e((string)$h['first_ts']) . (isset($h['last_ts']) ? ' → ' . e((string)$h['last_ts']) : '') . '</div></div>';
+            $content .= '<div style="padding:6px 0;border-bottom:1px solid var(--line)"><div><strong>' . e((string)$h['hub_name']) . '</strong></div><div class="muted" style="font-size:12px">' . e((string)$h['first_ts']) . (isset($h['last_ts']) ? ' → ' . e((string)$h['last_ts']) : '') . '</div></div>';
         }
     }
     $content .= '</div>';

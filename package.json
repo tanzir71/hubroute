@@ -8,6 +8,7 @@
     "build:demo": "node scripts/build-demo.mjs",
     "sync:demo": "node scripts/build-demo.mjs && node scripts/sync-demo.mjs",
     "check:demo": "node scripts/build-demo.mjs --check && node scripts/sync-demo.mjs --check",
+    "check:tokens": "node scripts/check-tokens.mjs",
     "smoke:demo": "node scripts/smoke-demo.mjs",
     "package:php": "node scripts/package-php.mjs",
     "package:vercel": "node scripts/package-vercel.mjs",
@@ -15,7 +16,7 @@
     "maintainer:deploy:demo": "npm run sync:demo && npm test && npx --yes vercel deploy --prod",
     "maintainer:deploy:demo:preview": "npm run sync:demo && npm test && npx --yes vercel deploy",
     "test:domain": "node --test tests/*.test.mjs",
-    "test": "npm run test:domain && npm run check:demo && npm run smoke:demo"
+    "test": "npm run test:domain && npm run check:tokens && npm run check:demo && npm run smoke:demo"
   },
   "engines": {
     "node": ">=18"
