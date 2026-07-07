@@ -327,7 +327,7 @@ Goal: someone with zero terminal experience deploys HubRoute tracking on Vercel 
 - **Accept:** Lighthouse a11y ≥ 95 on landing, docs, demo, PHP tracking; GLOBAL GATES pass.
 
 ### E-02 — Performance & weight budget
-- [ ] Done
+- [x] Done
 - **Files:** all surfaces
 - **Do:** landing < 250 KB transferred (images lazy + compressed from A-02); no render-blocking external requests (fonts are system/Inter-local already — verify no CDN crept in); demo `public/index.html` still boots < 2s on throttled mid-tier mobile profile.
 - **Accept:** Lighthouse perf ≥ 90 landing + docs; `grep -RniE "fonts.googleapis|cdn.jsdelivr|unpkg" index.html docs.html hubroute.php src/ vercel-app/ --include=*.html --include=*.css --include=*.js --include=*.php` returns nothing; GLOBAL GATES pass.
