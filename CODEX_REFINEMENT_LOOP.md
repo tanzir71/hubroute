@@ -212,7 +212,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** all four role dashboards render with the new KPI grid; numbers are mono; no horizontal scroll at 375px width; GLOBAL GATES pass.
 
 ### B-06 — Tables: density, hierarchy, mobile
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php`
 - **Do:** `.table` → header row on `--panel-2`, 10.5px uppercase letter-spaced muted, sticky where it already was; tracking codes and amounts in `--mono`; row hover `--panel-2`; row link/action buttons compact (28px). At ≤ 720px, tables switch to stacked "card rows" (each `td` gets a `data-label` shown as an 10.5px muted label above the value) — pure CSS via `display:block` pattern; add the `data-label` attributes where tables are rendered.
 - **Accept:** parcel list usable at 375px with no horizontal scroll; codes are mono; GLOBAL GATES pass.
