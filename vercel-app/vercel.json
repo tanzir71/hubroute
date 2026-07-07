@@ -1,4 +1,5 @@
 {
+  "cleanUrls": true,
   "crons": [
     {
       "path": "/api/cron/maintenance",
@@ -6,6 +7,10 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/track",
+      "destination": "/track.html"
+    },
     {
       "source": "/track/:code",
       "destination": "/track.html?code=:code"

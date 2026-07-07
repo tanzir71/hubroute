@@ -2,6 +2,8 @@
 
 This is a separate Vercel-ready fileset for HubRoute. It is not the PHP shared-hosting zip and it does not use local filesystem SQLite.
 
+For the beginner dashboard path and Deploy with Vercel button, use [`DEPLOY_VERCEL.md`](https://github.com/tanzir71/hubroute/blob/main/DEPLOY_VERCEL.md).
+
 ## What This Artifact Includes
 
 - Static app pages for setup and public tracking.

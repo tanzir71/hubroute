@@ -304,7 +304,7 @@ Goal: someone with zero terminal experience deploys HubRoute tracking on Vercel 
 - **Accept:** a tracking value containing `<img onerror>` renders inert as text (test by temporarily hardcoding a malicious payload through the render path, then remove the test); stepper works against `/api/track`; GLOBAL GATES pass.
 
 ### D-03 — One-click deploy path
-- [ ] Done
+- [x] Done
 - **Files:** new `DEPLOY_VERCEL.md` (repo root), `vercel-app/README.md`, `README.md`, `vercel-app/vercel.json`
 - **Do:** write `DEPLOY_VERCEL.md` — a beginner-proof, screenshot-level-explicit guide:
   1. Create free Turso account → create database → copy URL + token (exact button names).

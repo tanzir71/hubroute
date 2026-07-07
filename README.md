@@ -43,16 +43,7 @@ Shared hosting and small VPS deployments are the supported production path today
 
 The Vercel browser demo is maintainer-only and is not a user deployment path. The repo now includes a separate Vercel-ready starter fileset in `vercel-app/`, packaged as `dist/hubroute-vercel.zip`, using Vercel-supported server code and hosted SQLite-compatible storage such as libSQL/Turso. The PHP + local SQLite production bundle is intentionally kept simple for shared hosts.
 
-Beginner Vercel path:
-
-1. Extract `hubroute-vercel.zip`.
-2. Upload the extracted contents to a new GitHub repository.
-3. Import that repository in the Vercel dashboard.
-4. Add the Turso/libSQL database URL, database token, session secret, cron secret, setup secret, timezone, and retention variables.
-5. Deploy from the Vercel dashboard.
-6. Open `/api/health`, run `/setup`, then test `/track/HR260703DHK1A2`.
-
-Full Vercel steps are in [SETUP.md](SETUP.md#vercel-production-path).
+Beginner Vercel path: follow [DEPLOY_VERCEL.md](DEPLOY_VERCEL.md). It covers the Deploy with Vercel button, Turso setup, GitHub web upload, Vercel environment variables, `/api/health`, `/setup`, and the sample tracking code.
 
 ## Why PHP + SQLite
 
