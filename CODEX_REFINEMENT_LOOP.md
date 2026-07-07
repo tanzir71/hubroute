@@ -150,7 +150,8 @@ Rules (identical to `CODEX_BUILD_PLAN.md` §5, restated so this file is self-suf
 - **Accept:** `grep -ci "demo" index.html` returns a number ≤ 8 (was 20+; remaining uses only inside the walkthrough section); no grep hits for "roadmap moves"; all internal anchors resolve (every `href="#x"` has a matching `id="x"`); GLOBAL GATES pass.
 
 ### A-02 — Real screenshots instead of CSS fakes
-- [ ] Done
+- [B] BLOCKED
+  - blocked-on B/C: screenshots must be captured after the production app and tracking UI are restyled.
 - **Files:** `index.html`, new `assets/shots/*.png`
 - **Do:** run the app locally (`php -S 127.0.0.1:8080`, complete first-run seed), capture 3 real PNG screenshots at 1280×800 — hub dashboard, parcel detail with timeline, public tracking (do this AFTER Phases B & C so the shots show the new UI; if Phase B/C not done yet, mark this task `[B] blocked-on B/C` and return). Compress (< 150 KB each). Replace the hand-built `.screenshots` CSS mockups with `<img>` (with meaningful `alt`, `loading="lazy"`, fixed `width`/`height` to avoid CLS), framed by a 1px `--line` border and a mono caption bar.
 - **Accept:** images exist under `assets/shots/`, each < 150 KB; landing renders them; Lighthouse perf ≥ 90 on landing; GLOBAL GATES pass.
