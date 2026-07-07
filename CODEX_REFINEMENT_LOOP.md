@@ -163,7 +163,7 @@ Rules (identical to `CODEX_BUILD_PLAN.md` §5, restated so this file is self-suf
 - **Accept:** the three job-cards exist and every command in them is copy-pasteable and correct against `SETUP.md`; every `docs.html#…` href in `index.html` resolves to a real id (verify: extract hrefs with grep, check each against `grep -o 'id="[a-z-]*"' docs.html`); GLOBAL GATES pass.
 
 ### A-04 — Consistent head metadata on every HTML surface
-- [ ] Done
+- [x] Done
 - **Files:** `index.html`, `docs.html`, `src/demo/index.html`, `vercel-app/*.html`
 - **Do:** every page gets: same route-arrow favicon data-URI, `og:title`, `og:description`, `og:type`, `theme-color` `#2f56d9`, and a real `<title>` (no page titled "HubRoute Vercel"). Demo page title: `HubRoute — live walkthrough`.
 - **Accept:** `grep -L "og:title" index.html docs.html src/demo/index.html vercel-app/index.html vercel-app/track.html vercel-app/setup.html` returns empty; `npm run sync:demo` regenerates mirrors; GLOBAL GATES pass.
