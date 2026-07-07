@@ -230,7 +230,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** login renders centered on desktop + mobile; no credentials text; focus order: email → password → submit; GLOBAL GATES pass.
 
 ### B-09 — Parcel detail: timeline as the hero
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php` (parcel detail route)
 - **Do:** two-column layout ≥ 980px (main: timeline; side: parcel facts card + actions), single column below. Timeline: vertical list, each event = 2px `--line-strong` left border segment with the status-colored `.led` dot, event type as 12.5px semibold, hub + actor muted, timestamp mono 11px right-aligned. Latest event highlighted with `--brand-soft` background. Facts card: tracking code as mono 18px with a one-click `Copy` button (tiny inline JS `navigator.clipboard`, progressive enhancement — page must work without JS). COD amount always visible with settled/outstanding chip (competitor lesson §2.1).
 - **Accept:** timeline reads top=newest, latest highlighted; copy button works; COD chip present on COD parcels; GLOBAL GATES pass.

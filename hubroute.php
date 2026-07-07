@@ -1205,7 +1205,7 @@ function uiPill(string $label, string $class): string
     return '<span class="pill ' . e($class) . '"><span class="led" aria-hidden="true"></span><span>' . e($label) . '</span></span>';
 }
 
-function statusPill(string $status): string
+function statusClass(string $status): string
 {
     $map = [
         'requested' => 'bg-blue',
@@ -1218,8 +1218,25 @@ function statusPill(string $status): string
         'failed' => 'bg-red',
         'returned' => 'bg-orange',
     ];
-    $cls = $map[$status] ?? 'bg-slate';
-    return uiPill($status, $cls);
+    return $map[$status] ?? 'bg-slate';
+}
+
+function eventStatusClass(string $eventType): string
+{
+    return match ($eventType) {
+        'delivered', 'customer_confirmed' => 'bg-green',
+        'failed' => 'bg-red',
+        'returned', 'hub_arrived', 'hub_departed', 'picked_up', 'payment_collected' => 'bg-amber',
+        'in_warehouse' => 'bg-purple',
+        'out_for_delivery' => 'bg-teal',
+        'en_route' => 'bg-indigo',
+        default => statusClass($eventType),
+    };
+}
+
+function statusPill(string $status): string
+{
+    return uiPill($status, statusClass($status));
 }
 
 function renderKpiGrid(array $items): string
@@ -1413,9 +1430,26 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .empty-state{border:1px dashed var(--line-strong);padding:22px;text-align:center;background:var(--panel);margin:12px 0}
     .empty-title{font-weight:750;margin-bottom:4px}
     .empty-state .btn{margin-top:12px}
+    .parcel-layout{display:grid;gap:12px}
+    @media(min-width:980px){.parcel-layout{grid-template-columns:minmax(0,2fr) minmax(280px,1fr);align-items:start}.timeline-card{order:1}.parcel-side{order:2}}
+    .parcel-side{display:grid;gap:12px}
+    .parcel-facts{display:grid;gap:12px}
+    .fact-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-top:1px solid var(--line);padding-top:10px}
+    .timeline-list{display:grid;gap:8px}
+    .timeline-item{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;padding:10px;border:1px solid transparent}
+    .timeline-item.latest{background:var(--brand-soft)}
+    .timeline-line{position:relative;border-left:2px solid var(--line-strong);min-height:48px}
+    .timeline-line .led{position:absolute;left:-5px;top:4px}
+    .timeline-event{font-size:12.5px;font-weight:650}
+    .timeline-time{font:11px/1.3 var(--mono);text-align:right;color:var(--muted)}
+    .led.bg-blue,.led.bg-indigo,.led.bg-purple{color:var(--brand)}
+    .led.bg-amber,.led.bg-orange,.led.bg-teal{color:var(--warn)}
+    .led.bg-green{color:var(--ok)}
+    .led.bg-red{color:var(--danger)}
     .footer{max-width:1200px;margin:28px auto 0;padding:18px;border-top:1px solid var(--line);display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
     .footer a{color:var(--muted)}
     @media(max-width:720px){.table thead{display:none}.table,.table tbody,.table tr,.table td{display:block;width:100%}.table tr{border:1px solid var(--line);margin:0 0 10px;background:var(--panel)}.table td{border:0;padding:7px 8px}.table td::before{content:attr(data-label);display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}.table td[data-label=""]::before{display:none}}
+    @media(max-width:720px){.timeline-item{grid-template-columns:20px minmax(0,1fr)}.timeline-time{grid-column:2;text-align:left}}
     @media(max-width:720px){.topbar{grid-template-columns:1fr;align-items:flex-start;padding:12px 18px}.user-tools{justify-content:flex-start;flex-wrap:wrap}.wrap{padding:12px}.card{padding:12px}.table th{position:static}}
     </style>';
     echo '</head><body>' . $nav . '<div class="wrap">' . $flashHtml . $content . '</div>' . $footer . '</body></html>';
@@ -2491,13 +2525,21 @@ function pageParcelDetail(PDO $pdo, array $u): void
         $hubPath[$hid]['last_ts'] = $r['ts'];
     }
 
-    $content = '<div class="grid cols2">';
-    $content .= '<div class="card">'
+    $trackingCode = (string)$p['tracking_code'];
+    $trackingJson = json_encode($trackingCode, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+    $codChip = (int)$p['cod_settled'] === 1 ? uiPill('settled', 'bg-green') : uiPill('outstanding', 'bg-amber');
+
+    $content = '<div class="parcel-layout">';
+    $content .= '<div class="parcel-side"><div class="card parcel-facts">'
         . '<div class="row" style="justify-content:space-between;align-items:flex-start">'
-        . '<div><div class="h1">' . e((string)$p['tracking_code']) . '</div>'
-        . '<div class="muted">Customer: ' . e((string)$p['customer_name']) . '</div></div>'
-        . '<div style="text-align:right">' . statusPill((string)$p['status']) . '<div class="muted" style="font-size:12px">Updated ' . e((string)$p['updated_at']) . '</div></div>'
-        . '</div>';
+        . '<div><div class="muted" style="font-size:12px;margin-bottom:4px">Tracking code</div><div class="mono" style="font-size:18px;font-weight:700">' . e($trackingCode) . '</div></div>'
+        . '<button class="btn" type="button" onclick="navigator.clipboard&&navigator.clipboard.writeText(' . e((string)$trackingJson) . ')">Copy</button>'
+        . '</div>'
+        . '<div class="row" style="justify-content:space-between;align-items:flex-start">'
+        . '<div><div class="muted">Customer: ' . e((string)$p['customer_name']) . '</div><div class="muted mono" style="font-size:12px">Updated ' . e((string)$p['updated_at']) . '</div></div>'
+        . statusPill((string)$p['status'])
+        . '</div>'
+        . '<div class="fact-row"><div><div class="muted">COD amount</div><div class="mono" style="font-weight:700">' . e(formatMoney((int)$p['amount_cents'])) . '</div></div>' . $codChip . '</div>';
     $content .= '<div class="row" style="margin-top:10px">'
         . ($p['current_hub_name'] ? '<span class="pill">Current hub: ' . e((string)$p['current_hub_name']) . '</span>' : '')
         . ($p['route_name'] ? '<span class="pill">Route: ' . e((string)$p['route_name']) . '</span>' : '')
@@ -2538,27 +2580,35 @@ function pageParcelDetail(PDO $pdo, array $u): void
     }
 
     $content .= '</div>';
+    $content .= '</div>';
 
-    $right = '<div class="card"><div class="h1">Timeline</div>';
+    $right = '<div class="card timeline-card"><div class="h1">Timeline</div>';
     if (count($evs) === 0) {
         $right .= renderEmptyState('No events yet', 'Record the first custody event to start this timeline.', 'Record event', '?r=scan&code=' . (string)$p['tracking_code']);
     } else {
-        $right .= '<table class="table"><thead><tr><th>Time</th><th>Event</th><th>Hub</th><th>Actor</th><th>Note</th></tr></thead><tbody>';
-        foreach ($evs as $ev) {
+        $right .= '<div class="timeline-list">';
+        foreach ($evs as $idx => $ev) {
             $actor = (string)($ev['user_type'] ?? '');
             $actorName = '';
             if ($actor === 'agent') {
                 $actorName = (string)($ev['agent_name'] ?? '');
             }
-            $right .= '<tr>'
-                . tableCell('Time', monoValue((string)$ev['ts']), 'muted mono')
-                . tableCell('Event', e((string)$ev['event_type']))
-                . tableCell('Hub', e((string)($ev['hub_name'] ?? '')))
-                . tableCell('Actor', e($actorName !== '' ? ($actor . ':' . $actorName) : $actor), 'muted')
-                . tableCell('Note', e((string)($ev['note'] ?? '')), 'muted')
-                . '</tr>';
+            $metaParts = [];
+            if (!empty($ev['hub_name'])) {
+                $metaParts[] = (string)$ev['hub_name'];
+            }
+            $actorLabel = $actorName !== '' ? ($actor . ': ' . $actorName) : $actor;
+            if ($actorLabel !== '') {
+                $metaParts[] = $actorLabel;
+            }
+            $eventType = (string)$ev['event_type'];
+            $right .= '<div class="timeline-item' . ($idx === 0 ? ' latest' : '') . '">'
+                . '<div class="timeline-line"><span class="led ' . e(eventStatusClass($eventType)) . '" aria-hidden="true"></span></div>'
+                . '<div><div class="timeline-event">' . e($eventType) . '</div><div class="muted">' . e(implode(' / ', $metaParts)) . '</div><div class="muted">' . e((string)($ev['note'] ?? '')) . '</div></div>'
+                . '<div class="timeline-time">' . e((string)$ev['ts']) . '</div>'
+                . '</div>';
         }
-        $right .= '</tbody></table>';
+        $right .= '</div>';
     }
 
     if ($role === 'agent' && (int)$u['agent_id'] === (int)$p['assigned_agent_id']) {
