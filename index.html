@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>HubRoute / Bangladesh parcel routing demo</title>
-  <meta name="description" content="HubRoute is a compact courier operations console for Bangladesh hub routing, searchable dispatch, custody handoff, public tracking, and COD control.">
+  <title>HubRoute &mdash; self-hosted courier &amp; parcel operations console</title>
+  <meta name="description" content="HubRoute is a self-hosted courier and parcel operations console for booking, hub sortation, last-mile dispatch, public tracking, and COD settlement.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%232f56d9'/%3E%3Cpath%20d='M6.5%2025.5%20L20.5%2011.5'%20fill='none'%20stroke='%23fff'%20stroke-width='3.4'/%3E%3Cpath%20d='M24%208%20L23.1%2015.7%20L15.9%2014.4%20Z'%20fill='%23fff'/%3E%3Crect%20x='9.3'%20y='19.1'%20width='3.8'%20height='3.8'%20fill='%232f56d9'%20stroke='%23fff'%20stroke-width='1.5'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles/tokens.css">
   <style>
@@ -42,8 +42,8 @@
     .proof-item:last-child{border-right:0}
     .proof-item strong{display:block;font-size:19px;line-height:1.1;margin-bottom:4px;font-family:var(--mono);letter-spacing:-.02em}
     .proof-item span{display:block;color:var(--muted);font-size:12px}
-    .demo-card{border:1px solid var(--line-strong);border-radius:0;background:#fff;overflow:hidden}
-    .demo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:12px 16px;font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;background:var(--band)}
+    .preview-card{border:1px solid var(--line-strong);border-radius:0;background:#fff;overflow:hidden}
+    .preview-head{display:flex;align-items:center;justify-content:space-between;gap:12px;border-bottom:1px solid var(--line);padding:12px 16px;font-size:11px;color:var(--muted);font-family:var(--mono);letter-spacing:.04em;text-transform:uppercase;background:var(--band)}
     .status-dot{width:8px;height:8px;border-radius:999px;background:var(--ok);box-shadow:15px 0 0 var(--warn),30px 0 0 var(--danger)}
     .route-board{padding:16px;display:grid;gap:12px}
     .mini-map{height:150px;border:1px solid var(--line);border-radius:0;background:var(--band);position:relative;overflow:hidden}
@@ -91,12 +91,16 @@
     .panel{border:1px solid var(--line);border-radius:0;background:#fff;padding:20px}
     .panel.top{border-top:2px solid var(--brand)}
     .num{color:var(--muted);font-size:11px;margin-bottom:16px;font-family:var(--mono);letter-spacing:.03em}
-    .demo-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(300px,1.08fr);gap:0;align-items:stretch;border:1px solid var(--line)}
-    .demo-grid > .panel.top{border:0;border-right:1px solid var(--line)}
-    .demo-grid > .grid3{border:0}
+    .walkthrough-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(300px,1.08fr);gap:0;align-items:stretch;border:1px solid var(--line)}
+    .walkthrough-grid > .panel.top{border:0;border-right:1px solid var(--line)}
+    .walkthrough-grid > .grid3{border:0}
     .credential{display:grid;grid-template-columns:96px 1fr;gap:9px 14px;margin:16px 0 14px;font-size:14px}
     .credential dt{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.03em}
     .credential dd{margin:0;font-weight:500;word-break:break-word;font-family:var(--mono);font-size:13px}
+    .walkthrough-details{margin-top:16px;border:1px solid var(--line);background:#fff}
+    .walkthrough-details summary{cursor:pointer;padding:14px 16px;font-weight:650}
+    .walkthrough-details[open] summary{border-bottom:1px solid var(--line)}
+    .walkthrough-details .details-body{padding:0 16px 16px}
     .warn{border-left:2px solid var(--warn);padding:10px 12px;background:#fbf6ec;color:#4d3a14;font-size:12.5px}
     .sheet{border:1px solid var(--ink);border-radius:0;background:var(--ink);color:#f2f4f7;padding:0;overflow:hidden}
     .sheet-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
@@ -115,11 +119,11 @@
     @media(max-width:920px){
       h1{font-size:36px}
       h2{font-size:25px}
-      .hero,.demo-grid,.setup{grid-template-columns:1fr}
+      .hero,.walkthrough-grid,.setup{grid-template-columns:1fr}
       .screenshots{grid-template-columns:1fr}
       .screen-shot{border-right:0;border-bottom:1px solid var(--line)}
       .screen-shot:last-child{border-bottom:0}
-      .demo-grid > .panel.top{border-right:0;border-bottom:1px solid var(--line)}
+      .walkthrough-grid > .panel.top{border-right:0;border-bottom:1px solid var(--line)}
       .proof,.grid4{grid-template-columns:repeat(2,1fr)}
       .grid4 .panel:nth-child(2){border-right:0}
       .grid3{grid-template-columns:1fr}
@@ -161,7 +165,7 @@
         <a href="#screenshots">Screens</a>
         <a href="docs.html">Docs</a>
         <a href="#docs">Guide</a>
-        <a href="docs.html#deployment">Setup</a>
+        <a href="docs.html#hosting">Setup</a>
         <a href="docs.html#security">Security</a>
         <a href="https://github.com/tanzir71/hubroute">GitHub</a>
       </div>
@@ -170,25 +174,25 @@
     <main>
       <section class="hero" id="overview">
         <div>
-          <div class="kicker">Courier operator console for Bangladesh</div>
+          <div class="kicker">Self-hosted courier operations</div>
           <h1>Run parcel movement from booking to doorstep.</h1>
-          <p class="lead">HubRoute gives courier operators one lean control room for pickup intake, hub sortation, line-haul handoff, last-mile dispatch, public tracking, COD visibility, and searchable custody history.</p>
+          <p class="lead">HubRoute is a courier console you own: a PHP 8 + SQLite app that runs on shared hosting you already pay for, covering booking, hub sortation, last-mile dispatch, COD settlement, and public tracking without per-parcel fees.</p>
           <div class="actions" aria-label="Primary actions">
-            <a class="btn primary" href="https://hubroute.vercel.app/">Open hosted demo</a>
-            <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Track sample parcel</a>
-            <a class="btn" href="docs.html">Read docs</a>
+            <a class="btn primary" href="docs.html#hosting">Get HubRoute</a>
+            <a class="btn" href="https://hubroute.vercel.app/">Live walkthrough</a>
+            <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Track a parcel</a>
           </div>
-          <p class="runtime-note">Use the hosted browser walkthrough to inspect the operator flow; the production roadmap moves this surface onto a real backend.</p>
+          <p class="runtime-note">Free &amp; open source &middot; PHP 8 + SQLite &middot; deploys to shared hosting or Vercel.</p>
           <div class="proof" aria-label="Product facts">
-            <div class="proof-item"><strong>4 hubs</strong><span>pickup, sortation, delivery, return</span></div>
-            <div class="proof-item"><strong>COD</strong><span>collection and outstanding visibility</span></div>
-            <div class="proof-item"><strong>Search</strong><span>tracking, route, rider, merchant</span></div>
-            <div class="proof-item"><strong>Track</strong><span>redacted public parcel view</span></div>
+            <div class="proof-item"><strong>1 file</strong><span>self-contained PHP app</span></div>
+            <div class="proof-item"><strong>0 &#2547;</strong><span>per-parcel platform fees</span></div>
+            <div class="proof-item"><strong>4</strong><span>hub types covered</span></div>
+            <div class="proof-item"><strong>COD</strong><span>settlement built in</span></div>
           </div>
         </div>
 
-        <div class="demo-card" aria-label="HubRoute operations preview">
-          <div class="demo-head"><span>HUB OPS / live parcel chain</span><span class="status-dot" aria-hidden="true"></span></div>
+        <div class="preview-card" aria-label="HubRoute operations preview">
+          <div class="preview-head"><span>HUB OPS / live parcel chain</span><span class="status-dot" aria-hidden="true"></span></div>
           <div class="route-board">
             <div class="mini-map">
               <span class="node a" aria-hidden="true"></span>
@@ -210,24 +214,17 @@
       <section id="demo">
         <div class="section-head">
           <div class="eyebrow">Operator walkthrough</div>
-          <h2>Start as one hub, then switch accounts to move custody across the network.</h2>
+          <h2>Try it in 30 seconds, then follow a parcel across hubs.</h2>
         </div>
-        <div class="demo-grid">
+        <div class="walkthrough-grid">
           <div class="panel top">
-            <h3>Demo account</h3>
-            <p>The Bangladesh seeded data includes Dhaka, Savar, Gazipur, Narayanganj, and Chattogram hubs, riders, routes, customers, and sample parcels. Use Dhaka first, send a parcel to Tejgaon, then switch to the sortation account to receive it.</p>
-            <dl class="credential">
-              <dt>Pickup</dt><dd>pickuphub@hubroute.local</dd>
-              <dt>Sortation</dt><dd>sortation@hubroute.local</dd>
-              <dt>Delivery</dt><dd>ctghub@hubroute.local</dd>
-              <dt>Password</dt><dd>hub1234</dd>
-            </dl>
+            <h3>Live walkthrough</h3>
+            <p>The Bangladesh seeded data includes Dhaka, Savar, Gazipur, Narayanganj, and Chattogram hubs, riders, routes, customers, and sample parcels. Open the browser console, operate Dhaka first, send a parcel to Tejgaon, then switch to sortation to receive it.</p>
             <div class="actions">
-              <a class="btn primary" href="https://hubroute.vercel.app/">Open hosted demo</a>
+              <a class="btn primary" href="https://hubroute.vercel.app/">Open walkthrough</a>
               <a class="btn" href="https://hubroute.vercel.app/track?code=HR260703DHK1A2">Public tracking</a>
               <a class="btn" href="docs.html">Read docs</a>
             </div>
-            <p class="warn">These are seeded demo credentials. Rotate or disable them immediately after a production deployment.</p>
           </div>
           <div class="grid3">
             <article class="panel">
@@ -247,6 +244,18 @@
             </article>
           </div>
         </div>
+        <details class="walkthrough-details">
+          <summary>Walkthrough sign-ins</summary>
+          <div class="details-body">
+            <dl class="credential">
+              <dt>Pickup</dt><dd>pickuphub@hubroute.local</dd>
+              <dt>Sortation</dt><dd>sortation@hubroute.local</dd>
+              <dt>Delivery</dt><dd>ctghub@hubroute.local</dd>
+              <dt>Password</dt><dd>hub1234</dd>
+            </dl>
+            <p class="warn">These are seeded walkthrough credentials. Rotate or disable them immediately after a production deployment.</p>
+          </div>
+        </details>
       </section>
 
       <section id="how">
@@ -318,8 +327,8 @@
             <p>See how pickup, sortation, delivery, return, route assignment, and scan events fit together.</p>
           </article>
           <article class="panel">
-            <h3><a href="docs.html#deployment">Deployment</a></h3>
-            <p>Understand the split between GitHub Pages, the Vercel browser demo, and the PHP source app.</p>
+            <h3><a href="docs.html#hosting">Hosting</a></h3>
+            <p>Deploy the PHP 8 + SQLite app to shared hosting or use the Vercel starter with hosted storage.</p>
           </article>
           <article class="panel">
             <h3><a href="docs.html#security">Security</a></h3>
@@ -331,26 +340,26 @@
       <section id="setup">
         <div class="section-head">
           <div class="eyebrow">Setup</div>
-          <h2>Try the Vercel demo, then inspect the PHP source.</h2>
+          <h2>Deploy it in 10 minutes on hosting you control.</h2>
         </div>
         <div class="setup">
           <div class="panel top">
-            <h3>Hosted browser demo</h3>
-            <p>The Vercel demo is a browser-side operations console with CRUD, detailed search and filters, assignment, scan events, Bangladesh sample data, and public tracking. The repo still includes the PHP 8 + SQLite source for shared-hosting deployment.</p>
+            <h3>Shared-hosting path</h3>
+            <p>Download the PHP package, upload it to your hosting control panel, open the health check, then rotate seeded accounts before running real parcels.</p>
             <div class="actions" style="margin-top:16px">
-              <a class="btn primary" href="https://hubroute.vercel.app/">Open Vercel demo</a>
+              <a class="btn primary" href="docs.html#hosting">Get HubRoute</a>
               <a class="btn" href="docs.html">Read docs</a>
-              <a class="btn" href="docs.html#deployment">Deployment guide</a>
+              <a class="btn" href="docs.html#zip-deploy">Zip guide</a>
             </div>
           </div>
-          <pre class="code"><code>Hosted demo
-https://hubroute.vercel.app/
+          <pre class="code"><code>Shared hosting
+npm run package:php
 
 Source app
 hubroute.php
 
-Deployment guide
-docs.html#deployment</code></pre>
+Hosting guide
+docs.html#hosting</code></pre>
         </div>
       </section>
 
@@ -381,7 +390,7 @@ docs.html#deployment</code></pre>
           <h2>Before this becomes a production parcel console.</h2>
         </div>
         <ul class="checks">
-          <li>Rotate every seeded password, especially the demo hub login shown on this page.</li>
+          <li>Rotate every seeded password, especially the walkthrough hub login shown on this page.</li>
           <li>Keep `.env` private and move `DATA_DIR` outside `public_html` if your hosting plan allows it.</li>
           <li>Confirm `data/hubroute.sqlite` is not downloadable after first run.</li>
           <li>Enable HTTPS at the host or CDN and keep PHP on a supported 8.x release.</li>
@@ -391,7 +400,7 @@ docs.html#deployment</code></pre>
 
     <footer>
       <span>HubRoute / PHP 8 + SQLite parcel operations console</span>
-      <span><a href="docs.html">Docs</a> / <a href="docs.html#deployment">Setup</a> / <a href="docs.html#security">Security</a> / <a href="docs.html#roadmap">Roadmap</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
+      <span><a href="docs.html">Docs</a> / <a href="docs.html#hosting">Setup</a> / <a href="docs.html#security">Security</a> / <a href="docs.html#operations">Operations</a> / <a href="https://github.com/tanzir71/hubroute">GitHub</a></span>
     </footer>
   </div>
 </body>
