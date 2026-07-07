@@ -1325,14 +1325,16 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .h1{font-size:18px;font-weight:750;margin:0 0 8px;letter-spacing:0}
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:9px 12px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;font:inherit}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:9px 14px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);cursor:pointer;text-decoration:none;font:inherit;font-weight:600}
     .btn.primary{background:var(--brand);border-color:var(--brand);color:var(--panel)}
     .btn.secondary{background:var(--panel);border-color:var(--line-strong);color:var(--text)}
+    .btn.danger{background:var(--panel);border-color:var(--danger);color:var(--danger)}
+    .btn.danger:hover{background:var(--danger);border-color:var(--danger);color:var(--panel)}
     .btn:disabled{opacity:.45;cursor:not-allowed}
-    input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);font:inherit}
+    input,select,textarea{width:100%;min-height:38px;padding:9px 10px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);font:inherit}
     input:focus,select:focus,textarea:focus,.btn:focus-visible,.navlink:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
     textarea{min-height:90px;resize:vertical}
-    label{display:block;font-size:12px;color:var(--muted);margin:6px 0}
+    label{display:grid;gap:6px;font-size:11.5px;color:var(--muted);margin:6px 0;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
     .form{display:grid;gap:10px}
     .table{width:100%;border-collapse:collapse}
     .table th{position:sticky;top:52px;background:var(--panel-2);text-align:left;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);padding:10px}
@@ -1340,9 +1342,10 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .pill{display:inline-block;padding:3px 8px;font-size:12px;border:1px solid var(--line-strong);background:var(--panel)}
     .pill.bg-blue,.pill.bg-indigo,.pill.bg-amber,.pill.bg-purple,.pill.bg-teal,.pill.bg-green,.pill.bg-red,.pill.bg-orange{background:var(--soft);border-color:var(--line-strong)}
     .led{display:inline-block;width:8px;height:8px;border-radius:999px;background:currentColor}
-    .flash{padding:10px 12px;margin:0 0 10px;border:1px solid var(--line);background:var(--panel)}
-    .flash.ok{border-color:var(--ok);background:var(--panel)}
-    .flash.err{border-color:var(--danger);background:var(--panel)}
+    .flash{padding:10px 12px;margin:0 0 10px;border:1px solid var(--line);border-left:2px solid var(--brand);background:var(--brand-soft)}
+    .flash.ok{border-left:2px solid var(--ok);border-color:var(--line);background:color-mix(in srgb,var(--ok) 8%,var(--panel))}
+    .flash.err{border-left:2px solid var(--danger);border-color:var(--line);background:color-mix(in srgb,var(--danger) 8%,var(--panel))}
+    .flash.info{border-left:2px solid var(--brand);background:var(--brand-soft)}
     .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
     @media(min-width:640px){.kpis{grid-template-columns:repeat(4,1fr)}}
     .kpi{padding:10px 12px;border:1px solid var(--line);background:var(--panel)}

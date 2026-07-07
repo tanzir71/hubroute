@@ -194,7 +194,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** manual check on 3 roles (admin, hub, agent): logo renders, active tab is correct on ≥3 routes, keyboard focus ring visible on every link/button; GLOBAL GATES pass.
 
 ### B-03 — Buttons, forms, flashes
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php`
 - **Do:** restyle to §3 rule 5/6: primary = solid cobalt (currently near-black), secondary = outline, danger = red outline→fill hover; min-height 38px. Inputs: squared, 1px `--line-strong`, focus `2px solid var(--brand)` outline, labels uppercase 11.5px `--muted`. Flashes: `ok` → left 2px `--ok` border on `#eef8f2`; `err` → `--danger` on light red tint; neutral info on `--brand-soft`. No layout/markup changes to forms beyond classes needed for styling.
 - **Accept:** visual pass on login, parcel create, scan/event form; error flash and success flash both visibly distinct; GLOBAL GATES pass.
