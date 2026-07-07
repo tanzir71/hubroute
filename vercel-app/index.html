@@ -15,38 +15,36 @@
 <body>
   <main class="shell">
     <nav class="topbar">
-      <strong>HubRoute Vercel</strong>
-      <span>Production starter</span>
+      <a class="brand" href="/">
+        <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 32 32" class="logo-svg" focusable="false" aria-hidden="true"><rect class="logo-bg" width="32" height="32"></rect><path class="logo-arrow" d="M6.5 25.5 L20.5 11.5" fill="none" stroke-width="3.4"></path><path class="logo-head" d="M24 8 L23.1 15.7 L15.9 14.4 Z"></path><rect class="logo-node" x="9.3" y="19.1" width="3.8" height="3.8" stroke-width="1.5"></rect></svg></span>
+        <span>HubRoute</span>
+      </a>
+      <span class="muted">Vercel tracking starter</span>
     </nav>
-    <section class="panel hero">
-      <p class="eyebrow">Vercel-ready fileset</p>
-      <h1>Hosted SQLite-compatible parcel tracking for Vercel.</h1>
-      <p>This artifact is separate from the PHP shared-host zip. It runs on Vercel Functions and stores data in Turso/libSQL.</p>
+
+    <section class="hero">
+      <p class="eyebrow">Public parcel tracking</p>
+      <h1>HubRoute</h1>
+      <p class="muted">A Vercel-ready public tracking surface backed by hosted SQLite-compatible storage.</p>
       <div class="actions">
-        <a class="btn primary" href="/track.html">Track parcel</a>
-        <a class="btn" href="/setup.html">First setup</a>
-        <a class="btn" href="/api/health">Health check</a>
+        <a class="btn primary" href="/track.html">Track a parcel</a>
       </div>
     </section>
+
     <section class="grid">
-      <article class="panel">
-        <h2>Required environment</h2>
-        <ul>
-          <li><code>TURSO_DATABASE_URL</code></li>
-          <li><code>TURSO_AUTH_TOKEN</code></li>
-          <li><code>SESSION_SECRET</code></li>
-          <li><code>CRON_SECRET</code></li>
-          <li><code>SETUP_SECRET</code></li>
-        </ul>
+      <article class="panel setup-card">
+        <p class="eyebrow">Operator setup</p>
+        <h2>Bring the deployment online</h2>
+        <p class="muted">Initialize the starter database, then verify the API health endpoint before sharing tracking links.</p>
+        <div class="actions">
+          <a class="btn" href="/setup.html">Open setup</a>
+          <a class="btn" href="/api/health">API health</a>
+        </div>
       </article>
       <article class="panel">
-        <h2>After deploy</h2>
-        <ol>
-          <li>Open <code>/api/health</code>.</li>
-          <li>Open <code>/setup</code> and enter <code>SETUP_SECRET</code>.</li>
-          <li>Try <code>/track/HR260703DHK1A2</code>.</li>
-          <li>Replace starter data before real operations.</li>
-        </ol>
+        <p class="eyebrow">Starter code</p>
+        <h2>Designed for dashboard deploys</h2>
+        <p class="muted">Upload this folder to GitHub, import it in Vercel, add the project settings, and run setup.</p>
       </article>
     </section>
   </main>

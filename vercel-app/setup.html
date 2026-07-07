@@ -15,9 +15,23 @@
 <body>
   <main class="shell">
     <nav class="topbar">
-      <a href="/">HubRoute Vercel</a>
+      <a class="brand" href="/">
+        <span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 32 32" class="logo-svg" focusable="false" aria-hidden="true"><rect class="logo-bg" width="32" height="32"></rect><path class="logo-arrow" d="M6.5 25.5 L20.5 11.5" fill="none" stroke-width="3.4"></path><path class="logo-head" d="M24 8 L23.1 15.7 L15.9 14.4 Z"></path><rect class="logo-node" x="9.3" y="19.1" width="3.8" height="3.8" stroke-width="1.5"></rect></svg></span>
+        <span>HubRoute</span>
+      </a>
       <span>First setup</span>
     </nav>
+    <section class="panel">
+      <h1>Vercel environment</h1>
+      <p class="muted">Add these values in Vercel project settings before running setup.</p>
+      <ul>
+        <li><code>TURSO_DATABASE_URL</code></li>
+        <li><code>TURSO_AUTH_TOKEN</code></li>
+        <li><code>SESSION_SECRET</code></li>
+        <li><code>CRON_SECRET</code></li>
+        <li><code>SETUP_SECRET</code></li>
+      </ul>
+    </section>
     <section class="panel">
       <h1>Initialize database</h1>
       <p class="muted">Enter the <code>SETUP_SECRET</code> configured in Vercel. This creates tables and inserts starter public-tracking data if the database is empty.</p>

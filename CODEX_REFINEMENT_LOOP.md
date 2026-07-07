@@ -281,7 +281,7 @@ Competitor rule (§2.2): the tracking page is the most-viewed, most-shared surfa
 Goal: someone with zero terminal experience deploys HubRoute tracking on Vercel free tier in ~10 minutes.
 
 ### D-01 — Restyle `vercel-app` to the design system
-- [ ] Done
+- [x] Done
 - **Files:** `vercel-app/styles.css`, `vercel-app/index.html`, `vercel-app/track.html`, `vercel-app/setup.html`
 - **Do:** replace `vercel-app/styles.css` tokens with the §3 set (copy values verbatim from `styles/tokens.css`); zero radius; logo + favicon per A-04. `index.html` becomes a real mini-landing: logo, one-line value prop, primary `Track a parcel` CTA, and a bordered "Operator setup" card linking `/setup.html` + `/api/health` (move the env-var list into `setup.html` and the README — off the homepage).
 - **Accept:** no `border-radius` > 0 in `vercel-app/styles.css` except a `.led` rule; homepage contains no env-var names; `npm run package:vercel` passes; GLOBAL GATES pass.
