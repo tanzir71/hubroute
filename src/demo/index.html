@@ -127,6 +127,20 @@
     .tracking-lookup input{font-size:19px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono)}
     .sample-codes{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono)}
     .public-result{display:grid;gap:16px}
+    .public-code{font:800 24px/1.1 var(--mono);letter-spacing:0;word-break:break-all}
+    .public-result-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .public-section{display:grid;gap:8px}
+    .public-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:4px 0 0}
+    .public-step{position:relative;display:grid;gap:6px;justify-items:center;text-align:center;color:var(--muted)}
+    .public-step::before{content:"";position:absolute;top:9px;left:-50%;width:100%;height:2px;background:var(--line-strong);z-index:0}
+    .public-step:first-child::before{display:none}
+    .public-step.complete::before{background:var(--brand)}
+    .step-marker{width:18px;height:18px;background:var(--panel);border:2px solid var(--line-strong);position:relative;z-index:1}
+    .public-step.complete .step-marker{background:var(--brand);border-color:var(--brand)}
+    .public-step.current .step-label{color:var(--ink);font-weight:700}
+    .public-hub-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .public-hub-node{border:1px solid var(--line-strong);background:#fff;padding:6px 8px;font-weight:650}
+    .public-hub-arrow{color:var(--muted);font-family:var(--mono)}
     .status-strip{border:1px solid var(--line);border-radius:0;background:#fff;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:0;overflow:hidden}
     .status-strip > div{padding:15px}
     .status-strip > div + div{border-left:1px solid var(--line)}
@@ -192,6 +206,7 @@
       .topbar{align-items:flex-start;flex-direction:column;padding:12px 0}
       .nav{margin-top:2px}
     }
+    @media(max-width:640px){.public-stepper{grid-template-columns:1fr;gap:10px}.public-step{grid-template-columns:24px minmax(0,1fr);justify-items:start;text-align:left}.public-step::before{left:8px;top:-12px;width:2px;height:20px}.public-step:first-child::before{display:none}.tracking-lookup{grid-template-columns:1fr}}
     @media(max-width:640px){
       .shell{padding:0 14px}
       .login{margin:32px auto}

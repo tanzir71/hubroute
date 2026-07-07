@@ -269,7 +269,7 @@ Competitor rule (§2.2): the tracking page is the most-viewed, most-shared surfa
 - **Accept:** track a seeded code end-state and a mid-transit code: stepper stage correct for both; no PII (recipient phone/full address) in page source; renders clean at 375px; GLOBAL GATES pass.
 
 ### C-02 — Demo console tracking parity
-- [ ] Done
+- [x] Done
 - **Files:** `src/demo/views.js` / `src/demo/main.js` (public tracking view), then `npm run sync:demo`
 - **Do:** port the C-01 stepper + hub path to the browser demo's public tracking view so the walkthrough matches the product.
 - **Accept:** `npm run sync:demo && npm run smoke:demo` pass; demo tracking shows the stepper; GLOBAL GATES pass.

@@ -127,6 +127,20 @@
     .tracking-lookup input{font-size:19px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-family:var(--mono)}
     .sample-codes{display:flex;gap:8px;flex-wrap:wrap;font-family:var(--mono)}
     .public-result{display:grid;gap:16px}
+    .public-code{font:800 24px/1.1 var(--mono);letter-spacing:0;word-break:break-all}
+    .public-result-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .public-section{display:grid;gap:8px}
+    .public-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:4px 0 0}
+    .public-step{position:relative;display:grid;gap:6px;justify-items:center;text-align:center;color:var(--muted)}
+    .public-step::before{content:"";position:absolute;top:9px;left:-50%;width:100%;height:2px;background:var(--line-strong);z-index:0}
+    .public-step:first-child::before{display:none}
+    .public-step.complete::before{background:var(--brand)}
+    .step-marker{width:18px;height:18px;background:var(--panel);border:2px solid var(--line-strong);position:relative;z-index:1}
+    .public-step.complete .step-marker{background:var(--brand);border-color:var(--brand)}
+    .public-step.current .step-label{color:var(--ink);font-weight:700}
+    .public-hub-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .public-hub-node{border:1px solid var(--line-strong);background:#fff;padding:6px 8px;font-weight:650}
+    .public-hub-arrow{color:var(--muted);font-family:var(--mono)}
     .status-strip{border:1px solid var(--line);border-radius:0;background:#fff;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:0;overflow:hidden}
     .status-strip > div{padding:15px}
     .status-strip > div + div{border-left:1px solid var(--line)}
@@ -192,6 +206,7 @@
       .topbar{align-items:flex-start;flex-direction:column;padding:12px 0}
       .nav{margin-top:2px}
     }
+    @media(max-width:640px){.public-stepper{grid-template-columns:1fr;gap:10px}.public-step{grid-template-columns:24px minmax(0,1fr);justify-items:start;text-align:left}.public-step::before{left:8px;top:-12px;width:2px;height:20px}.public-step:first-child::before{display:none}.tracking-lookup{grid-template-columns:1fr}}
     @media(max-width:640px){
       .shell{padding:0 14px}
       .login{margin:32px auto}
@@ -408,10 +423,6 @@
       }
       function fmtDate(iso) {
         return new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-      }
-      function publicArea(address) {
-        const parts = String(address || "").split(",").map((part) => part.trim()).filter(Boolean);
-        return parts.length > 1 ? parts.slice(-2).join(", ") : String(address || "Area unavailable");
       }
       function statusClass(status) {
         if (status === "delivered") return "green";
@@ -1281,52 +1292,62 @@
         ${parcel ? renderTimeline(parcel.id) : ""}
         <div class="card"><h2>Filtered recent events</h2>${renderEventList(filteredEvents)}</div>`;
       }
-      function publicProgressSteps(parcel) {
-        const steps = [
-          { key: "requested", label: "Requested" },
-          { key: "picked_up", label: "Picked up" },
-          { key: "in_transit", label: "In transit" },
-          { key: "out_for_delivery", label: "Out for delivery" },
-          { key: "delivered", label: "Delivered" }
-        ];
-        const aliases = { assigned: "requested", in_warehouse: "in_transit", handoff_departed: "in_transit", handoff_received: "in_transit", failed: "out_for_delivery" };
-        const currentKey = aliases[parcel.status] || parcel.status;
-        const currentIndex = steps.findIndex((step) => step.key === currentKey);
-        return `<div class="progress-line" aria-label="Parcel progress">
-        ${steps.map((step, index) => {
-          let stateClass = currentIndex > index ? "done" : currentIndex === index ? "current" : "";
-          if (parcel.status === "failed" && index === Math.max(0, currentIndex)) stateClass = "failed";
-          return `<div class="progress-step ${stateClass}">
-            <strong>${esc(step.label)}</strong>
-            <span class="muted small">${stateClass === "done" ? "Complete" : stateClass === "current" ? parcel.status === "failed" ? "Needs attention" : "Current" : "Pending"}</span>
-          </div>`;
+      function publicEventStage(type) {
+        if (type === "delivered") return 3;
+        if (type === "out_for_delivery" || type === "failed") return 2;
+        if (["assigned", "picked_up", "in_transit", "in_warehouse", "handoff_departed", "handoff_received", "payment_collected"].includes(type)) return 1;
+        return 0;
+      }
+      function publicTrackingStage(parcel) {
+        if (["failed", "returned"].includes(parcel.status)) {
+          const lastGood = state.events.filter((event) => event.parcelId === parcel.id).reduce((stage, event) => Math.max(stage, publicEventStage(event.type)), 0);
+          return Math.min(lastGood, 2);
+        }
+        if (parcel.status === "delivered") return 3;
+        if (parcel.status === "out_for_delivery") return 2;
+        if (["assigned", "picked_up", "in_transit", "in_warehouse"].includes(parcel.status)) return 1;
+        return 0;
+      }
+      function renderPublicProgressStepper(parcel) {
+        const stage = publicTrackingStage(parcel);
+        const steps = ["Booked", "At hub", "Out for delivery", "Delivered"];
+        const stepper = `<div class="public-stepper" aria-label="Shipment progress">
+        ${steps.map((label, index) => {
+          const stateClass = `${index <= stage ? " complete" : ""}${index === stage ? " current" : ""}`;
+          return `<div class="public-step${stateClass}"><span class="step-marker" aria-hidden="true"></span><span class="step-label">${esc(label)}</span></div>`;
         }).join("")}
       </div>`;
+        return ["failed", "returned"].includes(parcel.status) ? `${stepper}<div class="actions">${pill("failed")}</div>` : stepper;
+      }
+      function renderPublicTimeline(parcelId) {
+        const rows = state.events.filter((event) => event.parcelId === parcelId && event.type !== "note");
+        if (!rows.length) return renderEmptyState("No events yet", "Custody events will appear here once the parcel starts moving.");
+        return `<div class="timeline">${rows.map((event) => `<div class="event"><strong>${esc(event.type.replaceAll("_", " "))}</strong><span class="muted small">${esc(hubName(event.hubId))} / ${esc(event.note || "No note")} / ${fmtDate(event.at)}</span></div>`).join("")}</div>`;
       }
       function renderPublicParcel(parcel) {
+        const path = hubPath(parcel);
         return `<div class="public-result">
         <section class="surface">
-          <div class="status-strip">
-            <div>
-              <p class="eyebrow">Current status</p>
-              <h2>${esc(parcel.status.replaceAll("_", " "))}</h2>
-              <p class="muted small">Last updated from ${esc(hubName(parcel.currentHubId))}</p>
-            </div>
+          <div class="public-result-head">
             <div>
               <p class="eyebrow">Tracking code</p>
-              <h2>${esc(parcel.code)}</h2>
-              <p>${pill(parcel.status)}</p>
+              <h2 class="public-code mono">${esc(parcel.code)}</h2>
+            </div>
+            <div class="actions">
+              ${pill(parcel.status)}
+              <span class="muted small">Updated from ${esc(hubName(parcel.currentHubId))}</span>
             </div>
           </div>
-          ${publicProgressSteps(parcel)}
-          <div class="detail-list" aria-label="Parcel details">
-            <div class="detail-row"><span>Merchant</span><strong>${esc(customerName(parcel.customerId))}</strong></div>
-            <div class="detail-row"><span>Pickup area</span><strong>${esc(publicArea(parcel.pickupAddress))}</strong></div>
-            <div class="detail-row"><span>Dropoff area</span><strong>${esc(publicArea(parcel.dropoffAddress))}</strong></div>
-            <div class="detail-row"><span>Payment</span><strong>${parcel.cod ? `${money(parcel.amountCents)} COD` : "Prepaid"}</strong></div>
+          ${renderPublicProgressStepper(parcel)}
+          <div class="public-section">
+            <p class="eyebrow">Hub path</p>
+            ${path.length ? `<div class="public-hub-chain">${path.map((hubId, index) => `${index === 0 ? "" : '<span class="public-hub-arrow" aria-hidden="true">&rarr;</span>'}<span class="public-hub-node">${esc(hubName(hubId))}</span>`).join("")}</div>` : '<p class="muted small">No hub updates yet.</p>'}
+          </div>
+          <div class="public-section">
+            <p class="eyebrow">Timeline</p>
+            ${renderPublicTimeline(parcel.id)}
           </div>
         </section>
-        ${renderTimeline(parcel.id, true, "Public movement history")}
       </div>`;
       }
       function renderTracking() {
@@ -1341,7 +1362,7 @@
           <button class="btn primary" type="submit">Track</button>
         </form>
         <p class="muted small">For senders and receivers: enter the tracking number from your SMS, receipt, or merchant confirmation.</p>
-        ${trackingLookup && !parcel ? renderEmptyState("No parcel found", `No public tracking record matches ${trackingLookup}. Check the code and try again.`) : ""}
+        ${trackingLookup && !parcel ? renderEmptyState("No parcel found for that code", `No parcel found for that code - check the number and try again.`) : ""}
         ${parcel ? renderPublicParcel(parcel) : `<section class="surface">
           <div><h2>Try a sample parcel</h2><p class="muted small">These sample codes demonstrate the public sender/receiver view without exposing internal hub controls.</p></div>
           ${samples.length ? `<div class="sample-codes">

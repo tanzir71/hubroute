@@ -1,6 +1,6 @@
 import { loadDemoSnapshot, persistDemoState } from './api-shim.js';
 import { ACTIVE_STATUSES, DEMO_ACCOUNTS, EVENT_TYPES, STATUSES, seedState } from './data.js';
-import { $, esc, filterCard, fmtDate, matchesQuery, money, normalized, options, pill, publicArea, redact, renderEmptyState, renderErrorState, renderLoadingState, selectOptions, statusClass, tableStateRow, uid } from './components.js';
+import { $, esc, filterCard, fmtDate, matchesQuery, money, normalized, options, pill, redact, renderEmptyState, renderErrorState, renderLoadingState, selectOptions, statusClass, tableStateRow, uid } from './components.js';
 import { createFilters, createSessionState } from './state.js';
 import { renderCurrentView } from './views.js';
 
@@ -752,53 +752,68 @@ function renderScan(){
     <div class="card"><h2>Filtered recent events</h2>${renderEventList(filteredEvents)}</div>`;
 }
 
-function publicProgressSteps(parcel){
-  const steps = [
-    {key:'requested', label:'Requested'},
-    {key:'picked_up', label:'Picked up'},
-    {key:'in_transit', label:'In transit'},
-    {key:'out_for_delivery', label:'Out for delivery'},
-    {key:'delivered', label:'Delivered'}
-  ];
-  const aliases = { assigned:'requested', in_warehouse:'in_transit', handoff_departed:'in_transit', handoff_received:'in_transit', failed:'out_for_delivery' };
-  const currentKey = aliases[parcel.status] || parcel.status;
-  const currentIndex = steps.findIndex(step => step.key === currentKey);
-  return `<div class="progress-line" aria-label="Parcel progress">
-    ${steps.map((step, index) => {
-      let stateClass = currentIndex > index ? 'done' : currentIndex === index ? 'current' : '';
-      if (parcel.status === 'failed' && index === Math.max(0, currentIndex)) stateClass = 'failed';
-      return `<div class="progress-step ${stateClass}">
-        <strong>${esc(step.label)}</strong>
-        <span class="muted small">${stateClass === 'done' ? 'Complete' : stateClass === 'current' ? (parcel.status === 'failed' ? 'Needs attention' : 'Current') : 'Pending'}</span>
-      </div>`;
+function publicEventStage(type){
+  if (type === 'delivered') return 3;
+  if (type === 'out_for_delivery' || type === 'failed') return 2;
+  if (['assigned','picked_up','in_transit','in_warehouse','handoff_departed','handoff_received','payment_collected'].includes(type)) return 1;
+  return 0;
+}
+
+function publicTrackingStage(parcel){
+  if (['failed','returned'].includes(parcel.status)) {
+    const lastGood = state.events
+      .filter(event => event.parcelId === parcel.id)
+      .reduce((stage, event) => Math.max(stage, publicEventStage(event.type)), 0);
+    return Math.min(lastGood, 2);
+  }
+  if (parcel.status === 'delivered') return 3;
+  if (parcel.status === 'out_for_delivery') return 2;
+  if (['assigned','picked_up','in_transit','in_warehouse'].includes(parcel.status)) return 1;
+  return 0;
+}
+
+function renderPublicProgressStepper(parcel){
+  const stage = publicTrackingStage(parcel);
+  const steps = ['Booked', 'At hub', 'Out for delivery', 'Delivered'];
+  const stepper = `<div class="public-stepper" aria-label="Shipment progress">
+    ${steps.map((label, index) => {
+      const stateClass = `${index <= stage ? ' complete' : ''}${index === stage ? ' current' : ''}`;
+      return `<div class="public-step${stateClass}"><span class="step-marker" aria-hidden="true"></span><span class="step-label">${esc(label)}</span></div>`;
     }).join('')}
   </div>`;
+  return ['failed','returned'].includes(parcel.status) ? `${stepper}<div class="actions">${pill('failed')}</div>` : stepper;
+}
+
+function renderPublicTimeline(parcelId){
+  const rows = state.events.filter(event => event.parcelId === parcelId && event.type !== 'note');
+  if (!rows.length) return renderEmptyState('No events yet', 'Custody events will appear here once the parcel starts moving.');
+  return `<div class="timeline">${rows.map(event => `<div class="event"><strong>${esc(event.type.replaceAll('_',' '))}</strong><span class="muted small">${esc(hubName(event.hubId))} / ${esc(event.note || 'No note')} / ${fmtDate(event.at)}</span></div>`).join('')}</div>`;
 }
 
 function renderPublicParcel(parcel){
+  const path = hubPath(parcel);
   return `<div class="public-result">
     <section class="surface">
-      <div class="status-strip">
-        <div>
-          <p class="eyebrow">Current status</p>
-          <h2>${esc(parcel.status.replaceAll('_',' '))}</h2>
-          <p class="muted small">Last updated from ${esc(hubName(parcel.currentHubId))}</p>
-        </div>
+      <div class="public-result-head">
         <div>
           <p class="eyebrow">Tracking code</p>
-          <h2>${esc(parcel.code)}</h2>
-          <p>${pill(parcel.status)}</p>
+          <h2 class="public-code mono">${esc(parcel.code)}</h2>
+        </div>
+        <div class="actions">
+          ${pill(parcel.status)}
+          <span class="muted small">Updated from ${esc(hubName(parcel.currentHubId))}</span>
         </div>
       </div>
-      ${publicProgressSteps(parcel)}
-      <div class="detail-list" aria-label="Parcel details">
-        <div class="detail-row"><span>Merchant</span><strong>${esc(customerName(parcel.customerId))}</strong></div>
-        <div class="detail-row"><span>Pickup area</span><strong>${esc(publicArea(parcel.pickupAddress))}</strong></div>
-        <div class="detail-row"><span>Dropoff area</span><strong>${esc(publicArea(parcel.dropoffAddress))}</strong></div>
-        <div class="detail-row"><span>Payment</span><strong>${parcel.cod ? `${money(parcel.amountCents)} COD` : 'Prepaid'}</strong></div>
+      ${renderPublicProgressStepper(parcel)}
+      <div class="public-section">
+        <p class="eyebrow">Hub path</p>
+        ${path.length ? `<div class="public-hub-chain">${path.map((hubId, index) => `${index === 0 ? '' : '<span class="public-hub-arrow" aria-hidden="true">&rarr;</span>'}<span class="public-hub-node">${esc(hubName(hubId))}</span>`).join('')}</div>` : '<p class="muted small">No hub updates yet.</p>'}
+      </div>
+      <div class="public-section">
+        <p class="eyebrow">Timeline</p>
+        ${renderPublicTimeline(parcel.id)}
       </div>
     </section>
-    ${renderTimeline(parcel.id, true, 'Public movement history')}
   </div>`;
 }
 
@@ -814,7 +829,7 @@ function renderTracking(){
       <button class="btn primary" type="submit">Track</button>
     </form>
     <p class="muted small">For senders and receivers: enter the tracking number from your SMS, receipt, or merchant confirmation.</p>
-    ${trackingLookup && !parcel ? renderEmptyState('No parcel found', `No public tracking record matches ${trackingLookup}. Check the code and try again.`) : ''}
+    ${trackingLookup && !parcel ? renderEmptyState('No parcel found for that code', `No parcel found for that code - check the number and try again.`) : ''}
     ${parcel ? renderPublicParcel(parcel) : `<section class="surface">
       <div><h2>Try a sample parcel</h2><p class="muted small">These sample codes demonstrate the public sender/receiver view without exposing internal hub controls.</p></div>
       ${samples.length ? `<div class="sample-codes">
