@@ -321,7 +321,7 @@ Goal: someone with zero terminal experience deploys HubRoute tracking on Vercel 
 ## 8. Phase E — Punch list & polish loop
 
 ### E-01 — Accessibility sweep
-- [ ] Done
+- [x] Done
 - **Files:** all HTML surfaces + `hubroute.php`
 - **Do:** every interactive element has a visible focus state; every input has a `<label>`; status chips include text; icon-only buttons get `aria-label`; landing/docs/tracking pass axe (0 critical) and contrast AA.
 - **Accept:** Lighthouse a11y ≥ 95 on landing, docs, demo, PHP tracking; GLOBAL GATES pass.

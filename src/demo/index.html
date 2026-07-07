@@ -25,6 +25,7 @@
     label{display:grid;gap:6px;color:var(--muted);font-size:11.5px;font-weight:500;text-transform:uppercase;letter-spacing:.03em}
     input,select,textarea{width:100%;border:1px solid var(--line-strong);border-radius:0;background:#fff;color:var(--text);padding:9px 11px;font-size:14px;text-transform:none;letter-spacing:0}
     input:focus,select:focus,textarea:focus{outline:2px solid var(--brand);outline-offset:-1px;border-color:var(--brand)}
+    a:focus-visible,.btn:focus-visible,.text-action:focus-visible,.tab:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
     textarea{min-height:88px;resize:vertical}
     input[type="checkbox"],input[type="radio"]{width:auto}
     .shell{max-width:1240px;margin:0 auto;padding:0 20px}
@@ -234,7 +235,7 @@
         </span>
         <span>HubRoute Demo</span>
       </div>
-      <div class="nav" id="nav" aria-label="Demo navigation">
+      <div class="nav" id="nav" aria-label="Primary navigation">
         <button class="tab active" data-view="dashboard">Dashboard</button>
         <button class="tab" data-view="parcels">Parcels</button>
         <button class="tab" data-view="routes">Routes</button>

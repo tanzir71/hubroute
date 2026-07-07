@@ -58,7 +58,7 @@ h2 { font-size: 20px; line-height: 1.2; margin-bottom: 8px; }
 .form { display: grid; gap: 12px; margin-top: 14px; }
 label { display: grid; gap: 6px; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .04em; font-weight: 650; }
 input { width: 100%; min-height: 38px; padding: 9px 10px; border: 1px solid var(--line-strong); border-radius: 0; font: 16px/1.4 var(--mono); color: var(--text); background: var(--panel); }
-input:focus, .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+a:focus-visible, input:focus, select:focus, textarea:focus, .btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .timeline { display: grid; gap: 10px; margin-top: 16px; }
 .event { border-left: 2px solid var(--brand); padding: 8px 0 8px 12px; }
 .event strong { display: block; }

@@ -1539,10 +1539,12 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .btn.danger:hover{background:var(--danger);border-color:var(--danger);color:var(--panel)}
     .btn:disabled{opacity:.45;cursor:not-allowed}
     input,select,textarea{width:100%;min-height:38px;padding:9px 10px;border:1px solid var(--line-strong);background:var(--panel);color:var(--text);font:inherit}
-    input:focus,select:focus,textarea:focus,.btn:focus-visible,.navlink:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+    a:focus-visible,input:focus,select:focus,textarea:focus,.btn:focus-visible,.navlink:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
     textarea{min-height:90px;resize:vertical}
     label{display:grid;gap:6px;font-size:11.5px;color:var(--muted);margin:6px 0;text-transform:uppercase;letter-spacing:.04em;font-weight:600}
     .form{display:grid;gap:10px}
+    .field-inline{flex:1;min-width:220px;margin:0}
+    .assign-field{min-width:160px;margin:0;font-size:10.5px}
     .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
     .table{width:100%;border-collapse:collapse;font-size:13px}
     .table th{position:sticky;top:52px;background:var(--panel-2);text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);border-bottom:1px solid var(--line);padding:8px 10px}
@@ -2050,12 +2052,12 @@ function pageHubParcels(PDO $pdo, array $u): void
         ])
         . '</div>' . $content;
     $content .= '<form class="row" method="get" style="margin:10px 0"><input type="hidden" name="r" value="hub_parcels">'
-        . '<div style="flex:1;min-width:220px"><input name="q" value="' . e($q) . '" placeholder="Search tracking/address"></div>'
-        . '<div style="min-width:180px"><select name="status"><option value="">All statuses</option>';
+        . '<label class="field-inline">Search parcels<input name="q" value="' . e($q) . '" placeholder="Search tracking/address"></label>'
+        . '<label class="field-inline">Filter status<select name="status"><option value="">All statuses</option>';
     foreach (['requested','assigned','en_route','picked_up','in_warehouse','out_for_delivery','delivered','failed','returned'] as $s) {
         $content .= '<option value="' . e($s) . '"' . ($status === $s ? ' selected' : '') . '>' . e($s) . '</option>';
     }
-    $content .= '</select></div>'
+    $content .= '</select></label>'
         . '<button class="btn" type="submit">Filter</button>'
         . '<a class="btn" href="?r=hub_parcels">Reset</a>'
         . '</form>';
@@ -2080,18 +2082,18 @@ function pageHubParcels(PDO $pdo, array $u): void
 
             $content .= '<td data-label="Assign">';
             $content .= '<form method="post" class="row" style="gap:6px"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '">' . idempotencyInput() . '<input type="hidden" name="action" value="hub_assign"><input type="hidden" name="parcel_id" value="' . (int)$p['id'] . '">';
-            $content .= '<select name="route_id" style="min-width:160px"><option value="">No route</option>';
+            $content .= '<label class="assign-field">Route assignment<select name="route_id" style="min-width:160px"><option value="">No route</option>';
             foreach ($routeRows as $r) {
                 $sel = ((int)$p['route_id'] === (int)$r['id']) ? ' selected' : '';
                 $content .= '<option value="' . (int)$r['id'] . '"' . $sel . '>' . e((string)$r['name']) . '</option>';
             }
-            $content .= '</select>';
-            $content .= '<select name="agent_id" style="min-width:160px"><option value="">Unassigned</option>';
+            $content .= '</select></label>';
+            $content .= '<label class="assign-field">Agent assignment<select name="agent_id" style="min-width:160px"><option value="">Unassigned</option>';
             foreach ($agentRows as $a) {
                 $sel = ((int)$p['assigned_agent_id'] === (int)$a['id']) ? ' selected' : '';
                 $content .= '<option value="' . (int)$a['id'] . '"' . $sel . '>' . e((string)$a['name']) . '</option>';
             }
-            $content .= '</select>';
+            $content .= '</select></label>';
             $content .= '<button class="btn" type="submit">Set</button>';
             $content .= '</form>';
             $content .= '</td>';
@@ -2404,7 +2406,7 @@ function pageScan(PDO $pdo, array $u): void
 
     $content = '<div class="grid cols2">';
     $content .= '<div class="card"><div class="h1">Scan / Add Event</div>';
-    $content .= '<form method="get" class="row" style="margin:10px 0"><input type="hidden" name="r" value="scan"><input name="code" value="' . e($tracking) . '" placeholder="Tracking code" style="min-width:260px" required><button class="btn" type="submit">Find</button></form>';
+    $content .= '<form method="get" class="row" style="margin:10px 0"><input type="hidden" name="r" value="scan"><label class="field-inline">Scan tracking code<input name="code" value="' . e($tracking) . '" placeholder="Tracking code" style="min-width:260px" required></label><button class="btn" type="submit">Find</button></form>';
     if (!$parcel) {
         $content .= '<div class="muted">Enter a tracking code to capture an event.</div>';
         $content .= '</div><div class="card"><div class="h1">Notes</div><div class="muted">Hub staff can record hub arrivals/departures and warehouse steps. Agents should use parcel detail for step-by-step status updates.</div></div></div>';
