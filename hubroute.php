@@ -1254,6 +1254,11 @@ function monoValue(string $value): string
     return '<span class="mono">' . e($value) . '</span>';
 }
 
+function logoMark(): string
+{
+    return '<span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 32 32" class="logo-svg" focusable="false" aria-hidden="true"><rect class="logo-bg" width="32" height="32"></rect><path class="logo-arrow" d="M6.5 25.5 L20.5 11.5" fill="none" stroke-width="3.4"></path><path class="logo-head" d="M24 8 L23.1 15.7 L15.9 14.4 Z"></path><rect class="logo-node" x="9.3" y="19.1" width="3.8" height="3.8" stroke-width="1.5"></rect></svg></span>';
+}
+
 function redactAddress(string $addr): string
 {
     $s = trim($addr);
@@ -1283,7 +1288,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     if ($currentRoute === '') {
         $currentRoute = 'track';
     }
-    $logo = '<span class="logo-mark" aria-hidden="true"><svg viewBox="0 0 32 32" class="logo-svg" focusable="false" aria-hidden="true"><rect class="logo-bg" width="32" height="32"></rect><path class="logo-arrow" d="M6.5 25.5 L20.5 11.5" fill="none" stroke-width="3.4"></path><path class="logo-head" d="M24 8 L23.1 15.7 L15.9 14.4 Z"></path><rect class="logo-node" x="9.3" y="19.1" width="3.8" height="3.8" stroke-width="1.5"></rect></svg></span>';
+    $logo = logoMark();
     $brandHref = $user ? '?r=dashboard' : '?r=track';
     $brand = '<a class="brand" href="' . e($brandHref) . '">' . $logo . '<span>' . e(APP_NAME) . '</span></a>';
     $nav = '';
@@ -1359,6 +1364,13 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:980px){.grid.cols2{grid-template-columns:minmax(0,2fr) minmax(280px,1fr)}}
     .card{background:var(--panel);border:1px solid var(--line);padding:14px}
+    .login-shell{min-height:calc(100vh - 210px);display:grid;place-items:center;padding:34px 0}
+    .login-wrap{width:min(100%,400px)}
+    .login-card{max-width:400px;background:var(--panel);border:1px solid var(--line);padding:22px}
+    .login-brand{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+    .login-title{font-weight:750;font-size:18px}
+    .login-card .btn.primary{width:100%}
+    .login-foot{margin-top:12px;text-align:center;font-size:12px}
     .h1{font-size:18px;font-weight:750;margin:0 0 8px;letter-spacing:0}
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -1411,20 +1423,14 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
 
 function pageLogin(): void
 {
-    $demoEmail = queryText('demo', 20) === 'hub' ? 'pickuphub@hubroute.local' : '';
-    $content = '<div class="card" style="max-width:520px;margin:40px auto"><div class="h1">Sign in</div>';
+    $content = '<div class="login-shell"><div class="login-wrap"><div class="login-card">';
+    $content .= '<div class="login-brand">' . logoMark() . '<div><div class="login-title">' . e(APP_NAME) . '</div><div class="muted">Parcel operations console</div></div></div>';
     $content .= '<form method="post" class="form"><input type="hidden" name="csrf" value="' . e(csrfToken()) . '"><input type="hidden" name="action" value="login">';
-    $content .= '<div><label>Email</label><input name="email" type="email" value="' . e($demoEmail) . '" required></div>';
+    $content .= '<div><label>Email</label><input name="email" type="email" required></div>';
     $content .= '<div><label>Password</label><input name="password" type="password" required></div>';
     $content .= '<button class="btn primary" type="submit">Sign in</button>';
     $content .= '</form>';
-    $content .= '<div class="card" style="padding:10px;margin-top:12px;background:#fafafa">'
-        . '<div class="h1" style="font-size:15px;margin-bottom:6px">Demo hub account</div>'
-        . '<div class="muted">Email: <strong>pickuphub@hubroute.local</strong></div>'
-        . '<div class="muted">Password: <strong>hub1234</strong></div>'
-        . '<div class="muted" style="margin-top:6px">Use for the seeded North Pickup Hub workflow. Rotate seeded credentials before production use.</div>'
-        . '</div>';
-    $content .= '<div class="muted" style="margin-top:10px">Public tracking: <a href="?r=track">Track a parcel</a></div></div>';
+    $content .= '</div><div class="login-foot muted"><a href="?r=track">Public tracking</a><div>Self-hosted &middot; PHP 8 + SQLite</div></div></div></div>';
     renderLayout('Login', null, $content);
 }
 

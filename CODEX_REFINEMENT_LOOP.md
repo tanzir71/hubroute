@@ -224,7 +224,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 - **Accept:** with a fresh DB (delete `data/hubroute.sqlite`, re-run first-run seed, or temporarily filter to an empty status) each list shows a designed empty state, not a bare table header; GLOBAL GATES pass.
 
 ### B-08 — Login screen = first impression
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php` (login route)
 - **Do:** centered 400px max card on `--bg`: logo mark + `HubRoute` + one-line subtitle (`Parcel operations console`), email/password fields per B-03, full-width primary button `Sign in`, footer link to public tracking. Below the card, a muted 12px line: `Self-hosted · PHP 8 + SQLite`. No demo credentials rendered on this screen in any mode.
 - **Accept:** login renders centered on desktop + mobile; no credentials text; focus order: email → password → submit; GLOBAL GATES pass.
