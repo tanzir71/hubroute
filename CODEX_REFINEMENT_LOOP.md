@@ -254,7 +254,7 @@ This is the highest-impact phase. The inline CSS block in `renderLayout()` (~lin
 Competitor rule (§2.2): the tracking page is the most-viewed, most-shared surface. It must look better than everything else.
 
 ### C-01 — PHP tracking page: progress stepper + hub path
-- [ ] Done
+- [x] Done
 - **Files:** `hubroute.php` (track route)
 - **Do:**
   - Header: logo + `HubRoute` (links home), no auth nav.

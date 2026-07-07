@@ -1267,6 +1267,51 @@ function statusPill(string $status): string
     return uiPill($status, statusClass($status));
 }
 
+function publicEventStage(string $eventType): int
+{
+    return match ($eventType) {
+        'delivered' => 3,
+        'out_for_delivery' => 2,
+        'hub_arrived', 'hub_departed', 'in_warehouse', 'picked_up', 'en_route', 'assigned', 'payment_collected' => 1,
+        default => 0,
+    };
+}
+
+function publicTrackingStage(string $status, array $events): int
+{
+    if (in_array($status, ['failed', 'returned'], true)) {
+        $stage = 0;
+        foreach ($events as $event) {
+            $stage = max($stage, publicEventStage((string)($event['event_type'] ?? '')));
+        }
+        return min($stage, 2);
+    }
+
+    return match ($status) {
+        'delivered' => 3,
+        'out_for_delivery' => 2,
+        'assigned', 'en_route', 'picked_up', 'in_warehouse' => 1,
+        default => 0,
+    };
+}
+
+function renderPublicProgressStepper(string $status, array $events): string
+{
+    $stage = publicTrackingStage($status, $events);
+    $steps = ['Booked', 'At hub', 'Out for delivery', 'Delivered'];
+    $html = '<div class="public-stepper" aria-label="Shipment progress">';
+    foreach ($steps as $idx => $label) {
+        $class = $idx <= $stage ? ' complete' : '';
+        $class .= $idx === $stage ? ' current' : '';
+        $html .= '<div class="public-step' . $class . '"><span class="step-marker" aria-hidden="true"></span><span class="step-label">' . e($label) . '</span></div>';
+    }
+    $html .= '</div>';
+    if (in_array($status, ['failed', 'returned'], true)) {
+        $html .= '<div class="row">' . uiPill($status, 'bg-red') . '</div>';
+    }
+    return $html;
+}
+
 function renderKpiGrid(array $items): string
 {
     $html = '<div class="kpis">';
@@ -1337,7 +1382,9 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     $brandHref = $user ? '?r=dashboard' : '?r=track';
     $brand = '<a class="brand" href="' . e($brandHref) . '">' . $logo . '<span>' . e(APP_NAME) . '</span></a>';
     $nav = '';
-    if ($user) {
+    if ($currentRoute === 'track' && !$user) {
+        $nav = '<div class="topbar public-topbar">' . $brand . '</div>';
+    } elseif ($user) {
         $links = [
             ['Dashboard', 'dashboard'],
         ];
@@ -1391,6 +1438,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     *{box-sizing:border-box}body{margin:0;font:14px/1.45 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--text);background:var(--bg)}
     a{color:var(--text);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}a:hover{color:var(--brand)}
     .topbar{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;padding:0 18px;min-height:62px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+    .topbar.public-topbar{grid-template-columns:1fr}
     .brand{display:flex;align-items:center;gap:10px;font-weight:750;letter-spacing:0;text-decoration:none}
     .logo-mark{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex:0 0 30px}
     .logo-mark svg,.logo-svg{display:block;width:30px;height:30px}
@@ -1465,6 +1513,25 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .parcel-side{display:grid;gap:12px}
     .parcel-facts{display:grid;gap:12px}
     .fact-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;border-top:1px solid var(--line);padding-top:10px}
+    .track-shell{max-width:760px;margin:0 auto;display:grid;gap:12px}
+    .track-search{padding:18px}
+    .track-search form{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:12px}
+    .track-search input{font:700 20px/1.2 var(--mono);text-transform:uppercase;letter-spacing:0}
+    .public-result{display:grid;gap:14px}
+    .public-result-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .public-code{font:800 24px/1.1 var(--mono);letter-spacing:0;word-break:break-all}
+    .public-section{display:grid;gap:8px}
+    .public-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:4px 0 0}
+    .public-step{position:relative;display:grid;gap:6px;justify-items:center;text-align:center;color:var(--muted)}
+    .public-step::before{content:"";position:absolute;top:9px;left:-50%;width:100%;height:2px;background:var(--line-strong);z-index:0}
+    .public-step:first-child::before{display:none}
+    .public-step.complete::before{background:var(--brand)}
+    .step-marker{width:18px;height:18px;background:var(--panel);border:2px solid var(--line-strong);position:relative;z-index:1}
+    .public-step.complete .step-marker{background:var(--brand);border-color:var(--brand)}
+    .public-step.current .step-label{color:var(--ink);font-weight:700}
+    .public-hub-chain{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .public-hub-node{border:1px solid var(--line-strong);background:var(--panel);padding:6px 8px;font-weight:650}
+    .public-hub-arrow{color:var(--muted);font-family:var(--mono)}
     .timeline-list{display:grid;gap:8px}
     .timeline-item{display:grid;grid-template-columns:20px minmax(0,1fr) auto;gap:10px;padding:10px;border:1px solid transparent}
     .timeline-item.latest{background:var(--brand-soft)}
@@ -1491,6 +1558,7 @@ function renderLayout(string $title, ?array $user, string $content, array $meta 
     .footer a{color:var(--muted)}
     @page{size:A6;margin:8mm}
     @media print{.topbar,.footer,.no-print{display:none!important}.wrap{max-width:none;padding:0}.label-shell{display:block}.label-sheet{width:100%;min-height:auto;border:0;padding:0;background:#fff;color:#000}body{background:#fff;color:#000}}
+    @media(max-width:640px){.public-stepper{grid-template-columns:1fr;gap:10px}.public-step{grid-template-columns:24px minmax(0,1fr);justify-items:start;text-align:left}.public-step::before{left:8px;top:-12px;width:2px;height:20px}.public-step:first-child::before{display:none}.track-search form{grid-template-columns:1fr}}
     @media(max-width:720px){.label-grid{grid-template-columns:1fr}}
     @media(max-width:720px){.table thead{display:none}.table,.table tbody,.table tr,.table td{display:block;width:100%}.table tr{border:1px solid var(--line);margin:0 0 10px;background:var(--panel)}.table td{border:0;padding:7px 8px}.table td::before{content:attr(data-label);display:block;font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px}.table td[data-label=""]::before{display:none}}
     @media(max-width:720px){.timeline-item{grid-template-columns:20px minmax(0,1fr)}.timeline-time{grid-column:2;text-align:left}}
@@ -1554,19 +1622,32 @@ function pagePublicTrack(PDO $pdo): void
 {
     $code = preg_replace('/[^A-Za-z0-9_-]/', '', queryText('code', 64)) ?? '';
     $hasCode = $code !== '';
-    $content = '<div class="grid cols2">';
-    $content .= '<div class="card"><div class="h1">Track a Parcel</div><div class="muted">Enter a tracking code to see current status and hub-to-hub movement.</div>';
-    $content .= '<form class="form" method="get" style="margin-top:10px"><input type="hidden" name="r" value="track">';
-    $content .= '<div><label>Tracking code</label><input name="code" value="' . e($code) . '" placeholder="e.g., HR240101ABCDEFGH" required></div>';
+    $content = '<div class="track-shell">';
+    $content .= '<div class="card track-search"><div class="h1">Track a parcel</div><div class="muted">Enter the tracking code from your receipt or merchant confirmation.</div>';
+    $content .= '<form method="get"><input type="hidden" name="r" value="track">';
+    $content .= '<div><label>Tracking code</label><input name="code" value="' . e($code) . '" placeholder="HR260703DHK1A2" autocomplete="off" spellcheck="false" required></div>';
     $content .= '<button class="btn primary" type="submit">Track</button>';
-    $content .= '</form></div>';
+    $content .= '</form>';
+
+    if (!$hasCode) {
+        $samples = $pdo->query("SELECT tracking_code FROM parcels ORDER BY id DESC LIMIT 5")->fetchAll();
+        if (count($samples) > 0) {
+            $content .= '<div class="row" style="margin-top:12px">';
+            foreach ($samples as $r) {
+                $sampleCode = (string)$r['tracking_code'];
+                $content .= '<a class="btn secondary" href="?r=track&code=' . e($sampleCode) . '">' . e($sampleCode) . '</a>';
+            }
+            $content .= '</div>';
+        }
+    }
+    $content .= '</div>';
 
     if ($hasCode) {
-        $stmt = $pdo->prepare("SELECT p.* FROM parcels p WHERE p.tracking_code=?");
+        $stmt = $pdo->prepare("SELECT id, tracking_code, status, current_hub_id, updated_at FROM parcels WHERE tracking_code=?");
         $stmt->execute([$code]);
         $p = $stmt->fetch();
         if (!$p) {
-            $content .= '<div class="card"><div class="h1">Not found</div><div class="muted">No parcel found for that tracking code.</div></div>';
+            $content .= '<div class="card"><div class="h1">No parcel found for that code</div><div class="muted">No parcel found for that code &mdash; check the number and try again.</div></div>';
         } else {
             $events = $pdo->prepare("SELECT e.*, h.name AS hub_name FROM events e LEFT JOIN hubs h ON h.id=e.hub_id WHERE e.parcel_id=? ORDER BY e.ts DESC LIMIT 30");
             $events->execute([(int)$p['id']]);
@@ -1597,61 +1678,48 @@ function pagePublicTrack(PDO $pdo): void
                 $currentHubName = $h->fetchColumn() ?: null;
             }
 
-            $content .= '<div class="card">'
-                . '<div class="h1">' . e((string)$p['tracking_code']) . '</div>'
-                . '<div class="row" style="margin-bottom:10px">'
-                . statusPill((string)$p['status'])
-                . '<span class="muted">Last updated: ' . e((string)$p['updated_at']) . '</span>'
-                . ($currentHubName ? '<span class="pill">Current hub: ' . e((string)$currentHubName) . '</span>' : '')
-                . '</div>';
+            $content .= '<div class="card public-result">';
+            $content .= '<div class="public-result-head"><div><div class="muted">Tracking code</div><div class="public-code mono">' . e((string)$p['tracking_code']) . '</div></div><div class="row">' . statusPill((string)$p['status']) . '<span class="muted mono">Updated ' . e((string)$p['updated_at']) . '</span>' . ($currentHubName ? '<span class="pill">Current hub: ' . e((string)$currentHubName) . '</span>' : '') . '</div></div>';
+            $content .= renderPublicProgressStepper((string)$p['status'], $evs);
 
-            $content .= '<div class="card" style="padding:10px">'
-                . '<div class="muted" style="font-size:12px;margin-bottom:6px">Hub path</div>';
+            $content .= '<div class="public-section"><div class="muted" style="font-size:12px">Hub path</div>';
             if (count($hubPath) === 0) {
                 $content .= '<div class="muted">No hub updates yet.</div>';
             } else {
+                $content .= '<div class="public-hub-chain">';
+                $firstHub = true;
                 foreach ($hubPath as $h) {
-                    $content .= '<div style="padding:6px 0;border-bottom:1px solid var(--line)"><div><strong>' . e((string)$h['hub_name']) . '</strong></div><div class="muted" style="font-size:12px">' . e((string)$h['first_ts']) . (isset($h['last_ts']) ? ' → ' . e((string)$h['last_ts']) : '') . '</div></div>';
+                    if (!$firstHub) {
+                        $content .= '<span class="public-hub-arrow" aria-hidden="true">&rarr;</span>';
+                    }
+                    $content .= '<span class="public-hub-node">' . e((string)$h['hub_name']) . '</span>';
+                    $firstHub = false;
                 }
+                $content .= '</div>';
             }
             $content .= '</div>';
 
-            $content .= '<div class="card" style="padding:10px;margin-top:10px">'
-                . '<div class="muted" style="font-size:12px;margin-bottom:6px">Addresses</div>'
-                . '<div><span class="muted">Pickup:</span> ' . e(redactAddress((string)$p['pickup_address'])) . '</div>'
-                . '<div><span class="muted">Dropoff:</span> ' . e(redactAddress((string)$p['dropoff_address'])) . '</div>'
-                . '</div>';
-
-            $content .= '<div class="card" style="padding:10px;margin-top:10px">'
-                . '<div class="muted" style="font-size:12px;margin-bottom:6px">Recent events</div>';
-            $content .= '<table class="table"><thead><tr><th>Time</th><th>Event</th><th>Hub</th><th>Note</th></tr></thead><tbody>';
-            foreach ($evs as $ev) {
-                $note = (string)($ev['note'] ?? '');
-                $safeNote = hrLen($note) > 180 ? (hrSub($note, 0, 180) . '…') : $note;
-                $content .= '<tr>'
-                    . tableCell('Time', monoValue((string)$ev['ts']), 'muted mono')
-                    . tableCell('Event', e((string)$ev['event_type']))
-                    . tableCell('Hub', e((string)($ev['hub_name'] ?? '')))
-                    . tableCell('Note', e($safeNote), 'muted')
-                    . '</tr>';
+            $content .= '<div class="public-section"><div class="muted" style="font-size:12px">Timeline</div>';
+            if (count($evs) === 0) {
+                $content .= renderEmptyState('No events yet', 'Custody events will appear here once the parcel starts moving.', 'Track another', '?r=track');
+            } else {
+                $content .= '<div class="timeline-list public-timeline">';
+                foreach ($evs as $idx => $ev) {
+                    $eventType = (string)$ev['event_type'];
+                    $note = (string)($ev['note'] ?? '');
+                    $safeNote = hrLen($note) > 180 ? (hrSub($note, 0, 180) . '...') : $note;
+                    $content .= '<div class="timeline-item' . ($idx === 0 ? ' latest' : '') . '">'
+                        . '<div class="timeline-line"><span class="led ' . e(eventStatusClass($eventType)) . '" aria-hidden="true"></span></div>'
+                        . '<div><div class="timeline-event">' . e($eventType) . '</div><div class="muted">' . e((string)($ev['hub_name'] ?? '')) . '</div><div class="muted">' . e($safeNote) . '</div></div>'
+                        . '<div class="timeline-time">' . e((string)$ev['ts']) . '</div>'
+                        . '</div>';
+                }
+                $content .= '</div>';
             }
-            $content .= '</tbody></table>';
+            $content .= '</div>';
             $content .= '<div class="muted" style="margin-top:8px">Auto-refreshes every 15 seconds while open.</div>';
             $content .= '</div>';
-            $content .= '</div>';
         }
-    } else {
-        $any = $pdo->query("SELECT tracking_code FROM parcels ORDER BY id DESC LIMIT 5")->fetchAll();
-        $content .= '<div class="card"><div class="h1">Try a sample code</div>';
-        if (count($any) === 0) {
-            $content .= '<div class="muted">No parcels yet.</div>';
-        } else {
-            foreach ($any as $r) {
-                $c = (string)$r['tracking_code'];
-                $content .= '<div style="padding:6px 0"><a href="?r=track&code=' . e($c) . '">' . e($c) . '</a></div>';
-            }
-        }
-        $content .= '</div>';
     }
 
     $content .= '</div>';
