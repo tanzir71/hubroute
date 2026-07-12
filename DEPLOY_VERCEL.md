@@ -1,5 +1,10 @@
 # Deploy HubRoute Tracking on Vercel
 
+- Public product site: <https://hubroute-ops.vercel.app/>
+- Zero-config browser walkthrough: <https://hubroute.vercel.app/>
+
+The walkthrough is a static localStorage sandbox. The Vercel starter documented below is a separate hosted-storage foundation and requires Turso plus secrets; it is not the PHP shared-hosting production bundle.
+
 [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Ftanzir71%2Fhubroute%2Ftree%2Fmain%2Fvercel-app&env=TURSO_DATABASE_URL,TURSO_AUTH_TOKEN,SESSION_SECRET,CRON_SECRET,SETUP_SECRET&project-name=hubroute-tracking&repository-name=hubroute-tracking)
 
 This guide deploys the Vercel starter in `vercel-app/`: public tracking, setup, health, and maintenance cron plumbing backed by Turso/libSQL.

@@ -2,6 +2,12 @@
 
 HubRoute is a self-hosted courier & parcel operations console with a simple PHP 8 + SQLite backend for shared hosting or a small VPS. It supports customer pickup requests, system-generated tracking numbers, hub assignment, rider delivery runs, public tracking, COD settlement, audit logging, idempotent mutations, and route CSV export.
 
+## Website & demo
+
+- [Landing page](https://hubroute-ops.vercel.app/)
+- [Seeded browser walkthrough](https://hubroute.vercel.app/) — localStorage sandbox; do not enter real parcel or customer data
+- [Sample public tracking](https://hubroute.vercel.app/track?code=HR260703DHK1A2)
+
 Production app entry: `hubroute.php`
 Production PHP files: `hubroute.php`, `maintenance.php`, `index.php`, `health.php`, `.htaccess`, `.env.example`
 Setup runbook: [SETUP.md](SETUP.md)

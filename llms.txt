@@ -1,0 +1,48 @@
+# HubRoute
+
+> Parcel operations on PHP 8 + SQLite hosting you control, with no per-order software fee.
+
+Website: https://hubroute-ops.vercel.app/
+Browser walkthrough: https://hubroute.vercel.app/
+Sample public tracking: https://hubroute.vercel.app/track?code=HR260703DHK1A2
+Source: https://github.com/tanzir71/hubroute
+
+## What it is
+
+HubRoute is a self-hosted courier and parcel operations console for small teams. It covers customer pickup requests, generated tracking numbers, hub custody, route and rider assignment, scan events, public tracking, COD settlement, audit logs, and idempotent mutations.
+
+## Production path
+
+The supported low-cost production path is PHP 8.1+ with SQLite on shared hosting or a small VPS. The runtime is packaged as a zip for cPanel/File Manager upload. SQLite is intentionally a one-writer database and fits small fleets; it is not the scale plan for a high-concurrency national network.
+
+Build the shared-hosting package:
+
+    npm ci
+    npm run package:php
+
+The artifact is written to dist/hubroute-php-sqlite.zip. Upload and extract it in public_html, enable pdo_sqlite and sqlite3, then open /health.php. Create a real administrator and rotate or disable every seed account before real operations.
+
+## Browser walkthrough
+
+The hosted walkthrough is a generated, zero-config static demo with seeded Bangladesh hubs, routes, riders, customers, parcels, tracking events, and COD states. Mutations persist only in browser localStorage. It never contacts a production database. Use the visible reset control to restore seed data.
+
+## Vercel starter
+
+vercel-app/ is a separate hosted-storage starter using Vercel Functions and Turso/libSQL. It includes /api/health, /api/setup, /api/track, and /api/cron/maintenance. It requires TURSO_DATABASE_URL, TURSO_AUTH_TOKEN, SESSION_SECRET, CRON_SECRET, and SETUP_SECRET. It is not the PHP production bundle and not the zero-config browser walkthrough.
+
+## Honest scope
+
+- HubRoute records routes and custody but does not provide route-optimization AI.
+- SQLite allows one writer at a time.
+- Hosting, domains, database services, and operational support can still cost money.
+- Seed credentials are public demo credentials and must be rotated or disabled in production.
+
+## Core files
+
+- hubroute.php — complete PHP operations application
+- maintenance.php — backup-first retention job
+- health.php — deployment self-check
+- src/domain/ — status, authorization, idempotency, and audit rules
+- src/demo/ — browser walkthrough source
+- public/ and vercel-demo/ — generated demo artifacts
+- DEPLOY_VERCEL.md — hosted-storage starter guide

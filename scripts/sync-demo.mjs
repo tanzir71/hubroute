@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const mirrors = [
   [path.join(root, "public", "index.html"), path.join(root, "vercel-demo", "index.html")],
+  [path.join(root, "public", "index.html"), path.join(root, "vercel-demo", "track.html")],
   [path.join(root, "public", "styles", "tokens.css"), path.join(root, "vercel-demo", "styles", "tokens.css")]
 ];
 const checkOnly = process.argv.includes("--check");
