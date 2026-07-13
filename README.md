@@ -14,6 +14,33 @@ Setup runbook: [SETUP.md](SETUP.md)
 Security notes: [SECURITY.md](SECURITY.md)
 Repository: <https://github.com/tanzir71/hubroute>
 
+## Architecture
+
+The production app is deliberately boring: **one PHP entry file + one SQLite file**, so it runs on any $2/month shared host.
+
+```
+Browser (staff, riders, customers, public tracking)
+        │  HTTPS
+        ▼
+┌─────────────────────────── your web host ───────────────────────────┐
+│  .htaccess ──► index.php ──► hubroute.php   (the whole application)  │
+│                                  │                                    │
+│    roles: Admin · Hub · Agent · Customer · Public                     │
+│    guards: sessions · CSRF tokens · rate limits · authorization       │
+│                                  ▼                                    │
+│                        data/hubroute.sqlite                           │
+│     parcels · tracking events · routes · COD settlements ·            │
+│     users · audit log · idempotency keys · rate-limit rows            │
+│                                                                       │
+│  health.php       → deployment self-check                             │
+│  maintenance.php  → cron: backup SQLite, prune old rows               │
+└───────────────────────────────────────────────────────────────────────┘
+```
+
+How a parcel flows: **customer pickup request → tracking number generated → assigned to a hub → added to a rider's delivery run → status events append to the tracking timeline (publicly visible) → COD settled → audit-logged at every privileged step.** All state-changing writes carry idempotency keys, so a double-submitted form or retried request can't create duplicates.
+
+The executable business rules live as small testable modules in `src/domain/` (status transitions, authorization, idempotency, audit), and the M1 backend contract is documented in [docs/m1-backend-contract.md](docs/m1-backend-contract.md). A separate Vercel-ready starter (`vercel-app/`, using libSQL/Turso) exists for cloud demos — the PHP+SQLite bundle remains the production path.
+
 ## Get Running Fast
 
 Shared-hosting production zip, no terminal required:
